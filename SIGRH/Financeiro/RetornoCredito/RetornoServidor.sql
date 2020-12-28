@@ -18,20 +18,22 @@ select
     case f.flcalculodefinitivo when 'S' then 'SIM' else 'NAO' end as FolhaDefinitiva,
     capa.nuretcreditoocor1 as CodigoRetornoCredito,
     capa.nmarqretorno as ArquivoRetorno,
-    capa.dtretorno as DataRetorno
+    capa.dtretorno as DataRetorno,
+    f.cdfolhapagamento,
+    v.cdvinculo
 
 from epagcapahistrubricavinculo capa
 inner join epagfolhapagamento f on f.cdfolhapagamento = capa.cdfolhapagamento
 left join ecadvinculo v on v.cdvinculo = capa.cdvinculo
 
 where f.nuanoreferencia = '2020'
-  and f.numesreferencia = '09'
+  and f.numesreferencia = '10'
   and f.flcalculodefinitivo = 'S'
   --and f.cdtipofolhapagamento = '2'
   --and nuretcreditoocor1 = '00'
   --and nmarqretorno = 'SB30050A'
   --and dtretorno = '30/05/20';
-  and v.numatricula in (953623, 951607, 953684, 949716)
+  and v.numatricula in (952261)
 
 order by
     v.numatricula,

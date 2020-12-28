@@ -20,10 +20,10 @@ select
   when 'N' then 'INATIVO'
   else ' '
  end Situacao,
- rtr.nmregimetrabalho as RegimeTrabalho,
- rt.nmrelacaotrabalho as RelacaoTrabalho,
- rp.nmregimeprevidenciario RegimePrevidenciario,
- tr.nmtiporegimeproprioprev RegimePrevidenciarioProprio, 
+ upper(rtr.nmregimetrabalho) as RegimeTrabalho,
+ upper(rt.nmrelacaotrabalho) as RelacaoTrabalho,
+ upper(rp.nmregimeprevidenciario) RegimePrevidenciario,
+ upper(tr.nmtiporegimeproprioprev) RegimePrevidenciarioProprio,
 
  d.decargocomissionado as CargoComissionado,
  c.deitemcarreira as CargoEfetivo,
@@ -33,12 +33,13 @@ select
  cc.nmcentrocusto CentroCusto,
 
  case capa.sgtipocredito
-  when 'FI' then 'Fundo Financeiro'
-  when 'PR' then 'Fundo Previdenciario'
-  when 'GE' then 'Geral - Comissionados'
-  when 'GO' then 'Geral - CLT/Outros'
+  when 'FI' then 'FUNDO FINANCEIRO'
+  when 'PR' then 'FUNDO PREVIDENCIARIO'
+  when 'GE' then 'GERAL - COMISSIONADOS'
+  when 'GO' then 'GERAL - CLT/OUTROS'
   else ' '
  end Fundo,
+ case capa.cdtipogeracaocredito when 1 then 'GERAL' when 2 then 'COMISSIONADOS' else '' end as TipoGeracaoCredito,
 
  case
   when pp.cdhistpensaoprevidenciaria is not null then 'PENSÃO PREVIDENCIÁRIA'
@@ -51,6 +52,7 @@ select
   when capa.cdrelacaotrabalho = 5  then 'EFETIVO'
   when capa.cdrelacaotrabalho = 10 then 'EFETIVO À DISPOSICAO'
   when capa.cdrelacaotrabalho = 6  then 'COMISSIONADO'
+  when capa.cdrelacaotrabalho = 2  then 'ESTAGIARIO'
   when cef.cdhistcargoefetivo is not null then 'EFETIVO' 
   else 'W-INDEFINIDO'
  end as Classificacao,

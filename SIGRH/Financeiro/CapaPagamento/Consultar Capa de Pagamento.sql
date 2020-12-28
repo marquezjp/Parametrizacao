@@ -3,11 +3,7 @@ select
  f.nuanoreferencia as Ano,
  f.numesreferencia as Mes,
  tf.nmtipofolhapagamento as Folha,
- case f.cdtipocalculo
-  when 1 then 'NORMAL'
-  when 5 then 'SUPLEMENTAR'
-  else to_char(f.cdtipocalculo)
- end as Calculo,
+ upper(tc.nmtipocalculo) as Calculo,
  lpad(f.nusequencialfolha,2,'0') as SeqFolha,
  case f.flcalculodefinitivo when 'N' then 'NAO' when 'S' then 'SIM' else '' end as Definitivo,
 
@@ -24,33 +20,34 @@ select
   when 'S' then 'ATIVO'
   when 'N' then 'INATIVO'
   else ' '
- end Situacao,
- rtr.nmregimetrabalho as RegimeTrabalho,
- rt.nmrelacaotrabalho as RelacaoTrabalho,
- rp.nmregimeprevidenciario RegimePrevidenciario,
- tr.nmtiporegimeproprioprev RegimePrevidenciarioProprio,
+ end as Situacao,
+ upper(rtr.nmregimetrabalho) as RegimeTrabalho,
+ upper(rt.nmrelacaotrabalho) as RelacaoTrabalho,
+ upper(rp.nmregimeprevidenciario) RegimePrevidenciario,
+ upper(tr.nmtiporegimeproprioprev) RegimePrevidenciarioProprio,
  
  hu.nmunidadeorganizacional as UnidadeOrganizacional,
  cc.nucentrocusto CodigoCentroCusto,
  cc.nmcentrocusto CentroCusto,
 
- d.decargocomissionado as CargoComissionado,
- capa.nureferenciacco || capa.nunivelcco as NivelComissionado,
+ cr.deitemcarreira as Carreira,
  c.deitemcarreira as CargoEfetivo,
  capa.nugruposalarial || capa.nunivelcef || capa.nureferenciacef as NivelAtual,
+ d.decargocomissionado as CargoComissionado,
+ capa.nureferenciacco || capa.nunivelcco as NivelComissionado,
 
  decode(mdf.demotivoafastdefinitivo, null, mtp.demotivoafasttemporario, mdf.demotivoafastdefinitivo) Afastamento,
 
  case capa.sgtipocredito
-  when 'FI' then 'Fundo Financeiro'
-  when 'PR' then 'Fundo Previdenciario'
-  when 'GE' then 'Geral - Comissionados'
-  when 'GO' then 'Geral - CLT/Outros'
+  when 'FI' then 'FUNDO FINANCEIRO'
+  when 'PR' then 'FUNDO PREVIDENCIARIO'
+  when 'GE' then 'GERAL - COMISSIONADOS'
+  when 'GO' then 'GERAL - CLT/OUTROS'
   else ' '
  end Fundo,
- cc.sgarquivocredito as SiglaCredito,
- capa.CdTipoGeracaoCredito as TipoGeracaoCredito,
- capa.NuFaixaCredito as FaixaCredito,
+ cc.sgarquivocredito as SiglaArquivoCredito,
+ case capa.cdtipogeracaocredito when 1 then 'GERAL' when 2 then 'COMISSIONADOS' else '' end as TipoGeracaoCredito,
+ capa.nufaixacredito as FaixaCredito,
 
  case
   when pp.cdhistpensaoprevidenciaria is not null then 'PENSÃO PREVIDENCIÁRIA'
@@ -63,6 +60,7 @@ select
   when capa.cdrelacaotrabalho = 5  then 'EFETIVO'
   when capa.cdrelacaotrabalho = 10 then 'EFETIVO À DISPOSICAO'
   when capa.cdrelacaotrabalho = 6  then 'COMISSIONADO'
+  when capa.cdrelacaotrabalho = 2  then 'ESTAGIARIO'
   when cef.cdhistcargoefetivo is not null then 'EFETIVO' 
   else 'W-INDEFINIDO'
  end as Classificacao,
@@ -85,6 +83,7 @@ select
 from epagcapahistrubricavinculo capa
 inner join epagfolhapagamento f on f.cdfolhapagamento = capa.cdfolhapagamento and f.flcalculodefinitivo = 'S'
 inner join epagtipofolhapagamento tf on tf.cdtipofolhapagamento = f.cdtipofolhapagamento
+inner join epagtipocalculo tc on tc.cdtipocalculo = f.cdtipocalculo
 inner join vcadorgao o on o.cdorgao = f.cdorgao
 
 inner join ecadvinculo v on v.cdvinculo = capa.cdvinculo
@@ -101,11 +100,18 @@ inner join ecadhistunidadeorganizacional hu on hu.cdunidadeorganizacional = u.cd
 
 inner join ecadcentrocusto cc on cc.cdcentrocusto = capa.cdcentrocusto
 
-left join ecadevolucaocargocomissionado d on d.cdcargocomissionado = capa.cdcargocomissionado
+left join ecadhistcargoefetivo cef on cef.cdvinculo = capa.cdvinculo and cef.flanulado = 'N' and cef.flprincipal = 'S'
+      and (cef.dtinicio < last_day(sysdate) + 1) and (cef.dtfim is null or cef.dtfim > last_day(sysdate))
+left join ecadestruturacarreira es on es.cdestruturacarreira = cef.cdestruturacarreira
+left join ecaditemcarreira c on c.cditemcarreira = es.cditemcarreira
+left join ecadestruturacarreira cp on cp.cdestruturacarreira = es.cdestruturacarreirapai
+left join ecaditemcarreira cr on cr.cditemcarreira = cp.cditemcarreira
+
+left join ecadevolucaocargocomissionado d on d.cdcargocomissionado = capa.cdcargocomissionado  and d.flanulado = 'N'
+      and (d.dtiniciovigencia < last_day(sysdate) + 1) and (d.dtfimvigencia is null or d.dtfimvigencia > last_day(sysdate))
 left join ecadestruturacarreira es on es.cdestruturacarreira = capa.cdestruturacarreira
 left join ecaditemcarreira c on c.cditemcarreira = es.cditemcarreira
 
-left join ecadhistcargoefetivo cef on cef.cdvinculo = capa.cdvinculo and cef.flanulado = 'N'
 left join epvdhistpensaoprevidenciaria pp on pp.cdvinculo = capa.cdvinculo and pp.flanulado = 'N'
 left join epvdhistpensaonaoprev pnp on pnp.cdvinculobeneficiario = capa.cdvinculo and pnp.flanulado = 'N'
 
@@ -114,6 +120,9 @@ left  join eafahistmotivoafasttemp mtp on mtp.cdmotivoafasttemporario = capa.cdm
 
 where nvl(capa.vlproventos, 0) > 0
   and f.nuanoreferencia = 2020
+  and f.numesreferencia = 12
+  and f.cdtipofolhapagamento = '2'
   and o.sgorgao = 'SEMGE'
+  and v.numatricula = 949469
 
 order by 3, 2, 1
