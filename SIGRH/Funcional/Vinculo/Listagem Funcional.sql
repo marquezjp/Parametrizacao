@@ -1,8 +1,16 @@
+select Orgao, Matricula, CPF, Nome, FoneResidencial, FoneComercial, Celular, eMail1, eMail2, eMail3, Situacao, Regimetrabalho, RelacaoTrabalho, AfastadoSemRemuneracao, Relacao, Classificacao, Observacao
+from (
 select
  o.sgorgao as Orgao,
  lpad(v.numatricula || '-' || nudvmatricula,9,0) as Matricula,
  lpad(p.nucpf, 11, 0) CPF,
  p.nmpessoa as Nome,
+ DECODE( NVL(p.nutelefoneres, 0), 0, null, '(' || NVL(p.nudddres,'00') || ')' || p.nutelefoneres) as FoneResidencial,
+ DECODE( NVL(p.nutelefonecont, 0), 0, null, '(' || NVL(p.nudddcont,'00') || ')' || p.nutelefonecont) as FoneComercial,
+ DECODE( NVL(p.nucelular, 0), 0, null, '(' || NVL(p.nudddcel,'00') || ')' || p.nucelular) as Celular,
+ upper(p.deemail) as eMail1,
+ upper(p.deemailalternativo1) as eMail2,
+ upper(p.deemailalternativo2) as eMail3,
  p.dtnascimento as DataNascimento,
  trunc((sysdate - p.dtnascimento) / 365) as Idade,
  p.flsexo as Sexo,
@@ -244,7 +252,7 @@ left join epagcapahistrubricavinculo capa on capa.cdfolhapagamento = f.cdfolhapa
 left  join eafahistmotivoafastdef mdf on mdf.cdmotivoafastdefinitivo = capa.cdmotivoafastdefinitivo and mdf.dtfimvigencia is null
 left  join eafahistmotivoafasttemp mtp on mtp.cdmotivoafasttemporario = capa.cdmotivoafasttemporario and mtp.dtfimvigencia is null
 
---where v.flanulado = 'N' and (v.dtdesligamento is null or v.dtdesligamento > last_day(sysdate))
+where v.flanulado = 'N' and (v.dtdesligamento is null or v.dtdesligamento > last_day(sysdate))
 --  and v.cdvinculo not in (select v.cdvinculo from ecadvinculo v
 --                          inner join vcadorgao o on o.cdorgao = v.cdorgao
 --                          where v.dtadmissao < last_day(sysdate) + 1
@@ -257,6 +265,9 @@ left  join eafahistmotivoafasttemp mtp on mtp.cdmotivoafasttemporario = capa.cdm
 --                                                 and (v.dtdesligamento > last_day(sysdate) or v.dtdesligamento is null)
 --                                                 and o.sgorgao = 'COMARHP'))
 
-where v.flanulado = 'N'
-  and o.sgorgao = 'SEMGE'
-  and v.numatricula = 23218
+--where v.flanulado = 'N'
+--  and o.sgorgao = 'SEMGE'
+--  and v.numatricula = 23218
+)
+where Relacao in ('EFETIVO + COMISSIONADO', 'COMISSIONADO PURO', 'DISPOSIÇÃO + COMISSIONADO')
+order by 1, 4
