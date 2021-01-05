@@ -39,18 +39,19 @@ update ecadlocaltrabalho loc
 set loc.cdunidadeorganizacional = (select cdunidadeorganizacional from vcadunidadeorganizacional
 								  where cdorgao = (select cdorgao from vcadorgao where sgorgao = '&p_sg_orgao_destino')
 								    and sgunidadeorganizacional = '&p_sg_unidade_organizacional_destino')
-where loc.cdvinculo = select cdvinculo from ecadvinculo where numatricula = &p_numtricula
-  and loc.dtfim = select dtdesligamento from ecadvinculo where numatricula = &p_numtricula;
+where loc.cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &p_numtricula)
+  and loc.dtfim = (select dtdesligamento from ecadvinculo where numatricula = &p_numtricula);
 
 -- Atualizar o Historico de Centro de Custo com o novo Centro de Custo
 update ecadhistcentrocustovinculo ccv
 set ccv.cdcentrocusto = (select cdcentrocusto from ecadcentrocusto
 						  where cdorgao = (select cdorgao from vcadorgao where sgorgao = '&p_sg_orgao_destino')
 							and nucentrocusto = '&p_nu_centro_custo_destino')
-where ccv.cdvinculo = select cdvinculo from ecadvinculo where numatricula = &p_numtricula
-  and ccv.dtfimvigencia = select dtdesligamento from ecadvinculo where numatricula = &p_numtricula;
+where ccv.cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &p_numtricula)
+  and ccv.dtfimvigencia = (select dtdesligamento from ecadvinculo where numatricula = &p_numtricula);
 
 -- Atualizar o Historico do Cargo Comissionado com o Órgão em Exercicio se Comissionado
 update ecadhistcargocom cco
 set cco.cdorgaoexercicio = (select cdorgao from vcadorgao where sgorgao = '&p_sg_orgao_destino')
-where cco.cdvinculo = select cdvinculo from ecadvinculo where numatricula = &p_numtricula;
+where cco.cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &p_numtricula)
+  and cco.dtfim = (select dtdesligamento from ecadvinculo where numatricula = &p_numtricula);
