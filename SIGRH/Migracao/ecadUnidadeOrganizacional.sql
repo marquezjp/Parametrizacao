@@ -1,106 +1,135 @@
-select 
- pd.sgpoder,
- pd.nmpoder,
- a.sgagrupamento,
- a.nmagrupamento,
+select
+ --- Agrupamento ---
+ poder.sgpoder as sigla_do_poder,
+ agrup.sgagrupamento as sigla_agrupamento_de_orgao,
+ --agrup.nmagrupamento as agrupamento_de_orgao,
  
- o.sgorgao,
- o.nmorgao,
- o.nucnpj,
- o.nuinscestadual,
- o.nuinscricaomunic,
- 
- tpo.nmtipoorgao,
- tpo.cdnaturezajuridicarais,
- o.nucnpjfonterenda,
- o.cdorgaosirh,
-
- o.nuddd as nudddorgao,
- o.nutelefone as nutelefoneorgao,
- o.nuramal as nuramalorgao,
- o.nudddfax as nudddfaxorgao,
- o.nufax as nufaxorgao,
- o.nuramalfax as nuramalfaxorgao,
-
- endorgao.nucep as nuceporgao,
- endorgao.nmtipologradouro as nmtipologradouroorgao,
- endorgao.nmlogradouro as nmlogradouroorgao,
- endorgao.nunumero as nunumeroorgao,
- endorgao.decomplemento as decomplementoorgao,
- endorgao.nmunidade as nmunidadeorgao,
- endorgao.nucaixapostal as nucaixapostalorgao,
- endorgao.nmbairro as nmbairroorgao,
- endorgao.nmlocalidade as nmlocalidadeorgao,
- endorgao.sgestado as sgestadoorgao,
- endorgao.cdibge as cdibgeorgao,
- 
- o.dtiniciovigencia as dtiniciovigenciaorgao,
+ -- Orgao ---
+ orgao.sgorgao as sigla_do_orgao,
+ orgao.nmorgao as nome_orgao,
+ orgao.nucnpj as cnpj_orgao,
+ orgao.nuinscestadual as inscricao_estadual_orgao,
+ orgao.nuinscricaomunic as inscricao_municipal_orgao,
+ tpo.nmtipoorgao as tipo_orgao,
+ tpo.cdnaturezajuridicarais as natureza_juridica_rais,
+ orgao.nucnpjfonterenda as cnpj_fonte_pagadora,
+ orgao.cdorgaosirh as codigo_sirg_orgao,
+ orgao.dtiniciovigencia as data_inicio_vigencia_orgao,
  --o.dtfimvigencia as dtfimvigenciaorgao,
+
+ --- Telefone do Orgao ---
+ orgao.nuddd as ddd_orgao,
+ orgao.nutelefone as telefone_orgao,
+ orgao.nuramal as ramal_orgao,
+ orgao.nudddfax as ddd_fax_orgao,
+ orgao.nufax as fax_orgao,
+ orgao.nuramalfax as ramal_fax_orgao,
  
- huo.sgunidadeorganizacional,
- huo.nmunidadeorganizacional,
+ --- Endereco do Orgao ---
+ endorgao.nucep as cep_orgao,
+ endorgao.nmtipologradouro as tipo_logradouro_end_orgao,
+ endorgao.nmlogradouro as logradouro_endereco_orgao,
+ endorgao.nunumero as numero_endreco_orgao,
+ endorgao.decomplemento as complemento_endereco_orgao,
+ endorgao.nmunidade as unidade_orgao,
+ endorgao.nucaixapostal as caixa_postal_orgao,
+ endorgao.nmbairro as bairro_endereco_orgao,
+ endorgao.nmlocalidade as municipio_endereco_orgao,
+ endorgao.sgestado as estado_endereco_orgao,
+ endorgao.cdibge as codigo_ibge_endreco_orgao,
 
- huo.nuinep,
-
- tpuo.nmtipounidorg,
- tpuo.flensino,
- tpuo.flescola,
+ --- Unidade Organizacional ---
+ uo.sgunidadeorganizacional as sigla_unidade_organizacional,
+ uo.nmunidadeorganizacional as nome_unidade_organizacional,
+ uo.nuinep as codigo_inep_unid_organiz,
+ tpuo.nmtipounidorg as tipo_unidade_organizacional,
+ tpuo.flensino as se_unidade_de_ensino,
+ tpuo.flescola as se_unidade_escola,
+ uo.cdlotacaosirh as codigo_lotacao_sirh,
+ uosup.sgunidadeorganizacional as sigla_unid_organiza_superior,
+ uosup.nmunidadeorganizacional as nome_unid_organiz_superior,
+ uo.nucargahoraria as carga_horaria_unid_organizl,
+ tpch.nmtipocargahoraria as tipo_carga_hor_unid_organiz,
+ uo.dtiniciovigencia as data_inicio_vig_unid_organiz
+ --uo.dtfimvigencia as data_fim_vig_unid_organiz,
  
- huo.cdlotacaosirh,
- huosup.sgunidadeorganizacional as sguosuperior,
- huosup.nmunidadeorganizacional as nmuosuperior,
-
- huo.nucargahoraria,
- tpch.nmtipocargahoraria,
-
- huo.nuddd as nuddduo,
- huo.nutelefone as nutelefoneuo,
- huo.nuramal as nuramaluo,
- huo.nudddfax as nudddfaxuo,
- huo.nufax as nufaxuo,
- huo.nuramalfax as nuramalfaxuo,
-
- enduo.nucep as nucepuo,
- enduo.nmtipologradouro as nmtipologradourouo,
- enduo.nmlogradouro as nmlogradourouo,
- enduo.nunumero as nunumerouo,
- enduo.decomplemento as decomplementouo,
- enduo.nmunidade as nmunidadeuo,
- enduo.nucaixapostal as nucaixapostaluo,
- enduo.nmbairro as nmbairrouo,
- enduo.nmlocalidade as nmlocalidadeuo,
- enduo.sgestado as sgestadouo,
- enduo.cdibge as cdibgeuo,
+ --- Telefone da Unidade Organizacional ---
+ uo.nuddd as ddd_unidade_organizacional,
+ uo.nutelefone as telefone_unid_organiz,
+ uo.nuramal as ramal_unidade_organizacional,
+ uo.nudddfax as ddd_fax_unidade_organizacional,
+ uo.nufax as fax_unidade_organizacional,
+ uo.nuramalfax as ramal_fax_unid_organiz,
  
- huo.dtiniciovigencia as dtiniciovigenciauo
- --huo.dtfimvigencia as dtfimvigenciauo,
+ --- Endereco da Unidade Organizacional ---
+ enduo.nucep as cep_endereco_unid_organiz,
+ enduo.nmtipologradouro as tipo_logradouro_unid_organiz,
+ enduo.nmlogradouro as logradouro_end_unid_organiz,
+ enduo.nunumero as numero_endereco_unid_organiz,
+ enduo.decomplemento as complemento_end_unid_organiz,
+ enduo.nmunidade as unidade_endereco_unid_organiz,
+ enduo.nucaixapostal as caixa_postal_unid_organiz,
+ enduo.nmbairro as bairro_endereco_unid_organiz,
+ enduo.nmlocalidade as municipio_end_unid_organiz,
+ enduo.sgestado as estado_endereco_unid_organiz,
+ enduo.cdibge as codigo_ibge_end_unid_organiz,
 
-from ecadhistunidadeorganizacional huo
-left join ecadunidadeorganizacional uo on uo.cdunidadeorganizacional = huo.cdunidadeorganizacional
-left join ecadtipocargahoraria tpch on tpch.cdtipocargahoraria = huo.cdtipocargahoraria
-left join ecadtipounidorg tpuo on tpuo.cdtipounidorg = huo.cdtipounidorg
-left join ecadhistunidadeorganizacional huosup on huosup.cdunidadeorganizacional = huo.cduosuphierarq and huosup.dtfimvigencia is null
-left join (select e.nucep, tpl.nmtipologradouro, e.nmlogradouro, e.nunumero, e.decomplemento, e.nmunidade, e.nucaixapostal,
-                  b.nmbairro, l.nmlocalidade,  l.sgestado, l.cdibge, e.cdendereco
-           from ecadendereco e
-           left join ecadtipologradouro tpl on tpl.cdtipologradouro = e.cdtipologradouro
-           left join ecadbairro b on b.cdbairro = e.cdbairro
-           left join ecadlocalidade l on l.cdlocalidade = e.cdlocalidade) enduo on enduo.cdendereco = huo.cdendereco
+from ecadhistunidadeorganizacional uo
+left join ecadunidadeorganizacional caduo on caduo.cdunidadeorganizacional = uo.cdunidadeorganizacional
 
-left join ecadhistorgao o on o.cdorgao = huo.cdorgao
-left join ecadorgao oc on oc.cdorgao = o.cdorgao
-left join ecadagrupamento a on a.cdagrupamento = oc.cdagrupamento
-left join ecadpoder pd on pd.cdpoder = a.cdpoder
-left join ecadtipoorgao tpo on tpo.cdtipoorgao = o.cdtipoorgao
+left join ecadtipocargahoraria tpch on tpch.cdtipocargahoraria = uo.cdtipocargahoraria
+left join ecadtipounidorg tpuo on tpuo.cdtipounidorg = uo.cdtipounidorg
 
-left join (select e.nucep, tplog.nmtipologradouro, e.nmlogradouro, e.nunumero, e.decomplemento, e.nmunidade, 
-                  e.nucaixapostal, b.nmbairro, loc.nmlocalidade, loc.sgestado, loc.cdibge, e.cdendereco
-           from ecadendereco e
-           left join ecadtipologradouro tplog on tplog.cdtipologradouro = e.cdtipologradouro
-           left join ecadbairro b on b.cdbairro = e.cdbairro
-           left join ecadlocalidade loc on loc.cdlocalidade = e.cdlocalidade
-           ) endorgao on endorgao.cdendereco = o.cdendereco
+left join ecadhistunidadeorganizacional uosup on uosup.cdunidadeorganizacional = uo.cduosuphierarq and uosup.dtfimvigencia is null
 
-where huo.dtfimvigencia is null
-  and o.dtfimvigencia is null
-  and o.flanulado = 'N'
+left join (
+  select
+   e.nucep,
+   tpl.nmtipologradouro,
+   e.nmlogradouro,
+   e.nunumero,
+   e.decomplemento,
+   e.nmunidade,
+   e.nucaixapostal,
+   b.nmbairro,
+   l.nmlocalidade,
+   l.sgestado,
+   l.cdibge,
+   e.cdendereco
+  from ecadendereco e
+  left join ecadtipologradouro tpl on tpl.cdtipologradouro = e.cdtipologradouro
+  left join ecadbairro b on b.cdbairro = e.cdbairro
+  left join ecadlocalidade l on l.cdlocalidade = e.cdlocalidade
+) enduo on enduo.cdendereco = uo.cdendereco
+
+left join ecadhistorgao orgao on orgao.cdorgao = uo.cdorgao
+left join ecadorgao cadorg on cadorg.cdorgao = orgao.cdorgao
+
+left join ecadagrupamento agrup on agrup.cdagrupamento = cadorg.cdagrupamento
+left join ecadpoder poder on poder.cdpoder = agrup.cdpoder
+
+left join ecadtipoorgao tpo on tpo.cdtipoorgao = orgao.cdtipoorgao
+
+left join (
+  select 
+   e.nucep,
+   tplog.nmtipologradouro,
+   e.nmlogradouro,
+   e.nunumero,
+   e.decomplemento,
+   e.nmunidade,
+   e.nucaixapostal,
+   b.nmbairro,
+   loc.nmlocalidade,
+   loc.sgestado,
+   loc.cdibge,
+   e.cdendereco
+  from ecadendereco e
+  left join ecadtipologradouro tplog on tplog.cdtipologradouro = e.cdtipologradouro
+  left join ecadbairro b on b.cdbairro = e.cdbairro
+  left join ecadlocalidade loc on loc.cdlocalidade = e.cdlocalidade
+) endorgao on endorgao.cdendereco = orgao.cdendereco
+
+where uo.dtfimvigencia is null
+  and orgao.dtfimvigencia is null
+  and orgao.flanulado = 'N'
