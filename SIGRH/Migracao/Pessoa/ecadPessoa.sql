@@ -146,8 +146,8 @@ select
  pessoa.nrrne as numero_rne,
  pessoa.orgaoemissorrne as orgao_emissor_rne,
  pessoa.dtexpedicaorne as data_expedicao_rne,
- pessoa.classtrabestrangeiro as classe_trabalho_estrangeiro_rne,
- pessoa.nmlocalnascexterior as local_nascimento_exterior_rne,
+ pessoa.classtrabestrangeiro as classe_trab_estrangeiro_rne,
+ pessoa.nmlocalnascexterior as local_nascimento_ext_rne,
  
  --- Carteira de Identidade Profissional ---
  idprof.nunumero as numero_id_profissional,
