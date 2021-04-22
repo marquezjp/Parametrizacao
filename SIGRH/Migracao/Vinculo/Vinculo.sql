@@ -1035,8 +1035,8 @@ left join (
 
 --- Capa do Contra Cheque ---
 left join epagfolhapagamento f on f.cdorgao = v.cdorgao and f.flcalculodefinitivo = 'S'
-      and f.nuanoreferencia = extract(year from sysdate)
-	  and f.numesreferencia = extract(month from sysdate)
+      and f.nuanoreferencia = extract(year from nvl(v.dtdesligamento, last_day(add_months(&dataRef,-1))))
+	  and f.numesreferencia = extract(month from nvl(v.dtdesligamento, last_day(add_months(&dataRef,-1))))
       and f.cdtipofolhapagamento = '2' and f.cdtipocalculo = '1' and f.nusequencialfolha = 1
 left join epagcapahistrubricavinculo capa on capa.cdfolhapagamento = f.cdfolhapagamento and capa.cdvinculo = v.cdvinculo
 
@@ -1176,6 +1176,8 @@ from ecadvinculo v
 --where v.cdpessoa = (select cdpessoa from ecadpessoa where nucpf = 43140440472)
 --where v.cdpessoa = (select cdpessoa from ecadpessoa where nucpf = 61720143404)
 --where v.cdpessoa = (select cdpessoa from ecadpessoa where nucpf = 91174732415)
+
+where organizacao.sigla_do_orgao in ('SEMGE')
 
 order by
  organizacao.sigla_do_poder,
