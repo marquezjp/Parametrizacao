@@ -6,12 +6,12 @@ select
  --- Agrupamento ---
  poder.sgpoder as sigla_do_poder,
  agrup.sgagrupamento as sigla_agrupamento_de_orgao,
- orgao.sgorgao as sigla_orgao,
+ orgao.sgorgao as sigla_do_orgao,
 
  --- Vinculo ---
  lpad(v.numatricula, 7, 0) || '-' || v.nudvmatricula as matricula,
- lpad(p.nucpf, 11, 0) as cpf,
- p.nmpessoa as nome,
+ lpad(pessoa.nucpf, 11, 0) as cpf,
+ pessoa.nmpessoa as nome_completo,
  
  --- Informações Principais Funcao Chefia ---
  upper(evolucaoefc.nmfuncaochefia) as funcao_chefia,
@@ -92,7 +92,7 @@ select
  
 from ecadhistfuncaochefia fc
 left join ecadvinculo v on v.cdvinculo = fc.cdvinculo
-left join ecadpessoa p on p.cdpessoa = v.cdpessoa
+left join ecadpessoa pessoa on pessoa.cdpessoa = v.cdpessoa
 left join vcadorgao orgao on orgao.cdorgao = v.cdorgao
 
 left join ecadevolucaofuncaochefia evolucaoefc on evolucaoefc.cdfuncaochefia = fc.cdfuncaochefia

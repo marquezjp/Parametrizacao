@@ -8,7 +8,7 @@ select
  --- Agrupamento ---
  poder.sgpoder as sigla_do_poder,
  agrup.sgagrupamento as sigla_agrupamento_de_orgao,
- orgao.sgorgao as sigla_orgao,
+ orgao.sgorgao as sigla_do_orgao,
  
  --- Valor do Padrao Funcao Chefia ---
  padraoefc.nmpadrao as padrao_tab_valor_fc,

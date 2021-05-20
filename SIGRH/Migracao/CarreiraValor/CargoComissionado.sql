@@ -12,7 +12,6 @@ select
 
  cco.dtiniciovigencia as data_inicio_vigencia_cco,
  cco.dtfimvigencia as data_fim_vigencia_cco,
- lpad(refcco.nucodigo, 4, 0) || lpad(refcco.nureferencia, 3, 0) as codigo_nivel_cco,
 
  --- Parametros Cargo Comissionado ---
  upper(tpch.nmtipocargahoraria) as tipo_da_carga_horaria_cco,
@@ -26,21 +25,16 @@ select
  cco.flsubstituto as subst_hierarq_superior_cco,
  cco.flestritamentepolicial as ativ_estritamente_policial_cco,
  cco.flaumentocarga as permite_aumento_carga_hor_cco,
- refcco.flnovanomeacao as permite_novas_nomecoes_cco,
  upper(qlp.nmdescricaoqlp) as quadro_de_cargos_cco,
  upper(reltrabqlp.nmrelacaotrabalho) as rel_trab_quadro_cargos_cco,
  
  cco.cdcargocomissionado,
- refcco.nucodigo,
- refcco.nureferencia,
  reltrabcco.cdrelacaotrabalho
  
 from ecadevolucaocargocomissionado cco
 left join ecadevolucaoccoreltrab reltrabcco on reltrabcco.cdevolucaocargocomissionado = cco.cdevolucaocargocomissionado
 left join ecadcargocomissionado cadcco on cadcco.cdcargocomissionado = cco.cdcargocomissionado
 left join ecadgrupoocupacional grcco on grcco.cdgrupoocupacional = cadcco.cdgrupoocupacional
-
-left join ecadevolucaoccovalorref refcco on refcco.cdevolucaocargocomissionado = cco.cdevolucaocargocomissionado
 
 --- Agrupamento ---
 left join ecadagrupamento agrup on agrup.cdagrupamento = grcco.cdagrupamento
@@ -62,7 +56,5 @@ order by
  grcco.nmgrupoocupacional,
  trim(cco.decargocomissionado),
  upper(reltrab.nmrelacaotrabalho),
- refcco.nucodigo,
- refcco.nureferencia,
  cco.dtiniciovigencia,
  cco.dtfimvigencia
