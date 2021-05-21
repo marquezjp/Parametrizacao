@@ -1,3 +1,25 @@
+--PARÂMETROS 
+
+-- plog = 0
+-- ptrace = 0
+-- pflcalculodefinitivo = S
+-- pflpagaadiantamento = Null
+-- pdtcalculo = '01/05/2021' -- Data Atual
+-- pvldiferencavalor = Null
+-- pcdvinculo = 49142
+-- pcdfolhapagamento = 45968
+
+-- Vinculo
+--select cdvinculo from ecadvinculo v where v.numatricula = 954777;
+
+-- Folha
+--select cdfolhapagamento from epagfolhapagamento f 
+--where f.cdorgao = (select cdorgao from vcadorgao where sgorgao = 'SEMED')
+--  and f.nuanomesreferencia = 202105
+--  and f.cdtipofolhapagamento = 2
+--  and f.cdtipocalculo = 1;
+
+-- Calculo Individual --
 declare
   -- Boolean parameters are translated from/to integers: 
   -- 0/1/null <--> false/true/null 
@@ -17,22 +39,3 @@ begin
                                       ptrace => ptrace,
                                       pcalculoretorno => pcalculoretorno);
 end;
-
-
---PARÂMETROS 
-
-
---FOLHA
-  select o.sgorgao, o.cdorgao from vcadorgao o
-  
-  select * from epagfolhapagamento f 
-     where f.cdorgao = 24
-       and f.nuanomesreferencia = 202103
-       and f.cdtipofolhapagamento = 2
-       and f.cdtipocalculo = 1 
-       --- 44275
-
-
---VÍNCULO
-
-   select * from ecadvinculo v where v.numatricula = 954472 -- 48830
