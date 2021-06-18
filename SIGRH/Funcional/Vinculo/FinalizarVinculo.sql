@@ -42,6 +42,19 @@ update ecadhistcargoefetivo
 set dtfim = &dataFim
 where cdhistcargoefetivo = 23191;
 
+--- Nivel Referecenia do Cargo Efetivo ---
+
+select * from ecadhistnivelrefcef
+where cdhistcargoefetivo = (select cdhistcargoefetivo from ecadhistcargoefetivo
+                            where cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &matricula));
+                            
+select * from ecadhistnivelrefcef
+where cdhistnivelrefcef = 20052;
+
+update ecadhistnivelrefcef
+set dtfim = &dataFim
+where cdhistnivelrefcef = 20052;
+
 -- Local de Trabalho ---
 select * from ecadlocaltrabalho
 where cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &matricula);
