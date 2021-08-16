@@ -17,9 +17,9 @@ from epvdconcessaoaposentadoria apo
 left join ecadvinculo v on v.cdvinculo = apo.cdvinculo
 left join ecadpessoa p on p.cdpessoa = v.cdpessoa
 
-left join ecadhistcargoefetivo cef on cef.cdvinculo = v.cdvinculo
+left join ecadhistcargoefetivo cef on cef.cdvinculo = v.cdvinculo and cef.dtinicio < apo.dtinicioaposentadoria
 left join vcadorgao o on o.cdorgao = cef.cdorgaoexercicio
-left join ecadhistcargahoraria cho on cho.cdhistcargoefetivo = cef.cdhistcargoefetivo
+left join ecadhistcargahoraria cho on cho.cdhistcargoefetivo = cef.cdhistcargoefetivo and cho.dtinicial < apo.dtinicioaposentadoria
 
 left join ecadestruturacarreira estr on estr.cdestruturacarreira = cef.cdestruturacarreira
 left join ecaditemcarreira item on item.cditemcarreira = estr.cditemcarreira
@@ -28,12 +28,13 @@ left join ecadestruturacarreira estrnv1 on estrnv1.cdestruturacarreira = estr.cd
 left join ecaditemcarreira itemnv1 on itemnv1.cditemcarreira = estrnv1.cditemcarreira
 
 left join ecadhistnivelrefcef nivrefcef on nivrefcef.cdhistcargoefetivo = cef.cdhistcargoefetivo and nivrefcef.dtfim  = cef.dtfim
+                                       and nivrefcef.dtinicio < nivrefcef.dtfim
 
 left join (
 select
  pag.cdvinculo as cdvinculo,
  f.nuanoreferencia || lpad(f.numesreferencia,2,0) as nuanomesreferencia,
- pag.vlpagamento as vlpagamento
+ sum(pag.vlpagamento) as vlpagamento
 from (select
  pag.cdvinculo,
  max(f.nuanoreferencia || lpad(f.numesreferencia,2,0)) as nuanomesreferencia
@@ -51,7 +52,11 @@ inner join epagfolhapagamento f on f.cdfolhapagamento = pag.cdfolhapagamento
                                and f.nuanoreferencia || lpad(f.numesreferencia,2,0) = ult.nuanomesreferencia
 inner join vpagrubricaagrupamento rub on rub.cdrubricaagrupamento = pag.cdrubricaagrupamento
                                     and rub.cdtiporubrica = 1 and rub.nurubrica = 0108
+group by pag.cdvinculo, f.nuanoreferencia || lpad(f.numesreferencia,2,0)
 ) pag on pag.cdvinculo = apo.cdvinculo
 
-where apo.flanulado = 'N'
+where apo.flanulado = 'N' and apo.flativa = 'S'
   and o.sgorgao = 'SEMED'
+  --and v.numatricula = 0925893
+
+order by o.sgorgao, p.nucpf, v.numatricula

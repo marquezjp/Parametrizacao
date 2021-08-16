@@ -28,7 +28,7 @@ left join epvdinstituidorpensaoprev inst on inst.cdhistpensaoprevidenciaria = pe
 left join ecadvinculo vinst on vinst.cdvinculo = inst.cdvinculo
 left join ecadpessoa pinst on pinst.cdpessoa = vinst.cdpessoa
 
-left join ecadhistcargoefetivo cef on cef.cdvinculo = vinst.cdvinculo
+left join ecadhistcargoefetivo cef on cef.cdvinculo = vinst.cdvinculo and cef.dtinicio <= vinst.dtadmissao
 left join vcadorgao o on o.cdorgao = cef.cdorgaoexercicio
 left join ecadhistcargahoraria cho on cho.cdhistcargoefetivo = cef.cdhistcargoefetivo
 
@@ -39,12 +39,13 @@ left join ecadestruturacarreira estrnv1 on estrnv1.cdestruturacarreira = estr.cd
 left join ecaditemcarreira itemnv1 on itemnv1.cditemcarreira = estrnv1.cditemcarreira
 
 left join ecadhistnivelrefcef nivrefcef on nivrefcef.cdhistcargoefetivo = cef.cdhistcargoefetivo and nivrefcef.dtfim  = cef.dtfim
+                                       and nivrefcef.dtinicio < nivrefcef.dtfim
 
 left join (
 select
  pag.cdvinculo as cdvinculo,
  f.nuanoreferencia || lpad(f.numesreferencia,2,0) as nuanomesreferencia,
- pag.vlpagamento as vlpagamento
+ sum(pag.vlpagamento) as vlpagamento
 from (select
  pag.cdvinculo,
  max(f.nuanoreferencia || lpad(f.numesreferencia,2,0)) as nuanomesreferencia
@@ -62,8 +63,11 @@ inner join epagfolhapagamento f on f.cdfolhapagamento = pag.cdfolhapagamento
                                and f.nuanoreferencia || lpad(f.numesreferencia,2,0) = ult.nuanomesreferencia
 inner join vpagrubricaagrupamento rub on rub.cdrubricaagrupamento = pag.cdrubricaagrupamento
                                     and rub.cdtiporubrica = 1 and rub.nurubrica = 0213
+group by pag.cdvinculo, f.nuanoreferencia || lpad(f.numesreferencia,2,0)                                    
 ) pag on pag.cdvinculo = pen.cdvinculo
 
 where pen.flanulado = 'N'
   and o.sgorgao = 'SEMED'
+  --and vpen.numatricula = 0944837
+  
 order by o.sgorgao, pinst.nucpf, vpen.numatricula
