@@ -1,5 +1,6 @@
 select
- o.sgorgao as ORGAO,
+ --o.sgorgao as ORGAO,
+ 'SEMED' as ORGAO,
  lpad(v.numatricula || '-' || v.nudvmatricula,9,0) as MATRICULA,
  lpad(p.nucpf,11,0) as CPF,
  p.nmpessoa as NOME_COMPLETO,
@@ -17,9 +18,12 @@ from epvdconcessaoaposentadoria apo
 left join ecadvinculo v on v.cdvinculo = apo.cdvinculo
 left join ecadpessoa p on p.cdpessoa = v.cdpessoa
 
-left join ecadhistcargoefetivo cef on cef.cdvinculo = v.cdvinculo and cef.dtinicio < apo.dtinicioaposentadoria
+left join vcadunidadeorganizacional u on u.cdunidadeorganizacional = v.cdunidadeorganizacional
+      and (u.dtiniciovigencia < last_day(sysdate) + 1) and (u.dtfimvigencia is null or u.dtfimvigencia > last_day(sysdate))
+
+left join ecadhistcargoefetivo cef on cef.cdvinculo = v.cdvinculo and cef.dtinicio <= apo.dtinicioaposentadoria
 left join vcadorgao o on o.cdorgao = cef.cdorgaoexercicio
-left join ecadhistcargahoraria cho on cho.cdhistcargoefetivo = cef.cdhistcargoefetivo and cho.dtinicial < apo.dtinicioaposentadoria
+left join ecadhistcargahoraria cho on cho.cdhistcargoefetivo = cef.cdhistcargoefetivo and cho.dtinicial <= apo.dtinicioaposentadoria
 
 left join ecadestruturacarreira estr on estr.cdestruturacarreira = cef.cdestruturacarreira
 left join ecaditemcarreira item on item.cditemcarreira = estr.cditemcarreira
@@ -56,7 +60,7 @@ group by pag.cdvinculo, f.nuanoreferencia || lpad(f.numesreferencia,2,0)
 ) pag on pag.cdvinculo = apo.cdvinculo
 
 where apo.flanulado = 'N' and apo.flativa = 'S'
-  and o.sgorgao = 'SEMED'
-  --and v.numatricula = 0925893
-
+  and (o.sgorgao = 'SEMED' or (o.sgorgao = 'EGM' and u.sgunidadeorganizacional = '0600300065'))
+  --and p.nucpf in (04917073472, 29457106415, 07320329468)
+  
 order by o.sgorgao, p.nucpf, v.numatricula

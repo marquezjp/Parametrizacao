@@ -1,5 +1,6 @@
 select
- o.sgorgao as ORGAO,
+ --o.sgorgao as ORGAO,
+ 'SEMED' as ORGAO,
  lpad(vinst.numatricula || '-' || vinst.nudvmatricula,9,0) as MATRICULA_INSTITUIDOR,
  lpad(pinst.nucpf,11,0) as CPF_INSTITUIDOR,
  pinst.nmpessoa as NOME_COMPLETO_INSTITUIDOR,
@@ -27,6 +28,9 @@ left join ecadpessoa ppen on ppen.cdpessoa = vpen.cdpessoa
 left join epvdinstituidorpensaoprev inst on inst.cdhistpensaoprevidenciaria = pen.cdhistpensaoprevidenciaria
 left join ecadvinculo vinst on vinst.cdvinculo = inst.cdvinculo
 left join ecadpessoa pinst on pinst.cdpessoa = vinst.cdpessoa
+
+left join vcadunidadeorganizacional u on u.cdunidadeorganizacional = vinst.cdunidadeorganizacional
+      and (u.dtiniciovigencia < last_day(sysdate) + 1) and (u.dtfimvigencia is null or u.dtfimvigencia > last_day(sysdate))
 
 left join ecadhistcargoefetivo cef on cef.cdvinculo = vinst.cdvinculo and cef.dtinicio <= vinst.dtadmissao
 left join vcadorgao o on o.cdorgao = cef.cdorgaoexercicio
@@ -67,7 +71,7 @@ group by pag.cdvinculo, f.nuanoreferencia || lpad(f.numesreferencia,2,0)
 ) pag on pag.cdvinculo = pen.cdvinculo
 
 where pen.flanulado = 'N'
-  and o.sgorgao = 'SEMED'
+  and (o.sgorgao = 'SEMED' or (o.sgorgao = 'EGM' and u.sgunidadeorganizacional = '0600300065'))
   --and vpen.numatricula = 0944837
   
 order by o.sgorgao, pinst.nucpf, vpen.numatricula
