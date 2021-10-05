@@ -1,5 +1,7 @@
 # VS Code Config
 .vscode
+env
+SIGRH
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

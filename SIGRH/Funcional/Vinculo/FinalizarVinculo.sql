@@ -1,6 +1,6 @@
-define matricula = 26859
-define dataFim = '01/01/2020'
-define dataInicio = '30/12/2015'
+define matricula = 948861;
+define dataFim = to_date('11/01/2021');
+define dataInicio = to_date('12/01/2021');
 
 --- Vinculo ---
 select * from ecadvinculo where numatricula = &matricula;
@@ -14,33 +14,39 @@ select * from ecadhistcentrocustovinculo
 where cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &matricula);
 
 select * from ecadhistcentrocustovinculo
-where cdhistcentrocustovinculo = 36167;
+where cdhistcentrocustovinculo = 28294
+  and cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &matricula);
 
 update ecadhistcentrocustovinculo
 set dtfimvigencia = &dataFim
-where cdhistcentrocustovinculo = 36167;
+where cdhistcentrocustovinculo = 28294
+  and cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &matricula);
 
 --- Dados Bancarios ---
 select * from ecadhistdadosbancariosvinculo
 where cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &matricula);
 
 select * from ecadhistdadosbancariosvinculo
-where cdhistdadosbancariosvinculo = 64103;
+where cdhistdadosbancariosvinculo = 57141
+  and cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &matricula);
 
 update ecadhistdadosbancariosvinculo
 set dtfimvigencia = &dataFim
-where cdhistdadosbancariosvinculo = 64103;
+where cdhistdadosbancariosvinculo = 57141
+  and cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &matricula);
 
 --- Cargo Efetivo ---
 select * from ecadhistcargoefetivo
 where cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &matricula);
 
 select * from ecadhistcargoefetivo
-where cdhistcargoefetivo = 23191;
+where cdhistcargoefetivo = 15987
+  and cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &matricula);
 
 update ecadhistcargoefetivo
 set dtfim = &dataFim
-where cdhistcargoefetivo = 23191;
+where cdhistcargoefetivo = 15987
+  and cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &matricula);
 
 --- Nivel Referecenia do Cargo Efetivo ---
 
@@ -49,22 +55,28 @@ where cdhistcargoefetivo = (select cdhistcargoefetivo from ecadhistcargoefetivo
                             where cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &matricula));
                             
 select * from ecadhistnivelrefcef
-where cdhistnivelrefcef = 20052;
+where cdhistnivelrefcef = 15987
+  and cdhistcargoefetivo = (select cdhistcargoefetivo from ecadhistcargoefetivo
+                            where cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &matricula));
 
 update ecadhistnivelrefcef
 set dtfim = &dataFim
-where cdhistnivelrefcef = 20052;
+where cdhistnivelrefcef = 15987
+  and cdhistcargoefetivo = (select cdhistcargoefetivo from ecadhistcargoefetivo
+                            where cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &matricula));
 
 -- Local de Trabalho ---
 select * from ecadlocaltrabalho
 where cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &matricula);
 
 select * from ecadlocaltrabalho
-where cdlocaltrabalho = 38772;
+where cdlocaltrabalho = 29967
+  and cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &matricula);
 
 update ecadlocaltrabalho
 set dtfim = &dataFim
-where cdlocaltrabalho = 38772;
+where cdlocaltrabalho = 29967
+  and cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &matricula);
 
 --- Carga Horaria ---
 select * from ecadhistcargahoraria
@@ -73,11 +85,17 @@ where cdhistcargoefetivo = (select cef.cdhistcargoefetivo from ecadhistcargoefet
                             where numatricula = &matricula);
 
 select * from ecadhistcargahoraria
-where cdhistcargahoraria = 38772;
+where cdhistcargahoraria = 29967
+  and cdhistcargoefetivo = (select cef.cdhistcargoefetivo from ecadhistcargoefetivo cef
+                            inner join ecadvinculo v on v.cdvinculo = cef.cdvinculo
+                            where numatricula = &matricula);
 
 update ecadhistcargahoraria
 set dtfim = &dataFim
-where cdhistcargahoraria = 38772;
+where cdhistcargahoraria = 29967
+  and cdhistcargoefetivo = (select cef.cdhistcargoefetivo from ecadhistcargoefetivo cef
+                            inner join ecadvinculo v on v.cdvinculo = cef.cdvinculo
+                            where numatricula = &matricula);
 
 --- Jornada de Trabalho
 select * from ecadhistjornadatrabalho
@@ -86,43 +104,55 @@ where cdlocaltrabalho = (select cdlocaltrabalho from ecadlocaltrabalho local
                           where numatricula = &matricula);
                           
 select * from ecadhistjornadatrabalho
-where cdhistjornadatrabalho = 38772;
+where cdhistjornadatrabalho = 29967
+  and cdlocaltrabalho = (select cdlocaltrabalho from ecadlocaltrabalho local
+                          inner join ecadvinculo v on v.cdvinculo = local.cdvinculo
+                          where numatricula = &matricula);
 
 update ecadhistjornadatrabalho
 set dtfim = &dataFim
-where cdhistjornadatrabalho = 38772;
+where cdhistjornadatrabalho = 29967
+  and cdlocaltrabalho = (select cdlocaltrabalho from ecadlocaltrabalho local
+                          inner join ecadvinculo v on v.cdvinculo = local.cdvinculo
+                          where numatricula = &matricula);
 
 --- Situação Previdenciario do Vinculo
 select * from ecadhistsitprevvinculo
 where cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &matricula);
 
 select * from ecadhistsitprevvinculo
-where cdhistsitprevvinculo = 44109;
+where cdhistsitprevvinculo = 35339
+  and cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &matricula);
 
 update ecadhistsitprevvinculo
 set dtfim = &dataFim
-where cdhistsitprevvinculo = 44109;
+where cdhistsitprevvinculo = 35339
+  and cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &matricula);
 
 --- Afastamento ---
 select * from eafaafastamentovinculo
 where cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &matricula);
 
 select * from eafaafastamentovinculo
-where cdafastamento = 37615;
+where cdafastamento = 35067
+  and cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &matricula);
 
 update eafaafastamentovinculo
 set dtfim = Null,
     dtinicio = &dataInicio
-where cdafastamento = 37615;
+where cdafastamento = 35067
+  and cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &matricula);
 
 --- Vinculo Estagiario ---
 select * from ecadhistestagio
 where cdvinculoestagio = (select cdvinculo from ecadvinculo where numatricula = &matricula);
 
 select * from ecadhistestagio
-where cdhistestagio = 534;
+where cdhistestagio = 534
+  and cdvinculoestagio = (select cdvinculo from ecadvinculo where numatricula = &matricula);
 
 update ecadhistestagio
 set dtfim = &dataFim,
     dtfimprevista = &dataFim
-where cdhistestagio = 534;
+where cdhistestagio = 534
+  and cdvinculoestagio = (select cdvinculo from ecadvinculo where numatricula = &matricula);
