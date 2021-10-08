@@ -69,5 +69,22 @@ left join (select exp.cdbasecalculoblocoexpressao, f.sgbasecalculo, v.nuversao, 
   left join epagbasecalculo f on f.cdbasecalculo = v.cdbasecalculo
 ) base on base.sgbasecalculo = 'IPREV'
       and base.nuversao = 1 and base.nuanoiniciovigencia = 2020 and base.numesiniciovigencia = 11
-      and base.sgbloco = 'C'
-where rub.cdagrupamento = 1 and rub.cdtiporubrica = 2 and rub.nurubrica in (202, 204);
+      and base.sgbloco = 'A'
+where rub.cdagrupamento = 1 and rub.cdtiporubrica = 1 and rub.nurubrica in (202, 204);
+
+--- Delete uma Lista de Rubricas em um Bloco
+
+delete from epagbasecalcblocoexprrubagrup
+--select * from epagbasecalcblocoexprrubagrup
+where cdbasecalculoblocoexpressao in (select exp.cdbasecalculoblocoexpressao from epagbasecalculoblocoexpressao exp
+                                      left join epagbasecalculobloco bl on bl.cdbasecalculobloco = exp.cdbasecalculobloco
+                                      left join epaghistbasecalculo h on h.cdhistbasecalculo = bl.cdhistbasecalculo
+                                      left join epagbasecalculoversao v on v.cdversaobasecalculo = h.cdversaobasecalculo
+                                      left join epagbasecalculo f on f.cdbasecalculo = v.cdbasecalculo
+                                      where f.sgbasecalculo = 'IPREV'
+                                        and base.nuversao = 1 and base.nuanoiniciovigencia = 1901 and base.numesiniciovigencia = 01
+                                        and base.sgbloco = 'C'
+                                      )
+  and cdrubricaagrupamento in (select rub.cdrubricaagrupamento from vpagrubricaagrupamento rub
+                               where rub.cdagrupamento = 1 and rub.cdtiporubrica in (1, 2, 10) and rub.nurubrica in (202, 204)
+                               );
