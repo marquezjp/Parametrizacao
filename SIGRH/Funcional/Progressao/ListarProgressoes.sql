@@ -8,7 +8,7 @@ select
  upper(rtr.nmregimetrabalho) as RegimeTrabalho,
  upper(rt.nmrelacaotrabalho) as RelacaoTrabalho,
 
- h.dtinicio as DataProgressão,
+ h.dtinicio as DataProgressao,
  mot.demotivotransformacaocef as MotivoProgressao,
  cr.deitemcarreira as Carreira,
  c.deitemcarreira as CargoEfetivo,

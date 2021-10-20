@@ -51,7 +51,7 @@ where f.sgbasecalculo = 'IPREV'
   and v.nuversao = 1 and h.nuanoiniciovigencia = 2020 and h.numesiniciovigencia = 11
   and bl.sgbloco = 'C'
 )
-  and rub.nurubrica in (202, 204)
+  and rub.nurubrica in (201, 204)
 
 order by
  rub.cdtiporubrica,
@@ -70,7 +70,7 @@ left join (select exp.cdbasecalculoblocoexpressao, f.sgbasecalculo, v.nuversao, 
 ) base on base.sgbasecalculo = 'IPREV'
       and base.nuversao = 1 and base.nuanoiniciovigencia = 2020 and base.numesiniciovigencia = 11
       and base.sgbloco = 'A'
-where rub.cdagrupamento = 1 and rub.cdtiporubrica = 1 and rub.nurubrica in (202, 204);
+where rub.cdagrupamento = 1 and rub.cdtiporubrica = 1 and rub.nurubrica in (201, 204);
 
 --- Delete uma Lista de Rubricas em um Bloco
 
@@ -86,5 +86,5 @@ where cdbasecalculoblocoexpressao in (select exp.cdbasecalculoblocoexpressao fro
                                         and base.sgbloco = 'C'
                                       )
   and cdrubricaagrupamento in (select rub.cdrubricaagrupamento from vpagrubricaagrupamento rub
-                               where rub.cdagrupamento = 1 and rub.cdtiporubrica in (1, 2, 10) and rub.nurubrica in (202, 204)
+                               where rub.cdagrupamento = 1 and rub.cdtiporubrica in (1, 2, 10) and rub.nurubrica in (201, 204)
                                );
