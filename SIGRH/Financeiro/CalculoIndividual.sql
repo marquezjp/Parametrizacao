@@ -139,7 +139,7 @@ select
  end as Valor_Informado,
  pag.nuparcela as Parcela,
  pag.vlindicerubrica as Indice,
- pag.vlpagamento as Valor
+ to_char(pag.vlpagamento, '999G999D99', 'NLS_NUMERIC_CHARACTERS=,.') as Valor
 
 from epaghistoricorubricavinculo pag
 inner join epagfolhapagamento f on f.cdfolhapagamento = pag.cdfolhapagamento and f.flcalculodefinitivo = 'S'

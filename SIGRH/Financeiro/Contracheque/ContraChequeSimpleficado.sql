@@ -10,7 +10,7 @@ select
 
  lpad(rub.cdtiporubrica,2,0) || '-' || lpad(rub.nurubrica,4,'0') || '-' || lpad(pag.nusufixorubrica,2,'0') as Rubrica,
  rub.derubricaagrupamento as DeRubrica,
- pag.vlpagamento as Valor
+ to_char(pag.vlpagamento, '999G999D99', 'NLS_NUMERIC_CHARACTERS=,.') as Valor
 
 from epaghistoricorubricavinculo pag
 inner join epagfolhapagamento f on f.cdfolhapagamento = pag.cdfolhapagamento and f.flcalculodefinitivo = 'S'
@@ -30,7 +30,7 @@ left join ecaditemcarreira itemnv1 on itemnv1.cditemcarreira = estrnv1.cditemcar
 
 inner join vpagrubricaagrupamento rub on rub.cdrubricaagrupamento = pag.cdrubricaagrupamento
 
-where f.nuanoreferencia = 2021 and f.numesreferencia = 07
+where f.nuanoreferencia = 2021 and f.numesreferencia = 10
   and rub.cdtiporubrica != 9
   
 order by o.sgorgao, v.numatricula, rub.cdtiporubrica, rub.nurubrica, pag.nusufixorubrica
