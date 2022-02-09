@@ -118,9 +118,10 @@ from ecadvinculo v
 inner join ecadpessoa p on p.cdpessoa = v.cdpessoa
 inner join vcadorgao o on o.cdorgao = v.cdorgao
 
-left join vcadunidadeorganizacional u on u.cdunidadeorganizacional = v.cdunidadeorganizacional
+inner join vcadunidadeorganizacional u on u.cdunidadeorganizacional = v.cdunidadeorganizacional
 
-left join ecadhistcargoefetivo cef on cef.cdvinculo = v.cdvinculo and cef.dtinicio <= v.dtadmissao
+inner join ecadhistcargoefetivo cef on cef.cdvinculo = v.cdvinculo and cef.dtinicio <= v.dtadmissao
+                                   and cef.cdrelacaotrabalho = 5 and cef.cdregimetrabalho = 2 and cef.flprincipal = 'S'
 left join ecadhistcargahoraria cho on cho.cdhistcargoefetivo = cef.cdhistcargoefetivo and cho.dtinicial <= v.dtadmissao
 
 left join ecadestruturacarreira estr on estr.cdestruturacarreira = cef.cdestruturacarreira
