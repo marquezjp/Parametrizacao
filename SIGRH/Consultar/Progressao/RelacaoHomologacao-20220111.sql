@@ -1,4 +1,4 @@
-define bienio = to_number(2019);
+define bienio = to_number(2021);
 
 select
  --v.cdvinculo,
@@ -65,7 +65,12 @@ select
      then 'NAO CONCEDIDO'
    else 'CONCEDIDO'
  end
- as Concedido
+ as Concedido,
+ null as Portaria,
+ null as Ord,
+ &bienio - 2 as BienioInicio,
+ &bienio as BienioFim,
+ null as Processo
 
 from ecadvinculo v
 inner join ecadpessoa p on p.cdpessoa = v.cdpessoa
