@@ -1,0 +1,11 @@
+version: '3.3'
+
+services:
+  db:
+    image: store/oracle/database-enterprise:12.2.0.1
+    volumes:
+      - J:\DBServer\Oracle\SIGRH:/ORCL # persistent oracle database data.
+    ports:
+      - 1521:1521
+      - 8080:8080
+      - 5500:5500
