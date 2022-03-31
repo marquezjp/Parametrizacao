@@ -65,6 +65,25 @@ where cdhistnivelrefcef = 15987
   and cdhistcargoefetivo = (select cdhistcargoefetivo from ecadhistcargoefetivo
                             where cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &matricula));
 
+-- Cargo Comissionado
+select * from ecadhistcargocom
+where cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &matricula)
+;
+
+-- Recebimento Cargo Comissionado
+select * from ecadhistrecebimentocco
+where cdhistcargocom in (select cdhistcargocom from ecadhistcargocom
+                          where cdvinculo in (select cdvinculo from ecadvinculo where numatricula = &matricula))
+;
+
+
+-- Opção de Recebimento do Cargo Comissionado
+select * from ecadhistopcaoremuneracaocco
+where cdhistcargocom in (select cdhistcargocom from ecadhistcargocom
+                          where cdvinculo in (select cdvinculo from ecadvinculo
+                                               where numatricula = &matricula))
+;
+
 -- Local de Trabalho ---
 select * from ecadlocaltrabalho
 where cdvinculo = (select cdvinculo from ecadvinculo where numatricula = &matricula);
