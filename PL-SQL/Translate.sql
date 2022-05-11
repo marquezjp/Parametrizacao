@@ -11,3 +11,15 @@ select
                  'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
                  'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as NomeTranslate
 from tmpprogressaosemed;
+
+begin
+ for o in (select cdhistorgao,
+                  translate(regexp_replace(upper(trim(nmorgao)), '[[:space:]]+', chr(32)),
+                            'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                            'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as NomeTranslate
+           from ecadhistorgao
+          ) 
+ loop
+  update ecadhistorgao set nmorgao = o.NomeTranslate where cdhistorgao = o.cdhistorgao;
+ end loop;
+end;
