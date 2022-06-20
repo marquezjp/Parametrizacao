@@ -67,10 +67,10 @@ declare
      v.degrupoocupacional as nmgrupoocupacional,
      v.decargo as decargocomissionado,
      v.nmrelacaotrabalho as nmrelacaotrabalho,
-     trunc(last_day(min(dtadmissao))-1, 'mm') as dtiniciovigencia,
+     trunc(last_day(min(v.dtadmissao))-1, 'mm') as dtiniciovigencia,
      case
-      when max(case when dtdesligamento is null then 1 else 0 end) = 1 then null
-      else last_day(max(nvl(dtdesligamento,last_day(sysdate))))
+      when max(case when v.dtdesligamento is null then 1 else 0 end) = 1 then null
+      else last_day(max(nvl(v.dtdesligamento,last_day(sysdate))))
      end as dtfimvigencia,
      111415 as nuocupacao,
      'SEMANAL' as nmtipocargahoraria
@@ -100,6 +100,15 @@ declare
     
     from ecadrelacaotrabalho
     ),
+    qlp as (
+    select
+     cddescricaoqlp,
+     cdagrupamento,
+     cdrelacaotrabalho,
+     nmdescricaoqlp
+    from emovdescricaoqlp
+    where nmdescricaoqlp like 'QLP IMPLANTACAO%'
+    ),
     cargocomissionado_existe as (
     select
     a.sgagrupamento as sgagrupamento,
@@ -124,7 +133,7 @@ declare
     inner join ecadocupacao cbo on cbo.nuocupacao = cco.nuocupacao
     inner join ecadtipocargahoraria tpcho on upper(tpcho.nmtipocargahoraria) = upper(cco.nmtipocargahoraria)
     inner join reltrab on reltrab.nmrelacaotrabalho = cco.nmrelacaotrabalho
-    inner join emovdescricaoqlp qlp on qlp.cdagrupamento = a.cdagrupamento and qlp.cdrelacaotrabalho = reltrab.cdrelacaotrabalho
+    inner join qlp on qlp.cdagrupamento = a.cdagrupamento and qlp.cdrelacaotrabalho = reltrab.cdrelacaotrabalho
     left join cargocomissionado_existe ccogexiste on ccogexiste.sgagrupamento = cco.sgagrupamento
                                                  and ccogexiste.nmgrupoocupacional = cco.nmgrupoocupacional
                                                  and ccogexiste.decargocomissionado = cco.decargocomissionado

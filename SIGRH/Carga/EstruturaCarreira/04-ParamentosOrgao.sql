@@ -1,6 +1,6 @@
 --- Atualizar as Parametrizações dos Órgãos com base nos Layout de Cadastro dos Vinculos
 --- Conceitos envolvidos:
---- - Lista de Carreiras Permitidas no Órgão (sigrh_rr_vinculos)
+--- - Lista de Carreiras Permitidas no Órgão (ecadorgaocarreira)
 --- - Regimes de Trabalho Permitidos (ecadOrgaoRegTrabalho)
 --- - Regimes Previdenciários Permitidos (ecadOrgaoRegPrev)
 --- - Relação de Trabalho Permitidas (ecadOrgaoRelTrabalho)
@@ -14,14 +14,18 @@
 --delete ecadOrgaoNatVinculo;
 
 --- Criar a Lista de Carreiras Permitidas para o Orgao
-insert into sigrh_rr_vinculos
+insert into ecadorgaocarreira
 with carreiras as (
 select
  a.sgagrupamento as sgagrupamento,
  o.sgorgao as sgorgao,
  v.decarreira,
- trunc(last_day(min(v.dtadmissao))-1, 'mm') as dtiniciovigencia
-from sigrh_rr_vinculos_jotape v
+ trunc(last_day(min(v.dtadmissao))-1, 'mm') as dtiniciovigencia,
+ case
+  when max(case when v.dtdesligamento is null then 1 else 0 end) = 1 then null
+  else last_day(max(nvl(v.dtdesligamento,last_day(sysdate))))
+ end as dtfimvigencia
+from sigrh_rr_vinculos v
 left join vcadorgao o on o.sgorgao = v.sgorgao
 left join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
 where o.cdorgao is not null
@@ -34,7 +38,7 @@ select
  a.sgagrupamento,
  o.sgorgao,
  i.deitemcarreira as decarreira
-from sigrh_rr_vinculos oc
+from ecadorgaocarreira oc
 inner join vcadorgao o on o.cdorgao = oc.cdorgao
 inner join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
 inner join ecadestruturacarreira e on e.cdagrupamento = a.cdagrupamento and e.cdestruturacarreira = oc.cdestruturacarreira
@@ -42,11 +46,11 @@ inner join ecaditemcarreira i on i.cdagrupamento = a.cdagrupamento and i.cditemc
 )
 
 select
-(select nvl(max(cdorgaocarreira),0) from sigrh_rr_vinculos) + rownum as cdorgaocarreira,
+(select nvl(max(cdorgaocarreira),0) from ecadorgaocarreira) + rownum as cdorgaocarreira,
 o.cdorgao as cdorgao,
 e.cdestruturacarreira as cdestruturacarreira,
 case when c.dtiniciovigencia < o.dtiniciovigencia then o.dtiniciovigencia else c.dtiniciovigencia end as dtiniciovigencia,
-null as dtfimvigencia,
+c.dtfimvigencia as dtfimvigencia,
 null as cdhistorgaorespanulacao,
 'N' as flanulado,
 systimestamp as dtultalteracao,
@@ -68,8 +72,12 @@ select
  a.sgagrupamento as sgagrupamento,
  o.sgorgao as sgorgao,
  v.nmregimetrabalho,
- trunc(last_day(min(v.dtadmissao))-1, 'mm') as dtiniciovigencia
-from sigrh_rr_vinculos_jotape v
+ trunc(last_day(min(v.dtadmissao))-1, 'mm') as dtiniciovigencia,
+ case
+  when max(case when v.dtdesligamento is null then 1 else 0 end) = 1 then null
+  else last_day(max(nvl(v.dtdesligamento,last_day(sysdate))))
+ end as dtfimvigencia
+from sigrh_rr_vinculos v
 left join vcadorgao o on o.sgorgao = v.sgorgao
 left join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
 where o.cdorgao is not null
@@ -102,7 +110,7 @@ select
 o.cdorgao as cdorgao,
 regtrab.cdregimetrabalho as cdregimetrabalho,
 case when oregtrab.dtiniciovigencia < o.dtiniciovigencia then o.dtiniciovigencia else oregtrab.dtiniciovigencia end as dtiniciovigencia,
-null as dtfimvigencia,
+oregtrab.dtfimvigencia as dtfimvigencia,
 null as cdhistorgaorespanulacao,
 'N' as flanulado,
 systimestamp as dtultalteracao
@@ -121,8 +129,12 @@ select
  a.sgagrupamento as sgagrupamento,
  o.sgorgao as sgorgao,
  v.nmregimeprevidenciario,
- trunc(last_day(min(v.dtadmissao))-1, 'mm') as dtiniciovigencia
-from sigrh_rr_vinculos_jotape v
+ trunc(last_day(min(v.dtadmissao))-1, 'mm') as dtiniciovigencia,
+ case
+  when max(case when v.dtdesligamento is null then 1 else 0 end) = 1 then null
+  else last_day(max(nvl(v.dtdesligamento,last_day(sysdate))))
+ end as dtfimvigencia
+from sigrh_rr_vinculos v
 left join vcadorgao o on o.sgorgao = v.sgorgao
 left join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
 where o.cdorgao is not null
@@ -156,7 +168,7 @@ select
 o.cdorgao as cdorgao,
 regprev.cdregimeprevidenciario as cdregimeprevidenciario,
 case when oregprev.dtiniciovigencia < o.dtiniciovigencia then o.dtiniciovigencia else oregprev.dtiniciovigencia end as dtiniciovigencia,
-null as dtfimvigencia,
+oregprev.dtfimvigencia as dtfimvigencia,
 null as cdhistorgaorespanulacao,
 'N' as flanulado,
 systimestamp as dtultalteracao
@@ -175,8 +187,12 @@ select
  a.sgagrupamento as sgagrupamento,
  o.sgorgao as sgorgao,
  v.nmrelacaotrabalho,
- trunc(last_day(min(v.dtadmissao))-1, 'mm') as dtiniciovigencia
-from sigrh_rr_vinculos_jotape v
+ trunc(last_day(min(v.dtadmissao))-1, 'mm') as dtiniciovigencia,
+ case
+  when max(case when v.dtdesligamento is null then 1 else 0 end) = 1 then null
+  else last_day(max(nvl(v.dtdesligamento,last_day(sysdate))))
+ end as dtfimvigencia
+from sigrh_rr_vinculos v
 left join vcadorgao o on o.sgorgao = v.sgorgao
 left join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
 where o.cdorgao is not null
@@ -209,7 +225,7 @@ select
 o.cdorgao as cdorgao,
 reltrab.cdrelacaotrabalho as cdrelacaotrabalho,
 case when oreltrab.dtiniciovigencia < o.dtiniciovigencia then o.dtiniciovigencia else oreltrab.dtiniciovigencia end as dtiniciovigencia,
-null as dtfimvigencia,
+oreltrab.dtfimvigencia as dtfimvigencia,
 systimestamp as dtultalteracao,
 null as cdhistorgaorespanulacao,
 'N' as flanulado
@@ -228,8 +244,12 @@ select
  a.sgagrupamento as sgagrupamento,
  o.sgorgao as sgorgao,
  v.nmnaturezavinculo,
- trunc(last_day(min(v.dtadmissao))-1, 'mm') as dtiniciovigencia
-from sigrh_rr_vinculos_jotape v
+ trunc(last_day(min(v.dtadmissao))-1, 'mm') as dtiniciovigencia,
+ case
+  when max(case when v.dtdesligamento is null then 1 else 0 end) = 1 then null
+  else last_day(max(nvl(v.dtdesligamento,last_day(sysdate))))
+ end as dtfimvigencia
+from sigrh_rr_vinculos v
 left join vcadorgao o on o.sgorgao = v.sgorgao
 left join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
 where o.cdorgao is not null
@@ -262,7 +282,7 @@ select
 o.cdorgao as cdorgao,
 natvinc.cdnaturezavinculo as cdnaturezavinculo,
 case when onatvinc.dtiniciovigencia < o.dtiniciovigencia then o.dtiniciovigencia else onatvinc.dtiniciovigencia end as dtiniciovigencia,
-null as dtfimvigencia,
+onatvinc.dtfimvigencia as dtfimvigencia,
 null as cdhistorgaorespanulacao,
 'N' as flanulado,
 systimestamp as dtultalteracao
@@ -281,6 +301,7 @@ select '4-ParametrosOrgao' as Grupo,  '4.3-ecadOrgaoRegPrev'      as Conceito, c
 select '4-ParametrosOrgao' as Grupo,  '4.4-ecadOrgaorRelTrabalho' as Conceito, count(*) as Qtde from ecadOrgaoRelTrabalho union
 select '4-ParametrosOrgao' as Grupo,  '4.5-ecadOrgaoNatVinculo'   as Conceito, count(*) as Qtde from ecadOrgaoNatVinculo
 order by 1, 2
+;
 
 -- Ajustar a Sequence dos Conceitos Envolvidos para o Total de Registros
 declare cursor c1 is

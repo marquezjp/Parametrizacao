@@ -24,13 +24,14 @@ delete ecadEvolucaoEstruturaCarreira;
 delete ecadEstruturaCarreira;
 delete ecadItemCarreira;
 
-delete ecadevolucaoccocargahoraria;
-delete ecadevolucaocconatvinc;
-delete ecadevolucaoccoreltrab;
-delete ecadevolucaoccovalorref;
-delete ecadcargocomissionado;
+delete ecadEvolucaoCCOCargaHoraria;
+delete ecadEvolucaoCCONatVinc;
+delete ecadEvolucaoCCORelTrab;
+delete ecadEvolucaoCCOValorRef;
+delete ecadEvolucaoCargoComissionado;
+delete ecadCargoComissionado;
 
-delete ecadgrupoocupacional;
+delete ecadGrupoOcupacional;
 
 delete emovDescricaoQLP;
 
@@ -49,15 +50,15 @@ select '4-ParametrosOrgao'            as Grupo, '4.2-ecadOrgaoRegTrabalho'      
 select '4-ParametrosOrgao'            as Grupo, '4.3-ecadOrgaoRegPrev'               as Conceito, count(*) as Qtde from ecadOrgaoRegPrev               union
 select '4-ParametrosOrgao'            as Grupo, '4.4-ecadOrgaorRelTrabalho'          as Conceito, count(*) as Qtde from ecadOrgaoRelTrabalho           union
 select '4-ParametrosOrgao'            as Grupo, '4.5-ecadOrgaoNatVinculo'            as Conceito, count(*) as Qtde from ecadOrgaoNatVinculo            union
-select '5-Cargo Comissionado'         as Grupo, '5.1-ecadGrupoOcupacional'           as Conceito, count(*) as Qtde from ecadgrupoocupacional           union
-select '5-Cargo Comissionado'         as Grupo, '5.2-ecadCargoComissionado'          as Conceito, count(*) as Qtde from ecadcargocomissionado          union
-select '5-Cargo Comissionado'         as Grupo, '5.3-ecadevolucaoccocargahoraria'    as Conceito, count(*) as Qtde from epagvalorrefccoagruporgespec   union
-select '5-Cargo Comissionado'         as Grupo, '5.4-ecadevolucaocconatvinc'         as Conceito, count(*) as Qtde from epagvalorrefccoagruporgespec   union
-select '5-Cargo Comissionado'         as Grupo, '5.5-ecadevolucaoccoreltrab'         as Conceito, count(*) as Qtde from epagvalorrefccoagruporgespec   union
-select '5-Cargo Comissionado'         as Grupo, '5.6-ecadevolucaoccovalorref'        as Conceito, count(*) as Qtde from epagvalorrefccoagruporgespec   union
-select '6-Valores Cargo Comissionado' as Grupo, '6.1-epagvalorrefccoagruporgversao'  as Conceito, count(*) as Qtde from epagvalorrefccoagruporgversao  union
-select '6-Valores Cargo Comissionado' as Grupo, '6.2-epaghistvalorrefccoagruporgver' as Conceito, count(*) as Qtde from epaghistvalorrefccoagruporgver union
-select '6-Valores Cargo Comissionado' as Grupo, '6.3-epagvalorrefccoagruporgespec'   as Conceito, count(*) as Qtde from epagvalorrefccoagruporgespec
+select '5-Cargo Comissionado'         as Grupo, '5.1-ecadGrupoOcupacional'           as Conceito, count(*) as Qtde from ecadGrupoOcupacional           union
+select '5-Cargo Comissionado'         as Grupo, '5.2-ecadCargoComissionado'          as Conceito, count(*) as Qtde from ecadCargoComissionado          union
+select '5-Cargo Comissionado'         as Grupo, '5.3-ecadEvolucaoCCOCargaHoraria'    as Conceito, count(*) as Qtde from ecadEvolucaoCCOCargaHoraria    union
+select '5-Cargo Comissionado'         as Grupo, '5.4-ecadEvolucaoCCONatVinc'         as Conceito, count(*) as Qtde from ecadEvolucaoCCONatVinc         union
+select '5-Cargo Comissionado'         as Grupo, '5.5-ecadEvolucaoCCORelTrab'         as Conceito, count(*) as Qtde from ecadEvolucaoCCORelTrab         union
+select '5-Cargo Comissionado'         as Grupo, '5.6-ecadEvolucaoCCOValorRef'        as Conceito, count(*) as Qtde from ecadEvolucaoCCOValorRef        union
+select '6-Valores Cargo Comissionado' as Grupo, '6.1-epagValorRefCCOAgrupOrgVersao'  as Conceito, count(*) as Qtde from epagValorRefCCOAgrupOrgVersao  union
+select '6-Valores Cargo Comissionado' as Grupo, '6.2-epagHistValorRefCCOAgrupOrgVer' as Conceito, count(*) as Qtde from epagHistValorRefCCOAgrupOrgVer union
+select '6-Valores Cargo Comissionado' as Grupo, '6.3-epagValorRefCCOAgrupOrgEspec'   as Conceito, count(*) as Qtde from epagValorRefCCOAgrupOrgEspec
 order by 1, 2
 
 -- Ajustar a Sequence para o Total de Registros 

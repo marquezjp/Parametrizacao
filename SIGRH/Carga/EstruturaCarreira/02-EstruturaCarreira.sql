@@ -149,7 +149,8 @@ select
  a.sgagrupamento as sgagrupamento,
  decarreira,
  nmrelacaotrabalho,
- trunc(last_day(min(dtadmissao))-1, 'mm') as dtiniciovigencia
+ trunc(last_day(min(v.dtadmissao))-1, 'mm') as dtiniciovigencia
+
 from sigrh_rr_vinculos v
 left join vcadorgao o on o.sgorgao = v.sgorgao
 left join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
@@ -166,6 +167,15 @@ select
                  'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmrelacaotrabalho
 
 from ecadrelacaotrabalho
+),
+qlp as (
+select
+ cddescricaoqlp,
+ cdagrupamento,
+ cdrelacaotrabalho,
+ nmdescricaoqlp
+from emovdescricaoqlp
+where nmdescricaoqlp like 'QLP IMPLANTACAO%'
 ),
 carreria_existe as (
 select
@@ -204,10 +214,10 @@ inner join ecaditemcarreira i on i.cdagrupamento = a.cdagrupamento
                              and i.cdtipoitemcarreira = 1
 							 and i.deitemcarreira = c.decarreira
 inner join reltrab on reltrab.nmrelacaotrabalho = c.nmrelacaotrabalho
-inner join emovdescricaoqlp qlp on qlp.cdagrupamento = a.cdagrupamento and qlp.cdrelacaotrabalho = reltrab.cdrelacaotrabalho
+inner join qlp on qlp.cdagrupamento = a.cdagrupamento and qlp.cdrelacaotrabalho = reltrab.cdrelacaotrabalho
 left join carreria_existe crexiste on crexiste.cdagrupamento = a.cdagrupamento and crexiste.deitemcarreira = c.decarreira
 where crexiste.cdagrupamento is null
-
+;
 
 --- Criar ecadEstruturaCarreira, incluir os Cargos na Carreira
 insert into ecadestruturacarreira
@@ -289,6 +299,7 @@ where cexist.sgagrupamento is null
 select '2-EstuturaCarreira' as Grupo,  '2.1-ecadItemCarreira' as Conceito, count(*) as Qtde from ecadItemCarreira union
 select '2-EstuturaCarreira' as Grupo,  '2.2-ecadEstruturaCarreira' as Conceito, count(*) as Qtde from ecadEstruturaCarreira
 order by 1, 2
+;
 
 -- Ajustar a Sequence dos Conceitos Envolvidos para o Total de Registros
 declare cursor c1 is

@@ -1,27 +1,41 @@
-# Carregar a Estrutura Carreira dos Cargos Efetivos, Temporarios e Comissionados com base nos Layout de Cadastro dos Vinculos
+# Carregar a Estrutura Carreira dos Cargos Efetivos, Temporários e Comissionados com base nos Layout de Cadastro dos Vínculos
 
-## Criar Quadro de Lotação dos Cargos Efetivos, Temporarios e Comissionados com base nos Layout de Cadastro dos Vinculos
+## Lista dos Campos Necessários do Arquivo de Vínculos
+
+* sgorgao
+* decarreira
+* degrupoocupacional
+* decargo
+* dtadmissao
+* dtdesligamento
+* nmnaturezavinculo
+* nmregimeprevidenciario
+* nmregimetrabalho
+* nmrelacaotrabalho
+* nucargahoraria
+
+## Criar Quadro de Lotação dos Cargos Efetivos, Temporários e Comissionados com base nos Layout de Cadastro dos Vínculos
 
 Conceitos envolvidos:
 * Descrição do Quadro de Lotação (emovDescricaoQLP)
 
-## Criar Estrutura de Carreira dos Cargos Efetivos e Temporarios com base nos Layout de Cadastro dos Vinculos
+## Criar Estrutura de Carreira dos Cargos Efetivos e Temporários com base nos Layout de Cadastro dos Vínculos
 
 Conceitos envolvidos:
-* Itens de Carreira dos Cargos Efetivos e Temporarios (ecadItemCarreira)
-* Estrutura de Carreira dos Cargos Efetivos e Temporarios (ecadEstruturaCarreira)
+* Itens de Carreira dos Cargos Efetivos e Temporários (ecadItemCarreira)
+* Estrutura de Carreira dos Cargos Efetivos e Temporários (ecadEstruturaCarreira)
 
-## Criar Parametrização da Estrutura de Carreira dos Cargos Efetivos e Temporarios com base nos Layout de Cadastro dos Vinculos
+## Criar Parametrização da Estrutura de Carreira dos Cargos Efetivos e Temporários com base nos Layout de Cadastro dos Vínculos
 
 Conceitos envolvidos:
-* Parametros dos Itens da Estrutura de Carreira dos Cargos Efetivos e Temporarios (ecadEvolucaoEstruturaCarreira)
+* Parâmetros dos Itens da Estrutura de Carreira dos Cargos Efetivos e Temporários (ecadEvolucaoEstruturaCarreira)
 * Lista de Cargas Horárias Permitidas (ecadEvolucaoCEFCargaHoraria)
 * Naturezas de Vínculo Permitidas (ecadEvolucaoCEFNatVinc)
 * Relações de Trabalho Permitidas (ecadevolucaocefreltrab)
 * Regimes de Trabalho Permitidos (ecadevolucaocefregtrab)
 * Regimes Previdenciários Permitidos (ecadevolucaocefregprev)
 
-## Atualizar as Parametrizações dos Órgãos com base nos Layout de Cadastro dos Vinculos
+## Atualizar as Parametrizações dos Órgãos com base nos Layout de Cadastro dos Vínculos
 
 Conceitos envolvidos:
 * Lista de Carreiras Permitidas no Órgão (ecadOrgaoCarreira)
@@ -30,7 +44,7 @@ Conceitos envolvidos:
 * Relação de Trabalho Permitidas (ecadOrgaorRelTrabalho)
 * Naturezas do Vínculo Permitidas (ecadOrgaoNatVinculo)
 
-## Criar Cargos Comissionados com base nos Layout de Cadastro dos Vinculos
+## Criar Cargos Comissionados com base nos Layout de Cadastro dos Vínculos
 
 Conceitos envolvidos:
 * Grupo Ocupacional dos Cargos Comissionados (ecadGrupoOcupacional)

@@ -23,6 +23,10 @@ select
  a.sgagrupamento as sgagrupamento,
  v.decarreira,
  trunc(last_day(min(v.dtadmissao))-1, 'mm') as dtiniciovigencia,
+ case
+  when max(case when v.dtdesligamento is null then 1 else 0 end) = 1 then null
+  else last_day(max(nvl(v.dtdesligamento,last_day(sysdate))))
+ end as dtfimvigencia,
  count(*) as nuqlp,
  111415 as nuocupacao,
  'CARGO' as nmtipoitemcarreiraapo,
@@ -52,7 +56,7 @@ inner join ecaditemcarreira i on i.cdagrupamento = e.cdagrupamento and i.cdtipoi
 select
 (select nvl(max(cdevolucaoestcarreira),0) from ecadevolucaoestruturacarreira) + rownum as cdevolucaoestcarreira,
 c.dtiniciovigencia as dtiniciovigencia,
-null as dtfimvigencia,
+c.dtfimvigencia as dtfimvigencia,
 ac.cdacumvinculo as cdacumvinculo,
 est.cdestruturacarreira as cdestruturacarreira,
 a.cdagrupamento as cdagrupamento,

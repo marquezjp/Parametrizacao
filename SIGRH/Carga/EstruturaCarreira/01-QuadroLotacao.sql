@@ -30,6 +30,7 @@
 --delete ecadevolucaocconatvinc;
 --delete ecadevolucaoccoreltrab;
 --delete ecadevolucaoccovalorref;
+--delete ecadevolucaocargocomissionado;
 --delete ecadcargocomissionado;
 
 --delete ecadgrupoocupacional;
@@ -42,7 +43,7 @@ select distinct
  a.sgagrupamento as sgagrupamento,
  v.nmrelacaotrabalho,
 
- 'QUADRO DE ' ||
+ 'QLP IMPLANTACAO DE ' ||
  case nmrelacaotrabalho
       when 'EFETIVO' then 'CARGOS EFETIVOS'
       when 'ACT - ADMITIDO EM CARATER TEMPORARIO' then 'CONTRATO TEMPORARIO'
