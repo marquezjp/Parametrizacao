@@ -1,6 +1,7 @@
 --- Atualizar as Parametrizações dos Órgãos com base nos Layout de Cadastro dos Vinculos
 --- Conceitos envolvidos:
 --- - Lista de Carreiras Permitidas no Órgão (ecadorgaocarreira)
+--- - Lista de Grupo Ocupacional dos Cargos Comissionados Permitidos no Órgão (ecadorgaocargocom)
 --- - Regimes de Trabalho Permitidos (ecadOrgaoRegTrabalho)
 --- - Regimes Previdenciários Permitidos (ecadOrgaoRegPrev)
 --- - Relação de Trabalho Permitidas (ecadOrgaoRelTrabalho)
@@ -8,6 +9,7 @@
 
 -- Excluir os Registros dos Conceitos Envolvidos na Ordem de Filho para Pais
 --delete ecadOrgaoCarreira;
+--delete ecadOrgaoCargoCom;
 --delete ecadOrgaoRegTrabalho;
 --delete ecadOrgaoRegPrev;
 --delete ecadOrgaoRelTrabalho;
@@ -30,6 +32,7 @@ left join vcadorgao o on o.sgorgao = v.sgorgao
 left join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
 where o.cdorgao is not null
   and v.decarreira is not null
+  and nmrelacaotrabalho in ('EFETIVO', 'ACT - ADMITIDO EM CARATER TEMPORARIO')
 group by a.sgagrupamento, o.sgorgao, v.decarreira
 order by a.sgagrupamento, o.sgorgao, v.decarreira
 ),
@@ -63,6 +66,57 @@ inner join ecaditemcarreira i on i.cdagrupamento = a.cdagrupamento and i.cdtipoi
 inner join ecadestruturacarreira e on e.cdagrupamento = a.cdagrupamento and e.cditemcarreira = i.cditemcarreira
 left join carreria_existe crexist on crexist.sgagrupamento = a.sgagrupamento and crexist.sgorgao = c.sgorgao and crexist.decarreira = c.decarreira
 where crexist.sgagrupamento is null
+;
+
+--- Criar a Lista de Grupo Ocupacional dos Cargos Comissionados Permitidos para o Orgao
+insert into ecadorgaocargocom
+with grupoocupacional as (
+select
+ a.sgagrupamento as sgagrupamento,
+ o.sgorgao as sgorgao,
+ v.degrupoocupacional as nmgrupoocupacional,
+ trunc(last_day(min(v.dtadmissao))-1, 'mm') as dtiniciovigencia,
+ case
+  when max(case when v.dtdesligamento is null then 1 else 0 end) = 1 then null
+  else last_day(max(nvl(v.dtdesligamento,last_day(sysdate))))
+ end as dtfimvigencia
+from sigrh_rr_vinculos v
+left join vcadorgao o on o.sgorgao = v.sgorgao
+left join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
+where o.cdorgao is not null
+  and v.degrupoocupacional is not null
+  and v.nmrelacaotrabalho in ('COMISSIONADO')
+group by a.sgagrupamento, o.sgorgao, v.degrupoocupacional
+order by a.sgagrupamento, o.sgorgao, v.degrupoocupacional
+),
+grupoocupacional_existe as (
+select
+ a.sgagrupamento,
+ o.sgorgao,
+ g.nmgrupoocupacional
+from ecadorgaocargocom occo
+inner join vcadorgao o on o.cdorgao = occo.cdorgao
+inner join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
+inner join ecadgrupoocupacional g on g.cdagrupamento = a.cdagrupamento and g.cdgrupoocupacional = occo.cdgrupoocupacional
+)
+
+select
+(select nvl(max(cdorgaocargocom),0) from ecadorgaocargocom) + rownum as cdorgaocargocom,
+o.cdorgao as cdorgao,
+null as cdcargocomissionado,
+case when gcco.dtiniciovigencia < o.dtiniciovigencia then o.dtiniciovigencia else gcco.dtiniciovigencia end as dtiniciovigencia,
+gcco.dtfimvigencia as dtfimvigencia,
+systimestamp as dtultalteracao,
+null as cdhistorgaorespanulacao,
+'N' as flanulado,
+g.cdgrupoocupacional as cdgrupoocupacional
+
+from grupoocupacional gcco
+inner join ecadagrupamento a on a.sgagrupamento = gcco.sgagrupamento
+inner join vcadorgao o on o.cdagrupamento = a.cdagrupamento and o.sgorgao = gcco.sgorgao
+inner join ecadgrupoocupacional g on g.cdagrupamento = a.cdagrupamento and g.nmgrupoocupacional = gcco.nmgrupoocupacional
+left join grupoocupacional_existe gexist on gexist.sgagrupamento = a.sgagrupamento and gexist.sgorgao = gcco.sgorgao and gexist.nmgrupoocupacional = gcco.nmgrupoocupacional
+where gexist.sgagrupamento is null
 ;
 
 --- Criar a Lista de Regimes de Trabalho Permitidos para o Orgao
@@ -295,19 +349,21 @@ where onatvincexiste.sgagrupamento is null
 ;
 
 -- Listar Quantidade de Registros Incluisdos nos Conceitos Envolvidos
-select '4-ParametrosOrgao' as Grupo,  '4.1-ecadOrgaoCarreira'     as Conceito, count(*) as Qtde from ecadOrgaoCarreira union
-select '4-ParametrosOrgao' as Grupo,  '4.2-ecadOrgaoRegTrabalho'  as Conceito, count(*) as Qtde from ecadOrgaoRegTrabalho union
-select '4-ParametrosOrgao' as Grupo,  '4.3-ecadOrgaoRegPrev'      as Conceito, count(*) as Qtde from ecadOrgaoRegPrev union
-select '4-ParametrosOrgao' as Grupo,  '4.4-ecadOrgaorRelTrabalho' as Conceito, count(*) as Qtde from ecadOrgaoRelTrabalho union
-select '4-ParametrosOrgao' as Grupo,  '4.5-ecadOrgaoNatVinculo'   as Conceito, count(*) as Qtde from ecadOrgaoNatVinculo
+select '6-ParametrosOrgao' as Grupo,  '6.1-ecadOrgaoCarreira'     as Conceito, count(*) as Qtde from ecadOrgaoCarreira    union
+select '6-ParametrosOrgao' as Grupo,  '6.2-ecadOrgaoCargoCom'     as Conceito, count(*) as Qtde from ecadOrgaoCargocom    union
+select '6-ParametrosOrgao' as Grupo,  '6.3-ecadOrgaoRegTrabalho'  as Conceito, count(*) as Qtde from ecadOrgaoRegTrabalho union
+select '6-ParametrosOrgao' as Grupo,  '6.4-ecadOrgaoRegPrev'      as Conceito, count(*) as Qtde from ecadOrgaoRegPrev     union
+select '6-ParametrosOrgao' as Grupo,  '6.5-ecadOrgaorRelTrabalho' as Conceito, count(*) as Qtde from ecadOrgaoRelTrabalho union
+select '6-ParametrosOrgao' as Grupo,  '6.6-ecadOrgaoNatVinculo'   as Conceito, count(*) as Qtde from ecadOrgaoNatVinculo
 order by 1, 2
 ;
 
 -- Ajustar a Sequence dos Conceitos Envolvidos para o Total de Registros
 declare cursor c1 is
-select 'ecadorgaocarreira'    as Tab, 'SCADORGAOCARREIRA'    as Seq, nvl(max(cdorgaocarreira),0)    as Qtde from ecadOrgaoCarreira union
+select 'ecadorgaocarreira'    as Tab, 'SCADORGAOCARREIRA'    as Seq, nvl(max(cdorgaocarreira),0)    as Qtde from ecadOrgaoCarreira    union
+select 'ecadorgaocargocom'    as Tab, 'SCADORGAOCARGOCOM'    as Seq, nvl(max(cdorgaocargocom),0)    as Qtde from ecadOrgaoCargoCom    union
 select 'ecadorgaoregtrabalho' as Tab, 'SCADORGAOREGTRABALHO' as Seq, nvl(max(cdorgaoregtrabalho),0) as Qtde from ecadOrgaoRegTrabalho union
-select 'ecadorgaoregprev'     as Tab, 'SCADORGAOREGPREV'     as Seq, nvl(max(cdorgaoregprev),0)     as Qtde from ecadOrgaoRegPrev union
+select 'ecadorgaoregprev'     as Tab, 'SCADORGAOREGPREV'     as Seq, nvl(max(cdorgaoregprev),0)     as Qtde from ecadOrgaoRegPrev     union
 select 'ecadorgaoreltrabalho' as Tab, 'SCADORGAORELTRABALHO' as Seq, nvl(max(cdorgaoreltrabalho),0) as Qtde from ecadOrgaoRelTrabalho union
 select 'ecadorgaonatvinculo'  as Tab, 'SCADORGAONATVINCULO'  as Seq, nvl(max(cdorgaonatvinculo),0)  as Qtde from ecadOrgaoNatVinculo
 order by 1, 2;
@@ -327,6 +383,7 @@ end;
 select sequence_name, last_number from user_sequences
 where sequence_name in (
 'SCADORGAOCARREIRA',
+'SCADORGAOCARGOCOM',
 'SCADORGAOREGTRABALHO',
 'SCADORGAOREGPREV',
 'SCADORGAORELTRABALHO',

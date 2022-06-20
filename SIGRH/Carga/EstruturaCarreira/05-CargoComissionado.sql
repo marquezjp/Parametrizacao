@@ -365,13 +365,13 @@ where reltrab_existe.sgagrupamento is null
 ;
 
 -- Listar Quantidade de Registros Incluisdos nos Conceitos Envolvidos
-select '5-Cargo Comissionado' as Grupo, '5.1-ecadGrupoOcupacional'          as Conceito, count(*) as Qtde from ecadgrupoocupacional          union
-select '5-Cargo Comissionado' as Grupo, '5.2-ecadCargoComissionado'         as Conceito, count(*) as Qtde from ecadcargocomissionado         union
-select '5-Cargo Comissionado' as Grupo, '5.3-ecadEvolucaoCargoComissionado' as Conceito, count(*) as Qtde from ecadevolucaocargocomissionado union
-select '5-Cargo Comissionado' as Grupo, '5.4-ecadEvolucaoCCOCargaHoraria'   as Conceito, count(*) as Qtde from ecadevolucaoccocargahoraria   union
-select '5-Cargo Comissionado' as Grupo, '5.5-ecadEvolucaoCCONatVinc'        as Conceito, count(*) as Qtde from ecadevolucaocconatvinc        union
-select '5-Cargo Comissionado' as Grupo, '5.6-ecadEvolucaoCCORelTrab'        as Conceito, count(*) as Qtde from ecadevolucaoccoreltrab        union
-select '5-Cargo Comissionado' as Grupo, '5.7-ecadEvolucaoCCOValorRef'       as Conceito, count(*) as Qtde from ecadevolucaoccovalorref
+select '4-Cargo Comissionado' as Grupo, '4.1-ecadGrupoOcupacional'          as Conceito, count(*) as Qtde from ecadgrupoocupacional          union
+select '4-Cargo Comissionado' as Grupo, '4.2-ecadCargoComissionado'         as Conceito, count(*) as Qtde from ecadcargocomissionado         union
+select '4-Cargo Comissionado' as Grupo, '4.3-ecadEvolucaoCargoComissionado' as Conceito, count(*) as Qtde from ecadevolucaocargocomissionado union
+select '4-Cargo Comissionado' as Grupo, '4.4-ecadEvolucaoCCOCargaHoraria'   as Conceito, count(*) as Qtde from ecadevolucaoccocargahoraria   union
+select '4-Cargo Comissionado' as Grupo, '4.5-ecadEvolucaoCCONatVinc'        as Conceito, count(*) as Qtde from ecadevolucaocconatvinc        union
+select '4-Cargo Comissionado' as Grupo, '4.6-ecadEvolucaoCCORelTrab'        as Conceito, count(*) as Qtde from ecadevolucaoccoreltrab        union
+select '4-Cargo Comissionado' as Grupo, '4.7-ecadEvolucaoCCOValorRef'       as Conceito, count(*) as Qtde from ecadevolucaoccovalorref
 order by 1, 2
 ;
 
