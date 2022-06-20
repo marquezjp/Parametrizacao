@@ -17,17 +17,20 @@
 ## Criar Quadro de Lotação dos Cargos Efetivos, Temporários e Comissionados com base nos Layout de Cadastro dos Vínculos
 
 Conceitos envolvidos:
+
 * Descrição do Quadro de Lotação (emovDescricaoQLP)
 
 ## Criar Estrutura de Carreira dos Cargos Efetivos e Temporários com base nos Layout de Cadastro dos Vínculos
 
 Conceitos envolvidos:
+
 * Itens de Carreira dos Cargos Efetivos e Temporários (ecadItemCarreira)
 * Estrutura de Carreira dos Cargos Efetivos e Temporários (ecadEstruturaCarreira)
 
 ## Criar Parametrização da Estrutura de Carreira dos Cargos Efetivos e Temporários com base nos Layout de Cadastro dos Vínculos
 
 Conceitos envolvidos:
+
 * Parâmetros dos Itens da Estrutura de Carreira dos Cargos Efetivos e Temporários (ecadEvolucaoEstruturaCarreira)
 * Lista de Cargas Horárias Permitidas (ecadEvolucaoCEFCargaHoraria)
 * Naturezas de Vínculo Permitidas (ecadEvolucaoCEFNatVinc)
@@ -38,6 +41,7 @@ Conceitos envolvidos:
 ## Atualizar as Parametrizações dos Órgãos com base nos Layout de Cadastro dos Vínculos
 
 Conceitos envolvidos:
+
 * Lista de Carreiras Permitidas no Órgão (ecadOrgaoCarreira)
 * Regimes de Trabalho Permitidos (ecadOrgaoRegTrabalho)
 * Regimes Previdenciários Permitidos (ecadOrgaoRegPrev)
@@ -47,6 +51,7 @@ Conceitos envolvidos:
 ## Criar Cargos Comissionados com base nos Layout de Cadastro dos Vínculos
 
 Conceitos envolvidos:
+
 * Grupo Ocupacional dos Cargos Comissionados (ecadGrupoOcupacional)
 * Relacionamento Grupo Ocupacional e Cargo Comissionados (ecadCargoComissionado)
 * Cargo Comissionados (ecadEvolucaoCargoComissionado)
