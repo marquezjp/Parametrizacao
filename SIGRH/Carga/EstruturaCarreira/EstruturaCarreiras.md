@@ -54,4 +54,6 @@ Conceitos envolvidos:
 * Regimes Previdenciários Permitidos (ecadOrgaoRegPrev)
 * Relação de Trabalho Permitidas (ecadOrgaorRelTrabalho)
 * Naturezas do Vínculo Permitidas (ecadOrgaoNatVinculo)
+* Lista de Relação de Trabalho por Regime de Trabalho Permitidas para o Órgão (ecadRelTrabRegTrab)
+* Lista de Natureza do Vinculo por Relação de Trabalho Permitidas para o Agrupamento (ecadNatVincRelTrab)
 

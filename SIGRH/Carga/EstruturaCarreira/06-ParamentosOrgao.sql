@@ -6,8 +6,12 @@
 --- - Regimes Previdenciários Permitidos (ecadOrgaoRegPrev)
 --- - Relação de Trabalho Permitidas (ecadOrgaoRelTrabalho)
 --- - Naturezas do Vínculo Permitidas (ecadOrgaoNatVinculo)
+--- - Lista de Relacao de Trabalho por Regime de Trabalho Permitidas para o Orgao (ecadRelTrabRegTrab)
+--- - Lista de Natureza do Vinculo por Relacao de Trabalho Permitidas para o Agrupamento (ecadNatVincRelTrab)
 
 -- Excluir os Registros dos Conceitos Envolvidos na Ordem de Filho para Pais
+--delete ecadNatVincRelTrab;
+--delete ecadRelTrabRegTrab;
 --delete ecadOrgaoCarreira;
 --delete ecadOrgaoCargoCom;
 --delete ecadOrgaoRegTrabalho;
@@ -348,13 +352,142 @@ left join orgaonatvinculo_existe onatvincexiste on onatvincexiste.sgagrupamento 
 where onatvincexiste.sgagrupamento is null
 ;
 
+--- Criar a Lista de Relacao de Trabalho por Regime de Trabalho Permitidas para o Orgao
+insert into ecadreltrabregtrab
+with regimetrabalho as (
+select distinct
+ a.sgagrupamento as sgagrupamento,
+ o.sgorgao as sgorgao,
+ v.nmregimetrabalho as nmregimetrabalho,
+ v.nmrelacaotrabalho as nmrelacaotrabalho
+from sigrh_rr_vinculos v
+left join vcadorgao o on o.sgorgao = v.sgorgao
+left join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
+where o.cdorgao is not null
+  and v.nmregimetrabalho is not null
+  and v.nmrelacaotrabalho is not null
+order by a.sgagrupamento, o.sgorgao, v.nmregimetrabalho, v.nmrelacaotrabalho
+),
+regtrab as (
+select
+ cdregimetrabalho,
+ translate(regexp_replace(upper(trim(nmregimetrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimetrabalho
+
+from ecadregimetrabalho
+),
+reltrab as (
+select
+ cdrelacaotrabalho,
+ translate(regexp_replace(upper(trim(nmrelacaotrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmrelacaotrabalho
+
+from ecadrelacaotrabalho
+),
+regimetrabalho_existe as (
+select
+ a.sgagrupamento as sgagrupamento,
+ o.sgorgao as sgorgao,
+ regtrab.nmregimetrabalho as nmregimetrabalho,
+ reltrab.nmrelacaotrabalho as nmrelacaotrabalho,
+ rrt.nutransacao
+from ecadreltrabregtrab rrt
+inner join vcadorgao o on o.cdorgao = rrt.cdorgao
+inner join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
+inner join regtrab on regtrab.cdregimetrabalho = rrt.cdregimetrabalho
+inner join reltrab on reltrab.cdrelacaotrabalho = rrt.cdrelacaotrabalho
+order by a.sgagrupamento, o.sgorgao, regtrab.nmregimetrabalho, reltrab.nmrelacaotrabalho
+)
+
+select
+o.cdorgao as cdorgao,
+reltrab.cdrelacaotrabalho as cdrelacaotrabalho,
+regtrab.cdregimetrabalho as cdregimetrabalho,
+'1' as nutransacao
+from regimetrabalho oreltrab
+inner join ecadagrupamento a on a.sgagrupamento = oreltrab.sgagrupamento
+inner join vcadorgao o on o.cdagrupamento = a.cdagrupamento and o.sgorgao = oreltrab.sgorgao
+inner join regtrab on regtrab.nmregimetrabalho = oreltrab.nmregimetrabalho
+inner join reltrab on reltrab.nmrelacaotrabalho = oreltrab.nmrelacaotrabalho
+left join regimetrabalho_existe orrtexist on orrtexist.sgagrupamento = a.sgagrupamento
+                                         and orrtexist.sgorgao = oreltrab.sgorgao
+                                         and orrtexist.nmregimetrabalho = oreltrab.nmregimetrabalho
+                                         and orrtexist.nmrelacaotrabalho = oreltrab.nmrelacaotrabalho
+where orrtexist.sgagrupamento is null
+;
+
+--- Criar a Lista de Natureza do Vinculo por Relacao de Trabalho Permitidas para o Agrupamento
+insert into ecadnatvincreltrab
+with relacaotrabalho as (
+select distinct
+ a.sgagrupamento as sgagrupamento,
+ v.nmrelacaotrabalho as nmrelacaotrabalho,
+ v.nmnaturezavinculo as nmnaturezavinculo
+from sigrh_rr_vinculos v
+left join vcadorgao o on o.sgorgao = v.sgorgao
+left join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
+where o.cdorgao is not null
+  and v.nmrelacaotrabalho is not null
+  and v.nmnaturezavinculo is not null
+order by a.sgagrupamento, v.nmrelacaotrabalho, v.nmnaturezavinculo
+),
+reltrab as (
+select
+ cdrelacaotrabalho,
+ translate(regexp_replace(upper(trim(nmrelacaotrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmrelacaotrabalho
+
+from ecadrelacaotrabalho
+),
+natvinc as (
+select
+ cdnaturezavinculo,
+ translate(regexp_replace(upper(trim(nmnaturezavinculo)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmnaturezavinculo
+
+from ecadnaturezavinculo
+),
+relacaotrabalho_existe as (
+select
+ a.sgagrupamento as sgagrupamento,
+ reltrab.nmrelacaotrabalho as nmrelacaotrabalho,
+ natvinc.nmnaturezavinculo as nmnaturezavinculo,
+ nvrt.nutransacao
+from ecadnatvincreltrab nvrt
+inner join ecadagrupamento a on a.cdagrupamento = nvrt.cdagrupamento
+inner join natvinc on natvinc.cdnaturezavinculo = nvrt.cdnaturezavinculo
+inner join reltrab on reltrab.cdrelacaotrabalho = nvrt.cdrelacaotrabalho
+order by a.sgagrupamento, reltrab.nmrelacaotrabalho, natvinc.nmnaturezavinculo
+)
+
+select
+a.cdagrupamento as cdagrupamento,
+natvinc.cdnaturezavinculo as cdnaturezavinculo,
+reltrab.cdrelacaotrabalho as cdrelacaotrabalho,
+'1' as nutransacao
+from relacaotrabalho anvrt
+inner join ecadagrupamento a on a.sgagrupamento = anvrt.sgagrupamento
+inner join natvinc on natvinc.nmnaturezavinculo = anvrt.nmnaturezavinculo
+inner join reltrab on reltrab.nmrelacaotrabalho = anvrt.nmrelacaotrabalho
+left join relacaotrabalho_existe anvrtexist on anvrtexist.sgagrupamento = anvrt.sgagrupamento
+                                           and anvrtexist.nmrelacaotrabalho = anvrt.nmrelacaotrabalho
+                                           and anvrtexist.nmnaturezavinculo = anvrt.nmnaturezavinculo
+where anvrtexist.sgagrupamento is null
+;
+
 -- Listar Quantidade de Registros Incluisdos nos Conceitos Envolvidos
 select '6-ParametrosOrgao' as Grupo,  '6.1-ecadOrgaoCarreira'     as Conceito, count(*) as Qtde from ecadOrgaoCarreira    union
 select '6-ParametrosOrgao' as Grupo,  '6.2-ecadOrgaoCargoCom'     as Conceito, count(*) as Qtde from ecadOrgaoCargocom    union
 select '6-ParametrosOrgao' as Grupo,  '6.3-ecadOrgaoRegTrabalho'  as Conceito, count(*) as Qtde from ecadOrgaoRegTrabalho union
 select '6-ParametrosOrgao' as Grupo,  '6.4-ecadOrgaoRegPrev'      as Conceito, count(*) as Qtde from ecadOrgaoRegPrev     union
 select '6-ParametrosOrgao' as Grupo,  '6.5-ecadOrgaorRelTrabalho' as Conceito, count(*) as Qtde from ecadOrgaoRelTrabalho union
-select '6-ParametrosOrgao' as Grupo,  '6.6-ecadOrgaoNatVinculo'   as Conceito, count(*) as Qtde from ecadOrgaoNatVinculo
+select '6-ParametrosOrgao' as Grupo,  '6.6-ecadOrgaoNatVinculo'   as Conceito, count(*) as Qtde from ecadOrgaoNatVinculo  union
+select '6-ParametrosOrgao' as Grupo,  '6.7-ecadRelTrabRegTrab'    as Conceito, count(*) as Qtde from ecadRelTrabRegTrab   union
+select '6-ParametrosOrgao' as Grupo,  '6.8-ecadNatVincRelTrab'    as Conceito, count(*) as Qtde from ecadNatVincRelTrab
 order by 1, 2
 ;
 
