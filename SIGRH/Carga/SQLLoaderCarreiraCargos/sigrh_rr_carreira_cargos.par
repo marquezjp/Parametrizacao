@@ -1,0 +1,6 @@
+userid=SIGRH/sigrh@//10.48.1.68:1521/sigrhrrtst
+control=sigrh_rr_carreira_cargos.ctl
+log=sigrh_rr_carreira_cargos.log
+bad=sigrh_rr_carreira_cargos.bad
+data=SIGRH-RR-PCCR-CARREIRACARGOS-20220623.csv
+direct=true

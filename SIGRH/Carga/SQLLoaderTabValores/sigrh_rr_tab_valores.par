@@ -1,0 +1,6 @@
+userid=SIGRH/sigrh@//10.48.1.68:1521/sigrhrrtst
+control=sigrh_rr_tab_valores.ctl
+log=sigrh_rr_tab_valores.log
+bad=sigrh_rr_tab_valores.bad
+data=SIGRH-RR-PCCR-TABVALORES-20220623.csv
+direct=true
