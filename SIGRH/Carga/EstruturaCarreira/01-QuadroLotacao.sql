@@ -8,6 +8,8 @@
 --delete ecadOrgaoRegPrev;
 --delete ecadOrgaoRelTrabalho;
 --delete ecadOrgaoNatVinculo;
+--delete ecadNatVincRelTrab;
+--delete ecadRelTrabRegTrab;
 
 --delete ecadEvolucaoCEFCargaHoraria;
 --delete ecadEvolucaoCEFNatVinc;
