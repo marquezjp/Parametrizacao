@@ -18,7 +18,89 @@
 
 --- Criar ecadevolucaoestruturacarreira
 insert into ecadevolucaoestruturacarreira
-with carreiras as (
+with vinculos as (
+select
+ translate(regexp_replace(upper(trim(sgorgao)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as sgorgao,
+ matricula_legado as numatriculalegado,
+ to_date(dtadmissao, 'YYYY-MM-DD') as dtadmissao,
+ to_date(dtdesligamento, 'YYYY-MM-DD') as dtdesligamento,
+ null as decarreira,
+ translate(regexp_replace(upper(trim(nmgrupoocupacional)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as degrupoocupacional,
+ null as decargo,
+ null as declasse,
+ null as decompetencia,
+ null as deespecialidade,
+ translate(regexp_replace(upper(trim(nmrelacaotrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmrelacaotrabalho,
+ translate(regexp_replace(upper(trim(nmregimetrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimetrabalho,
+ translate(regexp_replace(upper(trim(nmregimeprevidenciario)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimeprevidenciario,
+ translate(regexp_replace(upper(trim(nmnaturezavinculo)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmnaturezavinculo,
+ nmtipocargahorariacom as nmtipocargahoraria,
+ nucargahoraria as nucargahoraria,
+ trim(nunivel) as nunivel,
+ nureferencia as nureferencia,
+ translate(regexp_replace(upper(trim(nvl(nmopcaoremuneracao,'PELO CARGO COMISSIONADO'))), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmopcaoremuneracao
+from sigrhmig.emigvinculocomissionado
+union
+select
+ translate(regexp_replace(upper(trim(sgorgao)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as sgorgao,
+ matricula_legado as numatriculalegado,
+ to_date(dtadmissao, 'YYYY-MM-DD') as dtadmissao,
+ to_date(dtdesligamento, 'YYYY-MM-DD') as dtdesligamento,
+
+ translate(regexp_replace(upper(trim(decarreira)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as decarreira,
+ translate(regexp_replace(upper(trim(degrupoocupacional)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as degrupoocupacional,
+ translate(regexp_replace(upper(trim(decargo)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as decargo,
+ translate(regexp_replace(upper(trim(declasse)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as declasse,
+ translate(regexp_replace(upper(trim(decompetencia)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as decompetencia,
+ translate(regexp_replace(upper(trim(deespecialidade)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as deespecialidade,
+ translate(regexp_replace(upper(trim(nmrelacaotrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmrelacaotrabalho,
+ translate(regexp_replace(upper(trim(nmregimetrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimetrabalho,
+ translate(regexp_replace(upper(trim(nmregimeprevidenciario)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimeprevidenciario,
+ translate(regexp_replace(upper(trim(nmnaturezavinculo)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmnaturezavinculo,
+ nmtipocargahoraria as nmtipocargahoraria,
+ nucargahoraria as nucargahoraria,
+ nunivelpagamento as nunivel,
+ nureferenciapagamento as nureferencia,
+ null as nmopcaoremuneracao 
+from sigrhmig.emigvinculoefetivo
+),
+carreiras as (
 select
  a.sgagrupamento as sgagrupamento,
  v.decarreira,
@@ -32,7 +114,7 @@ select
  'CARGO' as nmtipoitemcarreiraapo,
  'SEMANAL' as nmtipocargahoraria,
  'NAO PERMITE ACUMULACAO DE VINCULOS' as nmacumvinculo
-from sigrh_rr_vinculos v
+from vinculos v
 left join vcadorgao o on o.sgorgao = v.sgorgao
 left join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
 where o.cdorgao is not null
@@ -114,12 +196,94 @@ where crexiste.cdagrupamento is null
 
 --- Criar a Lista de Cargas Horárias Permitidas para os Itens da Estrutura de Carreira dos Cargos Efetivos e Temporarios
 insert into ecadevolucaocefcargahoraria
-with carreiras as (
+with vinculos as (
+select
+ translate(regexp_replace(upper(trim(sgorgao)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as sgorgao,
+ matricula_legado as numatriculalegado,
+ to_date(dtadmissao, 'YYYY-MM-DD') as dtadmissao,
+ to_date(dtdesligamento, 'YYYY-MM-DD') as dtdesligamento,
+ null as decarreira,
+ translate(regexp_replace(upper(trim(nmgrupoocupacional)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as degrupoocupacional,
+ null as decargo,
+ null as declasse,
+ null as decompetencia,
+ null as deespecialidade,
+ translate(regexp_replace(upper(trim(nmrelacaotrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmrelacaotrabalho,
+ translate(regexp_replace(upper(trim(nmregimetrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimetrabalho,
+ translate(regexp_replace(upper(trim(nmregimeprevidenciario)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimeprevidenciario,
+ translate(regexp_replace(upper(trim(nmnaturezavinculo)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmnaturezavinculo,
+ nmtipocargahorariacom as nmtipocargahoraria,
+ nucargahoraria as nucargahoraria,
+ trim(nunivel) as nunivel,
+ nureferencia as nureferencia,
+ translate(regexp_replace(upper(trim(nvl(nmopcaoremuneracao,'PELO CARGO COMISSIONADO'))), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmopcaoremuneracao
+from sigrhmig.emigvinculocomissionado
+union
+select
+ translate(regexp_replace(upper(trim(sgorgao)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as sgorgao,
+ matricula_legado as numatriculalegado,
+ to_date(dtadmissao, 'YYYY-MM-DD') as dtadmissao,
+ to_date(dtdesligamento, 'YYYY-MM-DD') as dtdesligamento,
+
+ translate(regexp_replace(upper(trim(decarreira)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as decarreira,
+ translate(regexp_replace(upper(trim(degrupoocupacional)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as degrupoocupacional,
+ translate(regexp_replace(upper(trim(decargo)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as decargo,
+ translate(regexp_replace(upper(trim(declasse)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as declasse,
+ translate(regexp_replace(upper(trim(decompetencia)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as decompetencia,
+ translate(regexp_replace(upper(trim(deespecialidade)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as deespecialidade,
+ translate(regexp_replace(upper(trim(nmrelacaotrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmrelacaotrabalho,
+ translate(regexp_replace(upper(trim(nmregimetrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimetrabalho,
+ translate(regexp_replace(upper(trim(nmregimeprevidenciario)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimeprevidenciario,
+ translate(regexp_replace(upper(trim(nmnaturezavinculo)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmnaturezavinculo,
+ nmtipocargahoraria as nmtipocargahoraria,
+ nucargahoraria as nucargahoraria,
+ nunivelpagamento as nunivel,
+ nureferenciapagamento as nureferencia,
+ null as nmopcaoremuneracao 
+from sigrhmig.emigvinculoefetivo
+),
+carreiras as (
 select distinct
  a.sgagrupamento as sgagrupamento,
  v.decarreira,
  v.nucargahoraria
-from sigrh_rr_vinculos v
+from vinculos v
 left join vcadorgao o on o.sgorgao = v.sgorgao
 left join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
 where o.cdorgao is not null
@@ -163,12 +327,94 @@ where crexiste.cdagrupamento is null
 
 --- Criar as Naturezas de Vínculo Permitidas para os Itens da Estrutura de Carreira dos Cargos Efetivos e Temporarios
 insert into ecadevolucaocefnatvinc
-with carreiras as (
+with vinculos as (
+select
+ translate(regexp_replace(upper(trim(sgorgao)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as sgorgao,
+ matricula_legado as numatriculalegado,
+ to_date(dtadmissao, 'YYYY-MM-DD') as dtadmissao,
+ to_date(dtdesligamento, 'YYYY-MM-DD') as dtdesligamento,
+ null as decarreira,
+ translate(regexp_replace(upper(trim(nmgrupoocupacional)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as degrupoocupacional,
+ null as decargo,
+ null as declasse,
+ null as decompetencia,
+ null as deespecialidade,
+ translate(regexp_replace(upper(trim(nmrelacaotrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmrelacaotrabalho,
+ translate(regexp_replace(upper(trim(nmregimetrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimetrabalho,
+ translate(regexp_replace(upper(trim(nmregimeprevidenciario)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimeprevidenciario,
+ translate(regexp_replace(upper(trim(nmnaturezavinculo)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmnaturezavinculo,
+ nmtipocargahorariacom as nmtipocargahoraria,
+ nucargahoraria as nucargahoraria,
+ trim(nunivel) as nunivel,
+ nureferencia as nureferencia,
+ translate(regexp_replace(upper(trim(nvl(nmopcaoremuneracao,'PELO CARGO COMISSIONADO'))), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmopcaoremuneracao
+from sigrhmig.emigvinculocomissionado
+union
+select
+ translate(regexp_replace(upper(trim(sgorgao)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as sgorgao,
+ matricula_legado as numatriculalegado,
+ to_date(dtadmissao, 'YYYY-MM-DD') as dtadmissao,
+ to_date(dtdesligamento, 'YYYY-MM-DD') as dtdesligamento,
+
+ translate(regexp_replace(upper(trim(decarreira)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as decarreira,
+ translate(regexp_replace(upper(trim(degrupoocupacional)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as degrupoocupacional,
+ translate(regexp_replace(upper(trim(decargo)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as decargo,
+ translate(regexp_replace(upper(trim(declasse)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as declasse,
+ translate(regexp_replace(upper(trim(decompetencia)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as decompetencia,
+ translate(regexp_replace(upper(trim(deespecialidade)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as deespecialidade,
+ translate(regexp_replace(upper(trim(nmrelacaotrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmrelacaotrabalho,
+ translate(regexp_replace(upper(trim(nmregimetrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimetrabalho,
+ translate(regexp_replace(upper(trim(nmregimeprevidenciario)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimeprevidenciario,
+ translate(regexp_replace(upper(trim(nmnaturezavinculo)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmnaturezavinculo,
+ nmtipocargahoraria as nmtipocargahoraria,
+ nucargahoraria as nucargahoraria,
+ nunivelpagamento as nunivel,
+ nureferenciapagamento as nureferencia,
+ null as nmopcaoremuneracao 
+from sigrhmig.emigvinculoefetivo
+),
+carreiras as (
 select distinct
  a.sgagrupamento as sgagrupamento,
  v.decarreira,
  v.nmnaturezavinculo
-from sigrh_rr_vinculos v
+from vinculos v
 left join vcadorgao o on o.sgorgao = v.sgorgao
 left join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
 where o.cdorgao is not null
@@ -222,12 +468,94 @@ where crexiste.cdagrupamento is null
 
 --- Criar as Relações de Trabalho Permitidas para os Itens da Estrutura de Carreira dos Cargos Efetivos e Temporarios
 insert into ecadevolucaocefreltrab
-with carreiras as (
+with vinculos as (
+select
+ translate(regexp_replace(upper(trim(sgorgao)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as sgorgao,
+ matricula_legado as numatriculalegado,
+ to_date(dtadmissao, 'YYYY-MM-DD') as dtadmissao,
+ to_date(dtdesligamento, 'YYYY-MM-DD') as dtdesligamento,
+ null as decarreira,
+ translate(regexp_replace(upper(trim(nmgrupoocupacional)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as degrupoocupacional,
+ null as decargo,
+ null as declasse,
+ null as decompetencia,
+ null as deespecialidade,
+ translate(regexp_replace(upper(trim(nmrelacaotrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmrelacaotrabalho,
+ translate(regexp_replace(upper(trim(nmregimetrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimetrabalho,
+ translate(regexp_replace(upper(trim(nmregimeprevidenciario)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimeprevidenciario,
+ translate(regexp_replace(upper(trim(nmnaturezavinculo)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmnaturezavinculo,
+ nmtipocargahorariacom as nmtipocargahoraria,
+ nucargahoraria as nucargahoraria,
+ trim(nunivel) as nunivel,
+ nureferencia as nureferencia,
+ translate(regexp_replace(upper(trim(nvl(nmopcaoremuneracao,'PELO CARGO COMISSIONADO'))), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmopcaoremuneracao
+from sigrhmig.emigvinculocomissionado
+union
+select
+ translate(regexp_replace(upper(trim(sgorgao)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as sgorgao,
+ matricula_legado as numatriculalegado,
+ to_date(dtadmissao, 'YYYY-MM-DD') as dtadmissao,
+ to_date(dtdesligamento, 'YYYY-MM-DD') as dtdesligamento,
+
+ translate(regexp_replace(upper(trim(decarreira)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as decarreira,
+ translate(regexp_replace(upper(trim(degrupoocupacional)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as degrupoocupacional,
+ translate(regexp_replace(upper(trim(decargo)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as decargo,
+ translate(regexp_replace(upper(trim(declasse)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as declasse,
+ translate(regexp_replace(upper(trim(decompetencia)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as decompetencia,
+ translate(regexp_replace(upper(trim(deespecialidade)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as deespecialidade,
+ translate(regexp_replace(upper(trim(nmrelacaotrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmrelacaotrabalho,
+ translate(regexp_replace(upper(trim(nmregimetrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimetrabalho,
+ translate(regexp_replace(upper(trim(nmregimeprevidenciario)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimeprevidenciario,
+ translate(regexp_replace(upper(trim(nmnaturezavinculo)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmnaturezavinculo,
+ nmtipocargahoraria as nmtipocargahoraria,
+ nucargahoraria as nucargahoraria,
+ nunivelpagamento as nunivel,
+ nureferenciapagamento as nureferencia,
+ null as nmopcaoremuneracao 
+from sigrhmig.emigvinculoefetivo
+),
+carreiras as (
 select distinct
  a.sgagrupamento as sgagrupamento,
  v.decarreira,
  v.nmrelacaotrabalho
-from sigrh_rr_vinculos v
+from vinculos v
 left join vcadorgao o on o.sgorgao = v.sgorgao
 left join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
 where o.cdorgao is not null
@@ -281,12 +609,94 @@ where crexiste.cdagrupamento is null
 
 --- Criar os Regimes de Trabalho Permitidos para os Itens da Estrutura de Carreira dos Cargos Efetivos e Temporarios
 insert into ecadevolucaocefregtrab
-with carreiras as (
+with vinculos as (
+select
+ translate(regexp_replace(upper(trim(sgorgao)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as sgorgao,
+ matricula_legado as numatriculalegado,
+ to_date(dtadmissao, 'YYYY-MM-DD') as dtadmissao,
+ to_date(dtdesligamento, 'YYYY-MM-DD') as dtdesligamento,
+ null as decarreira,
+ translate(regexp_replace(upper(trim(nmgrupoocupacional)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as degrupoocupacional,
+ null as decargo,
+ null as declasse,
+ null as decompetencia,
+ null as deespecialidade,
+ translate(regexp_replace(upper(trim(nmrelacaotrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmrelacaotrabalho,
+ translate(regexp_replace(upper(trim(nmregimetrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimetrabalho,
+ translate(regexp_replace(upper(trim(nmregimeprevidenciario)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimeprevidenciario,
+ translate(regexp_replace(upper(trim(nmnaturezavinculo)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmnaturezavinculo,
+ nmtipocargahorariacom as nmtipocargahoraria,
+ nucargahoraria as nucargahoraria,
+ trim(nunivel) as nunivel,
+ nureferencia as nureferencia,
+ translate(regexp_replace(upper(trim(nvl(nmopcaoremuneracao,'PELO CARGO COMISSIONADO'))), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmopcaoremuneracao
+from sigrhmig.emigvinculocomissionado
+union
+select
+ translate(regexp_replace(upper(trim(sgorgao)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as sgorgao,
+ matricula_legado as numatriculalegado,
+ to_date(dtadmissao, 'YYYY-MM-DD') as dtadmissao,
+ to_date(dtdesligamento, 'YYYY-MM-DD') as dtdesligamento,
+
+ translate(regexp_replace(upper(trim(decarreira)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as decarreira,
+ translate(regexp_replace(upper(trim(degrupoocupacional)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as degrupoocupacional,
+ translate(regexp_replace(upper(trim(decargo)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as decargo,
+ translate(regexp_replace(upper(trim(declasse)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as declasse,
+ translate(regexp_replace(upper(trim(decompetencia)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as decompetencia,
+ translate(regexp_replace(upper(trim(deespecialidade)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as deespecialidade,
+ translate(regexp_replace(upper(trim(nmrelacaotrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmrelacaotrabalho,
+ translate(regexp_replace(upper(trim(nmregimetrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimetrabalho,
+ translate(regexp_replace(upper(trim(nmregimeprevidenciario)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimeprevidenciario,
+ translate(regexp_replace(upper(trim(nmnaturezavinculo)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmnaturezavinculo,
+ nmtipocargahoraria as nmtipocargahoraria,
+ nucargahoraria as nucargahoraria,
+ nunivelpagamento as nunivel,
+ nureferenciapagamento as nureferencia,
+ null as nmopcaoremuneracao 
+from sigrhmig.emigvinculoefetivo
+),
+carreiras as (
 select distinct
  a.sgagrupamento as sgagrupamento,
  v.decarreira,
  v.nmregimetrabalho
-from sigrh_rr_vinculos v
+from vinculos v
 left join vcadorgao o on o.sgorgao = v.sgorgao
 left join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
 where o.cdorgao is not null
@@ -340,12 +750,94 @@ where crexiste.cdagrupamento is null
 
 --- Criar os Regimes Previdenciários Permitidos para os Itens da Estrutura de Carreira dos Cargos Efetivos e Temporarios
 insert into ecadevolucaocefregprev
-with carreiras as (
+with vinculos as (
+select
+ translate(regexp_replace(upper(trim(sgorgao)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as sgorgao,
+ matricula_legado as numatriculalegado,
+ to_date(dtadmissao, 'YYYY-MM-DD') as dtadmissao,
+ to_date(dtdesligamento, 'YYYY-MM-DD') as dtdesligamento,
+ null as decarreira,
+ translate(regexp_replace(upper(trim(nmgrupoocupacional)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as degrupoocupacional,
+ null as decargo,
+ null as declasse,
+ null as decompetencia,
+ null as deespecialidade,
+ translate(regexp_replace(upper(trim(nmrelacaotrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmrelacaotrabalho,
+ translate(regexp_replace(upper(trim(nmregimetrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimetrabalho,
+ translate(regexp_replace(upper(trim(nmregimeprevidenciario)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimeprevidenciario,
+ translate(regexp_replace(upper(trim(nmnaturezavinculo)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmnaturezavinculo,
+ nmtipocargahorariacom as nmtipocargahoraria,
+ nucargahoraria as nucargahoraria,
+ trim(nunivel) as nunivel,
+ nureferencia as nureferencia,
+ translate(regexp_replace(upper(trim(nvl(nmopcaoremuneracao,'PELO CARGO COMISSIONADO'))), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmopcaoremuneracao
+from sigrhmig.emigvinculocomissionado
+union
+select
+ translate(regexp_replace(upper(trim(sgorgao)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as sgorgao,
+ matricula_legado as numatriculalegado,
+ to_date(dtadmissao, 'YYYY-MM-DD') as dtadmissao,
+ to_date(dtdesligamento, 'YYYY-MM-DD') as dtdesligamento,
+
+ translate(regexp_replace(upper(trim(decarreira)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as decarreira,
+ translate(regexp_replace(upper(trim(degrupoocupacional)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as degrupoocupacional,
+ translate(regexp_replace(upper(trim(decargo)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as decargo,
+ translate(regexp_replace(upper(trim(declasse)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as declasse,
+ translate(regexp_replace(upper(trim(decompetencia)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as decompetencia,
+ translate(regexp_replace(upper(trim(deespecialidade)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as deespecialidade,
+ translate(regexp_replace(upper(trim(nmrelacaotrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmrelacaotrabalho,
+ translate(regexp_replace(upper(trim(nmregimetrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimetrabalho,
+ translate(regexp_replace(upper(trim(nmregimeprevidenciario)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimeprevidenciario,
+ translate(regexp_replace(upper(trim(nmnaturezavinculo)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmnaturezavinculo,
+ nmtipocargahoraria as nmtipocargahoraria,
+ nucargahoraria as nucargahoraria,
+ nunivelpagamento as nunivel,
+ nureferenciapagamento as nureferencia,
+ null as nmopcaoremuneracao 
+from sigrhmig.emigvinculoefetivo
+),
+carreiras as (
 select distinct
  a.sgagrupamento as sgagrupamento,
  v.decarreira,
  v.nmregimeprevidenciario
-from sigrh_rr_vinculos v
+from vinculos v
 left join vcadorgao o on o.sgorgao = v.sgorgao
 left join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
 where o.cdorgao is not null
@@ -400,12 +892,94 @@ where crexiste.cdagrupamento is null
 
 --- Criar a Lista de Naturezas do Vínculo para o Orgao
 insert into ecadevolucaocefnatvinc
-with carreiras as (
+with vinculos as (
+select
+ translate(regexp_replace(upper(trim(sgorgao)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as sgorgao,
+ matricula_legado as numatriculalegado,
+ to_date(dtadmissao, 'YYYY-MM-DD') as dtadmissao,
+ to_date(dtdesligamento, 'YYYY-MM-DD') as dtdesligamento,
+ null as decarreira,
+ translate(regexp_replace(upper(trim(nmgrupoocupacional)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as degrupoocupacional,
+ null as decargo,
+ null as declasse,
+ null as decompetencia,
+ null as deespecialidade,
+ translate(regexp_replace(upper(trim(nmrelacaotrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmrelacaotrabalho,
+ translate(regexp_replace(upper(trim(nmregimetrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimetrabalho,
+ translate(regexp_replace(upper(trim(nmregimeprevidenciario)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimeprevidenciario,
+ translate(regexp_replace(upper(trim(nmnaturezavinculo)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmnaturezavinculo,
+ nmtipocargahorariacom as nmtipocargahoraria,
+ nucargahoraria as nucargahoraria,
+ trim(nunivel) as nunivel,
+ nureferencia as nureferencia,
+ translate(regexp_replace(upper(trim(nvl(nmopcaoremuneracao,'PELO CARGO COMISSIONADO'))), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmopcaoremuneracao
+from sigrhmig.emigvinculocomissionado
+union
+select
+ translate(regexp_replace(upper(trim(sgorgao)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as sgorgao,
+ matricula_legado as numatriculalegado,
+ to_date(dtadmissao, 'YYYY-MM-DD') as dtadmissao,
+ to_date(dtdesligamento, 'YYYY-MM-DD') as dtdesligamento,
+
+ translate(regexp_replace(upper(trim(decarreira)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as decarreira,
+ translate(regexp_replace(upper(trim(degrupoocupacional)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as degrupoocupacional,
+ translate(regexp_replace(upper(trim(decargo)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as decargo,
+ translate(regexp_replace(upper(trim(declasse)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as declasse,
+ translate(regexp_replace(upper(trim(decompetencia)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as decompetencia,
+ translate(regexp_replace(upper(trim(deespecialidade)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as deespecialidade,
+ translate(regexp_replace(upper(trim(nmrelacaotrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmrelacaotrabalho,
+ translate(regexp_replace(upper(trim(nmregimetrabalho)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimetrabalho,
+ translate(regexp_replace(upper(trim(nmregimeprevidenciario)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmregimeprevidenciario,
+ translate(regexp_replace(upper(trim(nmnaturezavinculo)), '[[:space:]]+', chr(32)),
+                 'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+                 'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz') as nmnaturezavinculo,
+ nmtipocargahoraria as nmtipocargahoraria,
+ nucargahoraria as nucargahoraria,
+ nunivelpagamento as nunivel,
+ nureferenciapagamento as nureferencia,
+ null as nmopcaoremuneracao 
+from sigrhmig.emigvinculoefetivo
+),
+carreiras as (
 select distinct
  a.sgagrupamento as sgagrupamento,
  v.decarreira,
  v.nmnaturezavinculo
-from sigrh_rr_vinculos v
+from vinculos v
 left join vcadorgao o on o.sgorgao = v.sgorgao
 left join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
 where o.cdorgao is not null
