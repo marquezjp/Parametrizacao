@@ -9,6 +9,7 @@ select
  case when constpk.table_name is not null then 'Yes' else 'No' end as primary_key,
  case when constfk.table_name is not null then 'Yes' else 'No' end as foreign_key,
  col.column_id as Id,
+ constfk.constraint_name as ConstraintName,
  lower(col.table_name) || '.' || lower(col.column_name) as FullName
 
 from user_tab_columns col
@@ -17,9 +18,14 @@ left join user_cons_columns constcol on constcol.table_name = col.table_name and
 left join user_constraints constpk on constpk.constraint_name = constcol.constraint_name and constpk.constraint_type = 'P'
 left join user_constraints constfk on constfk.constraint_name = constcol.constraint_name and constfk.constraint_type = 'R'
 
+where col.column_name = upper('cdafastamento')
+
 --where col.table_name = upper('ecadvinculo')
 --where col.table_name like upper('eafa%')
---where col.column_name = upper('cdafastamento')
+
+--where constfk.constraint_name like upper('RAFAAFASTVINCCADHISTJORNTRAB')
+--where col.column_name like upper('cdafastamento%') and constfk.table_name is not null
+--  and col.table_name like upper('ecad%')
 
 order by col.table_name, col.column_name
 ;
