@@ -1,52 +1,75 @@
---drop type jotape_row;
+select * from table(return_table);
+/
 
-create or replace type jotape_row as object(
-campo     varchar2(30),
-ordem     number(6),
-registros number(6),
-unicos    number(6),
-nulos     number(6),
-zeros     number(6)
+select * from table(return_objects);
+/
+
+drop type     t_table;
+drop type     t_record;
+drop function return_table;
+drop function return_objects;
+/
+
+create or replace type t_record as object (
+  cdcodigo number(22),
+  nmdescricao varchar2(90),
+  dedescricao varchar2(90),
+  dtinicio date
 );
+/
 
---drop type jotape_table;
+create or replace type t_table as table of t_record;
+/
 
-create or replace type jotape_table as table of jotape_row;
+create or replace function return_table return t_table as
 
---drop function jotape;
-
-create or replace function jotape
-return jotape_table
-as
-begin
-  return jotape_table(
-    jotape_row('NOME',   1, 100,  80,   5,  0),
-    jotape_row('CPF',    2, 100, 100, 100,  0),
-    jotape_row('DTNASC', 3, 100,  50,  15, 30),
-    jotape_row('END',    4, 100,  10,  60,  0)
-    );
-end;
-
-create or replace function jotape
-return jotape_table
-as
-v_ret jotape_table;
-begin
-  v_ret := jotape_table();
+v_ret   t_table;
   
-  v_ret.extend;
-  v_ret(v_ret.count) := jotape_row('NOME',   1, 100,  80,   5,  0);
+cursor cLista is
+select
+  rownum as cdcodigo,
+  'GRUPO' as nmdescricao,
+  'MOTIVO' as dedescricao,
+  to_date('30/04/2022','DD/MM/YYYY') as dtinicio
+from all_objects
+where rownum <= 4;
 
-  v_ret.extend;
-  v_ret(v_ret.count) := jotape_row('CPF',    2, 100, 100, 100,  0);
+begin
 
-  v_ret.extend;
-  v_ret(v_ret.count) := jotape_row('DTNASC', 3, 100,  50,  15, 30);
-
-  v_ret.extend;
-  v_ret(v_ret.count) := jotape_row('END',    4, 100,  10,  60,  0);
+  v_ret  := t_table();
+  
+  for item in cLista loop
+    v_ret.extend;
+    v_ret(v_ret.count) := t_record(
+      item.cdcodigo,
+      item.nmdescricao,
+      item.dedescricao,
+      item.dtinicio
+    );
+  end loop;
 
   return v_ret;
-end;
 
-select * from table(jotape);
+end return_table;
+/
+
+create or replace
+function return_objects return t_table
+as
+    v_ret   t_table;
+begin
+
+    select t_record(
+      rownum,
+      'GRUPO' as nmdescricao,
+      'MOTIVO' as dedescricao,
+      to_date('30/04/2022','DD/MM/YYYY')
+    )
+    bulk collect into v_ret
+    from all_objects
+    where rownum <= 4;
+  
+    return v_ret;
+  
+end return_objects;
+/

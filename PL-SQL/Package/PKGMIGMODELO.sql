@@ -32,6 +32,8 @@ type modelo_table is table of modelo_row;
 
 function listar return modelo_table pipelined;
 
+procedure testar(plista_tab in modelo_table);
+
 procedure incluir(
 --plista_tab in modelo_table,
 pdtinicio date default to_date(last_day(add_months(sysdate,-1)),'DD/MM/YYYY'),
@@ -56,13 +58,12 @@ return modelo_table pipelined as
 
 cursor cLista is
 select
-  v.cdvinculo as cdcodigo,
-  'TEMPORARIO SEM REMUNERACAO - CALCULO PARALELO' as nmdescricao,
-  'PARALELO DA FOLHA SEM REMUNERACAO' as dedescricao,
+  rownum as cdcodigo,
+  'GRUPO' as nmdescricao,
+  'MOTIVO' as dedescricao,
   to_date('30/04/2022','DD/MM/YYYY') as dtinicio
-from ecadvinculo v
-where v.cdorgao = 22
-  and v.dtdesligamento is not null
+from all_objects
+where rownum <= 4
 ;
 
 begin
@@ -75,6 +76,19 @@ begin
     ));
   end loop;    
 end listar;
+
+procedure testar(plista_tab in modelo_table) is
+
+begin
+  for item in (select * from table(PKGMIGMODELO.listar)) loop
+    dbms_output.put_line(
+    item.cdcodigo || ' ' ||
+    item.nmdescricao || ' ' ||
+    item.dedescricao || ' ' ||
+    item.dtinicio
+    );
+  end loop;    
+end testar;
 
 procedure incluir(
 --plista_tab in modelo_table,
