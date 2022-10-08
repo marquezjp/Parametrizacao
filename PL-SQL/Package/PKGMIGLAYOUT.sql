@@ -7,6 +7,9 @@ select * from table(PKGMIGLAYOUT.listar(PKGMIGCAPAPAGAMENTOLAYOUT.CapaPagamento(
 select PKGMIGCAPAPAGAMENTOLAYOUT.CapaPagamento() from dual;
 /
 
+select * from table(PKGMIGLAYOUT.listarEstatisticaDescritiva('emigcapapagamento2','sigrhmig'));
+/
+
 -- Remover o Pacote
 drop package PKGMIGLAYOUT;
 /
@@ -14,7 +17,7 @@ drop package PKGMIGLAYOUT;
 -- Criar o Especificação do Pacote
 create or replace package PKGMIGLAYOUT is
 
-type layoutRow is record(
+type layoutTabelaLinha is record(
   familiaarquivos VARCHAR2(250),
   arquivo VARCHAR2(250),
   versao VARCHAR2(250),
@@ -32,11 +35,42 @@ type layoutRow is record(
 --  sigrh_conceito VARCHAR2(250),
 --  sigrh_coluna VARCHAR2(250)
 );
+type layoutTabela is table of layoutTabelaLinha;
 
-type layoutTable is table of layoutRow;
+type estatisticaDescritivaTabelaLinha is record(
+  campo     varchar2(50),
+  ordem     number(6),
+  registros number(6),
+  unicos    number(6),
+  nulos     number(6),
+  zeros     number(6),
+  numericos number(6),
+  datas     number(6),
+  minimos   number(20),
+  maximos   number(20),
+  padrao    varchar2(50),
+  dominio   varchar2(1500)
+);
+type estatisticaDescritivaTabela is table of estatisticaDescritivaTabelaLinha;
+
+procedure print (p in varchar2);
+
+function normalizarString(pTexto varchar2) return varchar2;
+function centralizarString(pTexto varchar2, pTamanho number) return varchar2;
 
 function mostrar(docJSON in clob) return clob;
-function listar(docJSON in clob) return layoutTable pipelined;
+function listar(docJSON in clob) return layoutTabela pipelined;
+
+function gerarSQLEstatisticasArquivo(
+  pNomeTabela in varchar2,
+  pCampo in varchar2,
+  pOrdem in number
+) return varchar2;
+
+function listarEstatisticaDescritiva(
+  pNomeTabela in varchar2,
+  pProprietario in varchar2 default null
+) return estatisticaDescritivaTabela pipelined;
 
 end PKGMIGLAYOUT;
 /
@@ -44,12 +78,27 @@ end PKGMIGLAYOUT;
 -- Criar o Corpo do Pacote
 create or replace package body PKGMIGLAYOUT is
 
+procedure print (p in varchar2) is
+begin dbms_output.put_line(p); end;
+
+function normalizarString(pTexto varchar2) return varchar2 as
+begin
+ return translate(regexp_replace(upper(trim(pTexto)), '[[:space:]]+', chr(32)),
+         'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+         'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz');
+end normalizarString;
+
+function centralizarString(pTexto varchar2, pTamanho number) return varchar2 as  
+begin  
+ return lpad(rpad(pTexto,length(pTexto) + (pTamanho - length(pTexto) - 1) / 2,' '),pTamanho,' ');
+end centralizarString;
+
 function mostrar(docJSON in clob) return clob as
 begin
  return json_query(docJSON, '$' returning clob pretty);
 end mostrar;
 
-function listar(docJSON in clob) return layoutTable pipelined as
+function listar(docJSON in clob) return layoutTabela pipelined as
 
 cursor cListaLayout is
 select
@@ -98,7 +147,7 @@ from json_table(docJSON, '$' columns (
 
 begin
   for item in cListaLayout loop
-    pipe row(layoutRow(
+    pipe row(layoutTabelaLinha(
       item.familiaarquivos,
       item.arquivo,
       item.versao,
@@ -119,5 +168,106 @@ begin
   end loop; 
 
 end listar;
+
+function gerarSQLEstatisticasArquivo(
+  pNomeTabela in varchar2,
+  pCampo in varchar2,
+  pOrdem in number
+) return varchar2 is
+begin
+  return '
+with  
+unicos as (select distinct ' || pCampo || ' from ' || pNomeTabela || '),
+lista as (
+select ''' || pCampo || ''' as campolista, listagg(' || pCampo || ', ''; '') within group (order by ' || pCampo || ') as dominio
+from unicos
+where (select count(*) from unicos) < 50  
+),
+estatistica as (
+select ''' || pCampo || ''' as campo, ' || pOrdem || ' as ordem,
+count(*) as registros,
+count(distinct ' || pCampo || ') as unicos,
+count(case when ' || pCampo || ' is null then 1 else null end) as nulos,
+count(case when to_char(' || pCampo || ') = ''0'' then 1 else null end) as zeros,
+count(case when ' || pCampo || ' is not null and trim(TRANSLATE(' || pCampo || ', ''0123456789 -,.'', '' '')) is null then 1 else null end) as numericos,
+count(case PKGMIGVALIDACAO.validarData(' || pCampo || ') when 1 then 1 else null end) as datas,
+min(case PKGMIGVALIDACAO.validarNumero(' || pCampo || ') when 1 then trim(TRANSLATE(' || pCampo || ', '' -,.'', '' '')) else null end) as minimos,
+max(case PKGMIGVALIDACAO.validarNumero(' || pCampo || ') when 1 then trim(TRANSLATE(' || pCampo || ', '' -,.'', '' '')) else null end) as maximos
+from ' || pNomeTabela || '
+)
+
+select campo, ordem, registros, unicos, nulos, zeros, numericos, datas, minimos, maximos,
+case when unicos = 1 then dominio else null end as padrao,
+case when unicos > 1 then dominio else null end as dominio
+from estatistica
+left join lista on campolista = campo
+';
+end gerarSQLEstatisticasArquivo;
+
+function listarEstatisticaDescritiva(
+  pNomeTabela in varchar2,
+  pProprietario in varchar2 default null
+) return estatisticaDescritivaTabela pipelined as
+vSQL varchar2(32000);
+vNomeTabela varchar2(50);
+
+type camposTabelaRecord is record (campo varchar2(50),
+                                   ordem number(6));
+camposTabela camposTabelaRecord;
+ 
+cursor cCamposTabela (vNomeTabela varchar2, vProprietario varchar2) is
+   select lower(column_name) as campo, column_id as ordem from sys.all_tab_columns
+   where owner = vProprietario
+     and table_name = vNomeTabela
+--     and column_id between 1 and 20
+--     and column_id = 2
+   order by column_id;
+
+type estatisticasArquivoRecord is record (campo     varchar2(50),
+                                   ordem     number(6),
+                                   registros number(6),
+                                   unicos    number(6),
+                                   nulos     number(6),
+                                   zeros     number(6),
+                                   numericos number(6),
+                                   datas     number(6),
+                                   minimos   number(20),
+                                   maximos   number(20),
+                                   padrao    varchar2(50),
+                                   dominio   varchar2(1500)
+                                  );
+estatisticasArquivo estatisticasArquivoRecord;
+
+begin
+  if pProprietario is null then vNomeTabela := upper(pNomeTabela);
+  else vNomeTabela := upper(pProprietario) || '.' || upper(pNomeTabela);
+  end if;
+  
+  open cCamposTabela(upper(pNomeTabela), upper(pProprietario));
+  loop fetch cCamposTabela into camposTabela;
+    exit when cCamposTabela%notfound;
+
+    vSQL := gerarSQLEstatisticasArquivo(vNomeTabela, camposTabela.campo, camposTabela.ordem);
+    
+    execute immediate vSQL into estatisticasArquivo;
+
+    pipe row(estatisticaDescritivaTabelaLinha(
+      estatisticasArquivo.campo,
+      estatisticasArquivo.ordem,
+      estatisticasArquivo.registros,
+      estatisticasArquivo.unicos,
+      estatisticasArquivo.nulos,
+      estatisticasArquivo.zeros,
+      estatisticasArquivo.numericos,
+      estatisticasArquivo.datas,
+      estatisticasArquivo.minimos,
+      estatisticasArquivo.maximos,
+      estatisticasArquivo.padrao,
+      estatisticasArquivo.dominio
+    ));
+
+  end loop; 
+   
+end listarEstatisticaDescritiva;
 
 end PKGMIGLAYOUT;
