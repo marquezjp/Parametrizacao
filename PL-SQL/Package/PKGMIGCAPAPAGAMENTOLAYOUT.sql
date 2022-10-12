@@ -45,7 +45,7 @@ begin
 			"Padrão" : "",
 			"Domínio" : null,
 			"SIGRH" : [{"Conceito" : "ECADORGAO", "Coluna" : "SGORGAO"}],
-			"RegrasValidação" : ["validarSiglaOrgao"]
+			"RegrasValidação" : ["validarDominio"]
 		},
 		{
 			"Campo" : "NUMATRICULALEGADO",
@@ -105,7 +105,7 @@ begin
 			"Padrão" : "",
 			"Domínio" : ["NORMAL", "RESCISÃO", "13º SALÁRIO", "FÉRIAS", "ADIANTAMENTO DE 13º SALÁRIO", "INSTITUIDORES DE PENSÃO", "APOSENTADORIA", "13º SALÁRIO DE APOSENTADORIA", "ADIANTAMENTO DE 13º DE APOSENTADORIA", "OUTROS TIPOS DE FOLHA", "BOLSISTA", "RESIDENTE", "RESIDENTE - 13º SALÁRIO", "PESQUISADOR", "COMISSIONADO PURO", "FÚNEBRE", "FÚNEBRE - 13º SALÁRIO"],
 			"SIGRH" : [{"Conceito" : "EPAGTIPOFOLHA", "Coluna" : "NMTIPOFOLHA"}],
-			"RegrasValidação" : ["validarTipoFolha"]
+			"RegrasValidação" : ["validarDominio"]
 		},
 		{
 			"Campo" : "NMTIPOCALCULO",
@@ -116,7 +116,7 @@ begin
 			"Padrão" : "",
 			"Domínio" : ["NORMAL", "SIMULAÇÃO", "RECÁLCULO DO MÊS", "CÁLCULO RETROATIVO", "SUPLEMENTAR", "RECÁLCULO COMPLEMENTAR"],
 			"SIGRH" : [{"Conceito" : "EPAGTIPOCALCULO", "Coluna" : "NMTIPOCALCULO"}],
-			"RegrasValidação" : ["validarTipoCalculo"]
+			"RegrasValidação" : ["validarDominio"]
 		},
 		{
 			"Campo" : "NUSEQUENCIALFOLHA",
@@ -223,9 +223,9 @@ begin
 			"Tamanho" : "1",
 			"Obrigatório" : "Sim",
 			"Padrão" : "",
-			"Domínio" : ["M - Masculino", "F - Feminino"],
+			"Domínio" : ["M", "F"],
 			"SIGRH" : [{"Conceito" : "ECADPESSOA", "Coluna" : "FLSEXO"}],
-			"RegrasValidação" : ["validarLista(F, M)"]
+			"RegrasValidação" : ["validarLista"]
 		},
 		{
 			"Campo" : "NMMAE",
@@ -247,7 +247,7 @@ begin
 			"Padrão" : "",
 			"Domínio" : ["ACORES", "AFEGANISTAO", "AFRICA DO SUL", "ALASCA (EUA)", "ALBANIA", "ALEMANHA", "ANDORRA", "ANGOLA", "ANTARTICA", "ANTIGUA", "ANTILHAS HOLANDESAS", "ARABIA SAUDITA", "ARGELIA", "ARGENTINA", "ARMENIA", "AUSTRALIA", "AUSTRIA", "AZERBAIJAO", "BAHAMAS", "BAHREIN (BAREINE)", "BANGLADESH", "BARBADOS", "BASHKORTOSTAN", "BELARUS", "BELGICA", "BELIZE", "BENIN", "BERMUDAS", "BOLIVIA", "BOSNIA-HERZEGOVINA", "BOTSWANA", "BRASIL", "BRUNEI", "BULGARIA", "BURKINA FASSO", "BURUNDI", "BUTAO", "CABO VERDE (REPUBLICA DO)", "CAMAROES", "CAMBOJA", "CANADA", "CATAR", "CAZAQUISTAO", "CHADE", "CHILE", "CHINA", "CHIPRE (REPUBLICA DE)", "CHUVASH (REPUBLICA DE)", "CINGAPURA", "COLOMBIA", "COMOROS (REPUBLICA FEDERAL ISLAMICA DE)", "CONGO (ZAIRE)", "COREIA DO NORTE", "COREIA DO SUL", "COSTA DO MARFIM", "COSTA RICA", "CROACIA", "CUBA", "DINAMARCA", "DJIBOUTI", "DOMINICA", "EGITO", "EL SALVADOR", "EMIRADOS ARABES UNIDOS", "EQUADOR", "ERITEIA (ERITREIA)", "ESCOCIA (GBR)", "ESLOVAQUIA", "ESLOVENIA", "ESPANHA", "ESTADOS UNIDOS DA AMERICA", "ESTONIA", "ETIOPIA", "FIJI (ILHAS)", "FILIPINAS", "FINLANDIA", "FORMOSA TAIWAN (CHINA)", "FRANCA", "GABAO", "GAMBIA", "GANA", "GEORGIA (REPUBLICA DE)", "GIBRALTAR (GBR)", "GRA-BRETANHA", "GRANADA", "GRECIA", "GROENLANDIA (DINAMARCA)", "GUADALUPE (FRANCA)", "GUAM (EUA)", "GUATEMALA", "GUERNSEY (GRB)", "GUIANA", "GUIANA FRANCESA", "GUINE", "GUINE EQUATORIAL", "GUINE-BISSAU", "GUINE-CONACRI", "HAITI", "HONDURAS", "HONG KONG", "HUNGRIA", "IEMEN (REPUBLICA DO)", "ILHA NORFOLK", "ILHAS CAIMA", "ILHAS CANARIAS", "ILHAS COCOS (KEELING)", "ILHAS COOK", "ILHAS MARSHALL", "INDIA", "INDONESIA", "INGLATERRA", "IRA", "IRAQUE", "IRLANDA", "ISLANDIA", "ISRAEL", "ITALIA", "IUGOSLAVIA", "JAMAICA", "JAPAO", "JORDANIA", "KUWAIT", "LAOS", "LESOTO", "LETONIA (REPUBLICA DA)", "LIBANO", "LIBERIA", "LIBIA", "LIECHTENSTEIN", "LITUANIA", "LUXEMBURGO", "MACAU", "MACEDONIA", "MADAGASCAR", "MALASIA", "MALDIVAS (ILHAS)", "MALI", "MALTA", "MARROCOS", "MARTINICA (FRANCA)", "MAURITANIA", "MAURITIUS (MAURICIO)", "MAYOTTE (FRANCA)", "MEXICO", "MICRONESIA", "MOCAMBIQUE", "MOLDAVIA (REPUBLICA DE)", "MONACO (PRINCIPADO DE)", "MONGOLIA", "MONTSERRAT (GBR)", "NAMIBIA", "NAURU", "NEPAL", "NEVIS", "NICARAGUA", "NIGER", "NIGERIA", "NORUEGA", "NOVA CALEDONIA", "NOVA ZELANDIA", "OMA (MUSCAT)", "PAISES BAIXOS (HOLANDA)", "PALAU (REPUBLICA DE)", "PANAMA", "PAPUA NOVA GUINE", "PAQUISTAO", "PARAGUAI", "PERU", "POLINESIA FRANCESA", "POLONIA", "PORTO RICO (EUA)", "PORTUGAL", "QATAR (DOHA)", "QUENIA", "REPUBLICA CENTRO AFRICANA", "REPUBLICA DEMOCRATICA DE TIMOR-LESTE", "REPUBLICA DOMINICANA", "REPUBLICA TCHECA", "ROMENIA", "RUANDA", "RUSSIA", "SAARA OCIDENTAL", "SAMOA AMERICANA (EUA.)", "SAMOA OCIDENTAL", "SAN MARINO", "SANTA HELENA (GBR)", "SANTA LUCIA", "SANTA SE (CIDADE DO VATICANO)", "SAO KITTS (E NEVIS) INDEPENDENTE", "SAO PEDRO E MIQUELON (FRANCA)", "SAO TOME E PRINCIPE", "SAO VICENTE E GRANADINAS", "SENEGAL", "SERRA LEOA", "SERVIA", "SIRIA", "SOMALIA", "SRI LANKA (CEILAO)", "SUAZILANDIA", "SUDAO", "SUECIA", "SUICA", "SURINAME", "TADJIQUISTAO (REPUBLICA)", "TAILANDIA", "TAITI (POLINESIA FRANCESA)", "TANZANIA", "TOGO", "TOKELAU (ILHAS)", "TONGA", "TRINIDAD E TOBAGO", "TUNISIA", "TURCOMENISTAO (TURCOMENIA)", "TURQUIA", "TUVALU", "UCRANIA", "UGANDA", "URUGUAI", "UZBEQUISTAO", "VANUATU", "VENEZUELA", "VIETNA", "ZAIRE", "ZAMBIA", "ZANZIBAR E PEMBA (TANGANICA)", "ZIMBABUE (ZIMBABWE)"],
 			"SIGRH" : [{"Conceito" : "ECADPAIS", "Coluna" : "NMPAIS"}],
-			"RegrasValidação" : ["validarPais"]
+			"RegrasValidação" : ["validarDominio"]
 		},
 		{
 			"Campo" : "NMESTADOCIVIL",
@@ -258,7 +258,7 @@ begin
 			"Padrão" : "",
 			"Domínio" : ["SOLTEIRO", "CASADO", "VIUVO", "SEPARADO JUDICIALMENTE", "DIVORCIADO", "MARITAL", "NAO INFORMADO", "UNIAO ESTAVEL"],
 			"SIGRH" : [{"Conceito" : "ECADPESSOA", "Coluna" : "CDESTADOCIVIL"}, {"Conceito" : "ECADESTADOCIVIL", "Coluna" : "NMESTADOCIVIL"}],
-			"RegrasValidação" : ["validarEstadoCivil"]
+			"RegrasValidação" : ["validarDominio"]
 		},
 		{
 			"Campo" : "NMRACA",
@@ -269,7 +269,7 @@ begin
 			"Padrão" : "",
 			"Domínio" : ["INDIGENA", "BRANCA", "NEGRA", "AMARELA", "PARDA", "NAO INFORMADO"],
 			"SIGRH" : [{"Conceito" : "ECADPESSOA", "Coluna" : "CDRACA"}, {"Conceito" : "ECADRACA", "Coluna" : "NMRACA"}],
-			"RegrasValidação" : ["validarRaca"]
+			"RegrasValidação" : ["validarDominio"]
 		},
 		{
 			"Campo" : "DTADMISSAO",
@@ -307,7 +307,7 @@ begin
 			"Padrão" : "",
 			"Domínio" : null,
 			"SIGRH" : [{"Conceito" : "ECADRELACAOTRABALHO", "Coluna" : "NMRELACAOTRABALHO"}],
-			"RegrasValidação" : ["validarRelacaoTrabalho"]
+			"RegrasValidação" : ["validarDominio"]
 		},
 		{
 			"Campo" : "NMREGIMETRABALHO",
@@ -318,7 +318,7 @@ begin
 			"Padrão" : "",
 			"Domínio" : null,
 			"SIGRH" : [{"Conceito" : "ECADREGIMETRABALHO", "Coluna" : "NMREGIMETRABALHO"}],
-			"RegrasValidação" : ["validarRegimeTrabalho"]
+			"RegrasValidação" : ["validarDominio"]
 		},
 		{
 			"Campo" : "NMNATUREZAVINCULO",
@@ -329,7 +329,7 @@ begin
 			"Padrão" : "",
 			"Domínio" : ["CARGO PERMANENTE", "CARGO TEMPORÁRIO", "EMPREGO PERMANENTE", "EMPREGO TEMPORÁRIO", "FUNÇÃO PÚBLICA TEMPORÁRIA", "PENSIONISTA", "FUNÇÃO PÚBLICA ESPECIAL"],
 			"SIGRH" : [{"Conceito" : "ECADNATUREZAVINCULO", "Coluna" : "DENATUREZAVINCULO"}],
-			"RegrasValidação" : ["validarNaturezaVinculo"]
+			"RegrasValidação" : ["validarDominio"]
 		},
 		{
 			"Campo" : "NMREGIMEPREVIDENCIARIO",
@@ -351,7 +351,7 @@ begin
 			"Padrão" : "",
 			"Domínio" : ["ATIVO", "INATIVO/APOSENTADO", "INSTITUIDOR DE PENSÃO", "PENSIONISTA NÃO PREVIDENCIÁRIA", "FALECIDO SEM PENSÃO", "SEM VÍNCULO PREVIDENCIÁRIO", "APOSENTADORIA ENCERRADA", "ATIVO COM DIREITO A APOSENTADORIA COMPULSÓRIA", "PENSIONISTA PREVIDENCIÁRIA", "BENEFICIÁRIO DE AUXÍLIO RECLUSÃO", "EX-PARLAMENTAR", "FALECIDO", "DECISÃO JUDICIAL", "MORTE PRESUMIDA", "AUXÍLIO RECLUSÃO"],
 			"SIGRH" : [{"Conceito" : "ECADSITUACAOPREVIDENCIARIA", "Coluna" : "DESITUACAOPREVIDENCIARIA"}],
-			"RegrasValidação" : ["validarSituacaoPrevidenciaria"]
+			"RegrasValidação" : ["validarDominio"]
 		},
 		{
 			"Campo" : "NMTIPOREGIMEPROPRIOPREV",
@@ -362,7 +362,7 @@ begin
 			"Padrão" : "",
 			"Domínio" : ["FUNDO FINANCEIRO", "FUNDO PREVIDENCIÁRIO", "FUNDO FINANCEIRO LC 662/15"],
 			"SIGRH" : [{"Conceito" : "ECADVINCULO", "Coluna" : "CDTIPOREGIMEPROPRIOPREV"}, {"Conceito" : "ECADTIPOREGIMEPROPRIOPREV", "Coluna" : "NMTIPOREGIMEPROPRIOPREV"}],
-			"RegrasValidação" : ["validarRegimeProprioPrevidenciario"]
+			"RegrasValidação" : ["validarDominio"]
 		},
 		{
 			"Campo" : "FLPREVIDENCIACOMP",
@@ -371,9 +371,9 @@ begin
 			"Tamanho" : "1",
 			"Obrigatório" : "Sim",
 			"Padrão" : "",
-			"Domínio" : ["S - Sim", "N - Não"],
+			"Domínio" : ["S", "N"],
 			"SIGRH" : [{"Conceito" : "ECADVINCULO", "Coluna" : "FLPREVIDENCIACOMP"}],
-			"RegrasValidação" : ["validarLista(S, N)"]
+			"RegrasValidação" : ["validarLista"]
 		},
 		{
 			"Campo" : "FLATIVO",
@@ -382,9 +382,9 @@ begin
 			"Tamanho" : "1",
 			"Obrigatório" : "Sim",
 			"Padrão" : "S",
-			"Domínio" : ["S - Sim", "N - Não"],
+			"Domínio" : ["S", "N"],
 			"SIGRH" : [{"Conceito" : "EPAGCAPAHISTRUBRICAVINCULO", "Coluna" : "FLATIVO"}],
-			"RegrasValidação" : ["validarLista(S, N)"]
+			"RegrasValidação" : ["validarLista"]
 		},
 		{
 			"Campo" : "NMTIPOCARGAHORARIA",
@@ -395,7 +395,7 @@ begin
 			"Padrão" : "",
 			"Domínio" : ["DIÁRIA", "SEMANAL", "MENSAL", "QUINZENAL", "HORISTA"],
 			"SIGRH" : [{"Conceito" : "ECADHISTCARGAHORARIA", "Coluna" : "CDTIPOCARGAHORARIA"}, {"Conceito" : "ECADTIPOCARGAHORARIA", "Coluna" : "NMTIPOCARGAHORARIA"}],
-			"RegrasValidação" : ["validarCargaHoraria"]
+			"RegrasValidação" : ["validarDominio"]
 		},
 		{
 			"Campo" : "NUCARGAHORARIA",
@@ -428,7 +428,7 @@ begin
 			"Padrão" : "",
 			"Domínio" : null,
 			"SIGRH" : [{"Conceito" : "ECADUNIDADEORGANIZACIONAL", "Coluna" : "SGUNIDADEORGANIZACIONAL"}],
-			"RegrasValidação" : ["validarSiglaUO"]
+			"RegrasValidação" : ["validarDominio"]
 		},
 		{
 			"Campo" : "NMJORNADATRABALHO",
@@ -508,9 +508,9 @@ begin
 			"Tamanho" : "1",
 			"Obrigatório" : "Sim",
 			"Padrão" : "",
-			"Domínio" : ["TEMPORÁRIO", "DEFINITIVO"],
+			"Domínio" : ["TEMPORARIO", "DEFINITIVO"],
 			"SIGRH" : [{"Conceito" : "EAFAAFASTAMENTOVINCULO", "Coluna" : "FLTIPOAFASTAMENTO"}],
-			"RegrasValidação" : ["validarTipoAfastamento"]
+			"RegrasValidação" : ["validarLista"]
 		},
 		{
 			"Campo" : "FLREMUNERADO",
@@ -519,9 +519,9 @@ begin
 			"Tamanho" : "1",
 			"Obrigatório" : "Sim",
 			"Padrão" : "",
-			"Domínio" : ["S-SIM", "N-NÃO"],
+			"Domínio" : ["S", "N"],
 			"SIGRH" : [{"Conceito" : "EAFAAFASTAMENTOVINCULO", "Coluna" : "FLREMUNERADO"}, {"Conceito" : "EAFAHISTMOTIVOAFASTTEMP", "Coluna" : "FLREMUNERADO"}, {"Conceito" : "EAFAHISTMOTIVOAFASTDEF", "Coluna" : "FLREMUNERADO"}],
-			"RegrasValidação" : ["validarLista(S, N)"]
+			"RegrasValidação" : ["validarLista"]
 		},
 		{
 			"Campo" : "FLREMUNERACAOINTEGRAL",
@@ -530,9 +530,9 @@ begin
 			"Tamanho" : "1",
 			"Obrigatório" : "Sim",
 			"Padrão" : "",
-			"Domínio" : ["S-SIM", "N-NÃO"],
+			"Domínio" : ["S", "N"],
 			"SIGRH" : [{"Conceito" : "EAFAHISTMOTIVAFASTTEMP", "Coluna" : "FLREMUNERACAOINTEGRAL"}],
-			"RegrasValidação" : ["validarLista(S, N)"]
+			"RegrasValidação" : ["validarLista"]
 		},
 		{
 			"Campo" : "DEMOTIVOAFASTAMENTO",
@@ -563,9 +563,9 @@ begin
 			"Tamanho" : "1",
 			"Obrigatório" : "Não",
 			"Padrão" : "",
-			"Domínio" : ["S-SIM", "N-NÃO"],
+			"Domínio" : ["S", "N"],
 			"SIGRH" : [{"Conceito" : "EAFAAFASTAMENTOVINCULO", "Coluna" : "FLACIDENTETRABALHO"}],
-			"RegrasValidação" : ["validarLista(S, N)"]
+			"RegrasValidação" : ["validarLista"]
 		},
 		{
 			"Campo" : "DEOBSERVACAO",
@@ -592,7 +592,7 @@ begin
 			"Padrão" : "",
 			"Domínio" : null,
 			"SIGRH" : [{"Conceito" : "ECADBANCO", "Coluna" : "NUBANCO"}],
-			"RegrasValidação" : ["validarBanco"]
+			"RegrasValidação" : ["validarDominio"]
 		},
 		{
 			"Campo" : "NUAGENCIACREDITO",
@@ -603,7 +603,7 @@ begin
 			"Padrão" : "",
 			"Domínio" : null,
 			"SIGRH" : [{"Conceito" : "ECADAGENCIA", "Coluna" : "NUAGENCIA"}],
-			"RegrasValidação" : ["validarAgencia"]
+			"RegrasValidação" : ["validarDominio"]
 		},
 		{
 			"Campo" : "NUCONTACREDITO",
@@ -634,9 +634,9 @@ begin
 			"Tamanho" : "1",
 			"Obrigatório" : "Não",
 			"Padrão" : "C",
-			"Domínio" : ["C - Conta Corrente", "P - Conta Poupança"],
+			"Domínio" : ["C", "P"],
 			"SIGRH" : [{"Conceito" : "EPAGCAPAHISTRUBRICAVINCULO", "Coluna" : "FLTIPOCONTACREDITO"}],
-			"RegrasValidação" : ["validarTipoContaCredito"]
+			"RegrasValidação" : ["validarLista"]
 		}
 	]
 },
@@ -738,9 +738,9 @@ begin
 			"Tamanho" : "1",
 			"Obrigatório" : "Sim",
 			"Padrão" : "",
-			"Domínio" : ["D - Definitiva", "T - Temporária"],
+			"Domínio" : ["D", "T"],
 			"SIGRH" : [{"Conceito" : "ECADHISTCARGAHORARIA", "Coluna" : "FLTIPOOCUPACAO"}],
-			"RegrasValidação" : ["validarTipoOcupacao"]
+			"RegrasValidação" : ["validarLista"]
 		}
 	]
 },
@@ -798,20 +798,20 @@ begin
 			"Tamanho" : "1",
 			"Obrigatório" : "Sim",
 			"Padrão" : "",
-			"Domínio" : ["S - Sim", "N - Não"],
+			"Domínio" : ["S", "N"],
 			"SIGRH" : [{"Conceito" : "ECADHISTCARGOCOM", "Coluna" : "FLPRINCIPAL"}],
-			"RegrasValidação" : ["validarLista(S, N)"]
+			"RegrasValidação" : ["validarLista"]
 		},
 		{
 			"Campo" : "FLTIPOPROVIMENTO",
-			"Descrição" : "Tipo de provimento do cargo comissionado.",
+			"Descrição" : "Tipo de provimento do cargo comissionado: D - Designação, N - Nomeação, S - Substituido",
 			"Tipo" : "Char",
 			"Tamanho" : "1",
 			"Obrigatório" : "Sim",
 			"Padrão" : "",
-			"Domínio" : ["D - Designação", "N - Nomeação", "S - Substituido"],
+			"Domínio" : ["D", "N", "S"],
 			"SIGRH" : [{"Conceito" : "ECADHISTCARGOCOM", "Coluna" : "FLTIPOPROVIMENTO"}],
-			"RegrasValidação" : ["validarTipoProvimento"]
+			"RegrasValidação" : ["validarLista"]
 		},
 		{
 			"Campo" : "NMOPCAOREMUNERACAO",
@@ -822,7 +822,7 @@ begin
 			"Padrão" : "",
 			"Domínio" : ["PELO CARGO EFETIVO COM PERCENTUAL SOBRE O COMISSIONADO", "PELO CARGO COMISSIONADO", "PELA REMUNERAÇÃO ORIGEM", "COMO MILITAR NA ORIGEM", "PELO F.G. OU F.T.G", "EXCLUSIVAMENTE PELO CARGO EFETIVO", "RECEBIMENTO PELO LEGISLATIVO"],
 			"SIGRH" : [{"Conceito" : "ECADHISTCARGOCOM", "Coluna" : "CDOPCAOREMUNERACAO"}, {"Conceito" : "ECADOPCAOREMUNERACAO", "Coluna" : "NMOPCAOREMUNERACAO"}],
-			"RegrasValidação" : ["validarOpcaoRemuneracao"]
+			"RegrasValidação" : ["validarDominio"]
 		},
 		{
 			"Campo" : "FLPAGASUBSIDIO",
@@ -831,9 +831,9 @@ begin
 			"Tamanho" : "1",
 			"Obrigatório" : "Sim",
 			"Padrão" : "",
-			"Domínio" : ["S - Sim", "N - Não"],
+			"Domínio" : ["S", "N"],
 			"SIGRH" : [{"Conceito" : "ECADHISTCARGOCOM", "Coluna" : "FLPAGASUBSIDIO"}],
-			"RegrasValidação" : ["validarLista(S, N)"]
+			"RegrasValidação" : ["validarLista"]
 		}
 	]
 },

@@ -4,6 +4,9 @@ select PKGMIGLAYOUT.mostrar(PKGMIGCAPAPAGAMENTOLAYOUT.CapaPagamento()) from dual
 select * from table(PKGMIGLAYOUT.listar(PKGMIGCAPAPAGAMENTOLAYOUT.CapaPagamento()));
 /
 
+select * from table(PKGMIGLAYOUT.listarValidacao(PKGMIGCAPAPAGAMENTOLAYOUT.CapaPagamento()));
+/
+
 select PKGMIGCAPAPAGAMENTOLAYOUT.CapaPagamento() from dual;
 /
 
@@ -37,6 +40,17 @@ type layoutTabelaLinha is record(
 );
 type layoutTabela is table of layoutTabelaLinha;
 
+type validacaoTabelaLinha is record(
+  campo VARCHAR2(50),
+  obrigatorio VARCHAR2(3),
+  tamanho VARCHAR2(5),
+  regravalidacao VARCHAR2(250),
+  dominio VARCHAR2(250),
+  tipo VARCHAR2(10),
+  ordem number(3)
+);
+type validacaoTabela is table of validacaoTabelaLinha;
+
 type estatisticaDescritivaTabelaLinha is record(
   campo     varchar2(50),
   ordem     number(6),
@@ -60,6 +74,7 @@ function centralizarString(pTexto varchar2, pTamanho number) return varchar2;
 
 function mostrar(docJSON in clob) return clob;
 function listar(docJSON in clob) return layoutTabela pipelined;
+function listarValidacao(docJSON in clob) return validacaoTabela pipelined;
 
 function gerarSQLEstatisticasArquivo(
   pNomeTabela in varchar2,
@@ -100,7 +115,7 @@ end mostrar;
 
 function listar(docJSON in clob) return layoutTabela pipelined as
 
-cursor cListaLayout is
+cursor cListaLayout(docJSON in clob) is
 select
   familiaarquivos,
   arquivo,
@@ -146,7 +161,7 @@ from json_table(docJSON, '$' columns (
  ));
 
 begin
-  for item in cListaLayout loop
+  for item in cListaLayout(docJSON) loop
     pipe row(layoutTabelaLinha(
       item.familiaarquivos,
       item.arquivo,
@@ -169,6 +184,45 @@ begin
 
 end listar;
 
+function listarValidacao(docJSON in clob) return validacaoTabela pipelined as
+
+cursor cListaLayout(docJSON clob) is
+select
+  campo,
+  obrigatorio,
+  tamanho,
+  regravalidacao,
+  dominio,
+  tipo,
+  rownum as ordem
+from json_table(docJSON, '$.Arquivos.Grupos[*].Campos[*]' columns (
+    campo varchar2(50) path '$.Campo',
+    descricao varchar2(250) Path '$.Descrição',
+    tipo varchar2(10) Path '$.Tipo',
+    tamanho varchar2(5) path '$.Tamanho',
+    obrigatorio varchar2(3) path '$.Obrigatório',
+    padrao varchar2(250) path '$.Padrão',
+    dominio varchar2(250) format json path '$.Domínio',
+    nested path '$.RegrasValidação[*]' columns (
+      regravalidacao varchar2(250) path '$'
+    )
+ ));
+
+begin
+  for item in cListaLayout(docJSON) loop
+    pipe row(validacaoTabelaLinha(
+      item.campo,
+      item.obrigatorio,
+      item.tamanho,
+      item.regravalidacao,
+      item.dominio,
+      item.tipo,
+      item.ordem
+    ));
+  end loop; 
+
+end listarValidacao;
+
 function gerarSQLEstatisticasArquivo(
   pNomeTabela in varchar2,
   pCampo in varchar2,
@@ -190,9 +244,9 @@ count(distinct ' || pCampo || ') as unicos,
 count(case when ' || pCampo || ' is null then 1 else null end) as nulos,
 count(case when to_char(' || pCampo || ') = ''0'' then 1 else null end) as zeros,
 count(case when ' || pCampo || ' is not null and trim(TRANSLATE(' || pCampo || ', ''0123456789 -,.'', '' '')) is null then 1 else null end) as numericos,
-count(case PKGMIGVALIDACAO.validarData(' || pCampo || ') when 1 then 1 else null end) as datas,
-min(case PKGMIGVALIDACAO.validarNumero(' || pCampo || ') when 1 then trim(TRANSLATE(' || pCampo || ', '' -,.'', '' '')) else null end) as minimos,
-max(case PKGMIGVALIDACAO.validarNumero(' || pCampo || ') when 1 then trim(TRANSLATE(' || pCampo || ', '' -,.'', '' '')) else null end) as maximos
+count(case PKGMIGVALIDACAO.validarData(' || pCampo || ') when null then 1 else null end) as datas,
+min(case PKGMIGVALIDACAO.validarNumero(' || pCampo || ') when null then trim(translate(' || pCampo || ', '' -,.'', '' '')) else null end) as minimos,
+max(case PKGMIGVALIDACAO.validarNumero(' || pCampo || ') when null then trim(translate(' || pCampo || ', '' -,.'', '' '')) else null end) as maximos
 from ' || pNomeTabela || '
 )
 
@@ -271,3 +325,4 @@ begin
 end listarEstatisticaDescritiva;
 
 end PKGMIGLAYOUT;
+/
