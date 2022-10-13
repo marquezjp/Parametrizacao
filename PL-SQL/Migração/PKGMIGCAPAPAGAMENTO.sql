@@ -1,28 +1,85 @@
-select PKGMIGCAPAPAGAMENTOLAYOUT.CapaPagamento() from dual;
+set serveroutput on
 /
 
-select json_query(PKGMIGCAPAPAGAMENTOLAYOUT.CapaPagamento(), '$.Arquivos[0].Grupos[0]' pretty ) from dual;
+select PKGMIGCAPAPAGAMENTO.especificacaoLayout() from dual;
 /
 
-select json_serialize(PKGMIGCAPAPAGAMENTOLAYOUT.CapaPagamento() returning clob pretty ) from dual;
+select json_query(PKGMIGCAPAPAGAMENTO.especificacaoLayout(), '$.Arquivos[0].Grupos[0]' pretty ) from dual;
+/
+
+select json_serialize(PKGMIGCAPAPAGAMENTO.especificacaoLayout() returning clob pretty ) from dual;
+/
+
+--- Exemplo Listar o Arquivo de Migração
+declare
+vRefCursor sys_refcursor;
+
+type arquivoMigracaoLinha is record(
+nmarquivo varchar2(50),
+nuregsitro number(8),
+jschaveunica varchar(500),
+jscampos clob
+);
+item arquivoMigracaoLinha;
+
+procedure print (p in varchar2) is
+begin dbms_output.put_line(p); end;
+
+begin
+  vRefCursor := PKGMIGCAPAPAGAMENTO.obterArquivoMigracao('emigcapapagamento2');
+
+  loop fetch vRefCursor into item;
+    exit when vRefCursor%NOTFOUND;
+    print(item.nmarquivo || ' ' ||
+          item.nuregsitro || ' ' ||
+          item.jschaveunica || ' ' ||
+          item.jscampos
+    );
+  end loop;
+
+end;
 /
 
 -- Remover o Pacote
-drop package PKGMIGCAPAPAGAMENTOLAYOUT;
+drop package PKGMIGCAPAPAGAMENTO;
 /
 
 -- Criar o Especificação do Pacote
-create or replace package PKGMIGCAPAPAGAMENTOLAYOUT is
+create or replace package PKGMIGCAPAPAGAMENTO is
 
-function CapaPagamento return clob;
+function obterArquivoMigracao(pNomeTabela varchar2, pProprietario varchar2 default null) return sys_refcursor;
+function especificacaoLayout return clob;
 
-end PKGMIGCAPAPAGAMENTOLAYOUT;
+end PKGMIGCAPAPAGAMENTO;
 /
 
 -- Criar o Corpo do Pacote
-create or replace package body PKGMIGCAPAPAGAMENTOLAYOUT is
+create or replace package body PKGMIGCAPAPAGAMENTO is
 
-function CapaPagamento return clob is
+function obterArquivoMigracao(pNomeTabela varchar2, pProprietario varchar2 default null) return sys_refcursor is
+  vNomeCompletoTabela varchar2(50);
+  vSQL varchar2(500);
+  vRefCursor sys_refcursor;
+begin
+  if pProprietario is null then
+    vNomeCompletoTabela := upper('sigrhmig') || '.' ||upper(pNomeTabela);
+  else
+    vNomeCompletoTabela := upper(pProprietario) || '.' || upper(pNomeTabela);
+  end if;
+
+  vSQL := 'select ' ||
+'''' || upper(pNomeTabela) || ''' as nmarquivo,
+rownum as nuregistro,
+json_object(SGORGAO, NUMATRICULALEGADO) as jschaveunica,
+json_object(*) as jscampos
+from ' || vNomeCompletoTabela || ' mig
+';
+
+    open vRefCursor for vSQL;
+    return vRefCursor;
+end obterArquivoMigracao;
+
+function especificacaoLayout return clob is
 begin
   return '
 {
@@ -625,7 +682,7 @@ begin
 			"Padrão" : "",
 			"Domínio" : null,
 			"SIGRH" : [{"Conceito" : "EPAGCAPAHISTRUBRICAVINCULO", "Coluna" : "NUDVCONTACREDITO"}],
-			"RegrasValidação" : ["validarNumero"]
+			"RegrasValidação" : null
 		},
 		{
 			"Campo" : "FLTIPOCONTACREDITO",
@@ -869,6 +926,7 @@ begin
 	}
 }
 ';
-end CapaPagamento;
+end especificacaoLayout;
 
-end PKGMIGCAPAPAGAMENTOLAYOUT;
+end PKGMIGCAPAPAGAMENTO;
+/

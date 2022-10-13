@@ -1,16 +1,50 @@
-select PKGMIGLAYOUT.mostrar(PKGMIGCAPAPAGAMENTOLAYOUT.CapaPagamento()) from dual;
+select PKGMIGLAYOUT.mostrar(PKGMIGCAPAPAGAMENTO.especificacaoLayout()) from dual;
 /
 
-select * from table(PKGMIGLAYOUT.listar(PKGMIGCAPAPAGAMENTOLAYOUT.CapaPagamento()));
+select * from table(PKGMIGLAYOUT.listar(PKGMIGCAPAPAGAMENTO.especificacaoLayout()));
 /
 
-select * from table(PKGMIGLAYOUT.listarValidacao(PKGMIGCAPAPAGAMENTOLAYOUT.CapaPagamento()));
-/
-
-select PKGMIGCAPAPAGAMENTOLAYOUT.CapaPagamento() from dual;
+select PKGMIGCAPAPAGAMENTO.especificacaoLayout() from dual;
 /
 
 select * from table(PKGMIGLAYOUT.listarEstatisticaDescritiva('emigcapapagamento2','sigrhmig'));
+/
+
+declare
+vRefCursor sys_refcursor;
+
+type validacaoTabelaLinha is record(
+  campo VARCHAR2(50),
+  obrigatorio VARCHAR2(3),
+  tamanho VARCHAR2(5),
+  regravalidacao VARCHAR2(250),
+  dominio VARCHAR2(250),
+  tipo VARCHAR2(10),
+  ordem number(3)
+);
+type validacaoTabela is table of validacaoTabelaLinha;
+item validacaoTabelaLinha;
+
+procedure print (p in varchar2) is
+begin dbms_output.put_line(p); end;
+
+begin
+  vRefCursor := PKGMIGLAYOUT.listarValidacao((PKGMIGCAPAPAGAMENTO.especificacaoLayout()));
+
+  loop fetch vRefCursor into item;
+    exit when vRefCursor%NOTFOUND;
+    print(
+      item.campo || ' ' ||
+      item.obrigatorio || ' ' ||
+      item.tamanho || ' ' ||
+      item.regravalidacao || ' ' ||
+      item.dominio || ' ' ||
+      item.tipo || ' ' ||
+      item.ordem
+    );
+  end loop;
+
+end;
 /
 
 -- Remover o Pacote
@@ -67,14 +101,13 @@ type estatisticaDescritivaTabelaLinha is record(
 );
 type estatisticaDescritivaTabela is table of estatisticaDescritivaTabelaLinha;
 
-procedure print (p in varchar2);
-
 function normalizarString(pTexto varchar2) return varchar2;
 function centralizarString(pTexto varchar2, pTamanho number) return varchar2;
 
 function mostrar(docJSON in clob) return clob;
 function listar(docJSON in clob) return layoutTabela pipelined;
-function listarValidacao(docJSON in clob) return validacaoTabela pipelined;
+
+function listarValidacao(docJSON in clob) return sys_refcursor;
 
 function gerarSQLEstatisticasArquivo(
   pNomeTabela in varchar2,
@@ -92,9 +125,6 @@ end PKGMIGLAYOUT;
 
 -- Criar o Corpo do Pacote
 create or replace package body PKGMIGLAYOUT is
-
-procedure print (p in varchar2) is
-begin dbms_output.put_line(p); end;
 
 function normalizarString(pTexto varchar2) return varchar2 as
 begin
@@ -184,7 +214,10 @@ begin
 
 end listar;
 
-function listarValidacao(docJSON in clob) return validacaoTabela pipelined as
+function listarValidacao(docJSON in clob) return sys_refcursor as
+
+vValidacaoRefCursor sys_refcursor;
+vValidacaoTabela validacaoTabela;
 
 cursor cListaLayout(docJSON clob) is
 select
@@ -209,18 +242,11 @@ from json_table(docJSON, '$.Arquivos.Grupos[*].Campos[*]' columns (
  ));
 
 begin
-  for item in cListaLayout(docJSON) loop
-    pipe row(validacaoTabelaLinha(
-      item.campo,
-      item.obrigatorio,
-      item.tamanho,
-      item.regravalidacao,
-      item.dominio,
-      item.tipo,
-      item.ordem
-    ));
-  end loop; 
-
+  open cListaLayout(docJSON);
+  fetch cListaLayout bulk collect into vValidacaoTabela;
+  close cListaLayout;
+  open vValidacaoRefCursor for select * from table (vValidacaoTabela);
+  return vValidacaoRefCursor;
 end listarValidacao;
 
 function gerarSQLEstatisticasArquivo(
