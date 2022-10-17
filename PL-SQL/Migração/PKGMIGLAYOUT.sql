@@ -128,9 +128,14 @@ create or replace package body PKGMIGLAYOUT is
 
 function normalizarString(pTexto varchar2) return varchar2 as
 begin
- return translate(regexp_replace(upper(trim(pTexto)), '[[:space:]]+', chr(32)),
-         'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
-         'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz');
+ return translate(
+    regexp_replace(
+      upper(trim(replace(pTexto, '''', ''))),
+      '[[:space:]]+', chr(32)
+    ),
+    'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+    'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz'
+  );
 end normalizarString;
 
 function centralizarString(pTexto varchar2, pTamanho number) return varchar2 as  

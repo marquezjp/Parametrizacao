@@ -67,6 +67,12 @@ type validacaoTabelaLinha is record(
 );
 type validacaoTabela is table of validacaoTabelaLinha;
 
+type resumoValidacaoTabelaLinha is record(
+  decampo varchar2(50),
+  decritica varchar2(500)
+);
+type resumoValidacaoTabela is table of resumoValidacaoTabelaLinha;
+
 type tLista is varray(50) of varchar2(100);
 
 function listar(
