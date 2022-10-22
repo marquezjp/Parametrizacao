@@ -189,7 +189,7 @@ begin
           mig.nuregistro,
           mig.jschaveunica,
           layout.campo, -- decampo
-          json_value(mig.jscampos, '$.' || layout.campo), -- deconteudo,
+          json_value(mig.jscampos, '$.' || layout.campo), -- deconteudo
           vCritica, -- decritica,
           vdtCritica -- dtcritica
         ));
@@ -219,7 +219,10 @@ function validar(
 
 begin
 
-  vConteudo := PKGMIGLAYOUT.normalizarString(pConteudo);
+  vConteudo := PKGMIGLAYOUT.normalizarString(replace(pConteudo, '''', ' '));
+
+  if pObrigatorio = 'Não' and vConteudo is null then return '';
+  end if;
 
   if pObrigatorio = 'Sim' and vConteudo is null then return 'Campo Obrigatorio não Informado';
   end if;
@@ -340,15 +343,12 @@ function validarDataNascimento (
 begin
   vCritica := validarData(pConteudo, pFormato);
   if vCritica is not null then return vCritica; end if;
-  lData := to_date(pConteudo, pFormato);
   
   if lData not between add_months( trunc(sysdate), -12*100 ) and trunc(sysdate) then
     return 'Campo com Data de Nascimento Invalida';
   end if;
 
   return null;
-exception
-    when others then return 'Campo Data com Formato Invalido';
 end validarDataNascimento;
 
 function validarNome(
