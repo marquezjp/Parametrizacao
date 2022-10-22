@@ -50,7 +50,7 @@ drop package PKGMIGPESSOA;
 -- Criar o Especificação do Pacote
 create or replace package PKGMIGPESSOA is
 
-function obterArquivoMigracao(pNomeTabela varchar2, pProprietario varchar2 default 'sigrhmig') return sys_refcursor;
+function obterArquivoMigracao(pNomeTabela varchar2, pProprietario varchar2 default 'sigrhmig', pCriterio varchar2 default null) return sys_refcursor;
 function listarValidacao(pNomeTabela varchar2) return PKGMIGVALIDACAO.validacaoTabela pipelined;
 function listarResumoValidacao(pNomeTabela varchar2) return PKGMIGVALIDACAO.resumoValidacaoTabela pipelined;
 function especificacaoLayout return clob;
@@ -61,9 +61,10 @@ end PKGMIGPESSOA;
 -- Criar o Corpo do Pacote
 create or replace package body PKGMIGPESSOA is
 
-function obterArquivoMigracao(pNomeTabela varchar2, pProprietario varchar2 default 'sigrhmig') return sys_refcursor is
+function obterArquivoMigracao(pNomeTabela varchar2, pProprietario varchar2 default 'sigrhmig', pCriterio varchar2 default null) return sys_refcursor is
   vNomeCompletoTabela varchar2(50);
   vListaCampos varchar2(5000);
+  vCriterio varchar2(100);
   vSQL varchar2(10000);
   vRefCursor sys_refcursor;
 begin
@@ -82,18 +83,13 @@ left join (select column_name as campo from sys.all_tab_columns
 
   execute immediate vSQL into vListaCampos using pProprietario, pNomeTabela;
 
+  if vCriterio is not null then vCriterio := ' where ' || vCriterio || ' '; end if;
+  
   vSQL := '
 select ''' || upper(pNomeTabela) || ''' as nmarquivo, rownum as nuregistro,
 json_object(NUCPF) as jschaveunica,
 json_object(*) as jscampos
-from (select ' || vListaCampos || ' from ' || vNomeCompletoTabela || ' where nucpf not in (
-32280700263, 02918647241, 01193676886, 40337856800, 40946665320, 51903156491, 58120530225, 20587708204, 28742729220, 17729459353, 
-22533893234, 16307321253, 28259793334, 05433592200, 05578089607, 04583166443, 06983424883, 13441477200, 00768920426, 02408381495, 
-00820343463, 50897675215, 50973886234, 43786391220, 44709501220, 67974813253, 02237329400, 68405014268, 66394333204, 64482111287,  
-63011298220, 63677601215, 59422971268, 52189708249, 62767690291, 62939955204, 89357485449, 89389484472, 80464181291, 83395539172,  
-87285584568, 81903308372, 79625398287, 71209247291, 76924076220, 72586001249, 72665050463, 61816116220, 20713282304, 22530517215, 
-13872052268, 71946560278, 93138318487, 32319258272, 33056943353, 91652707387, 96858230904, 32276451220, 51436612268, 62388860210, 
-87964910191, 61308161204, 51030608253, 51030608253, 25624717253, 93546335368)) mig
+from (select ' || vListaCampos || ' from ' || vNomeCompletoTabela || vCriterio || ' ) mig
 ';
 
     open vRefCursor for vSQL;
@@ -169,7 +165,7 @@ begin
 "Campo" : "DTNASCIMENTO",
 "Descrição" : "Data de nascimento da pessoa.",
 "Tipo" : "Data",
-"Tamanho" : "8",
+"Tamanho" : "10",
 "Obrigatório" : "Sim",
 "Padrão" : "",
 "Domínio" : ["DD/MM/AAAA"],
@@ -295,7 +291,7 @@ begin
 "Padrão" : "",
 "Domínio" : null,
 "SIGRH" : [{"Conceito" : "ECADLOCALIDADE", "Coluna" : "NMLOCALIDADE"}],
-"RegrasValidação" : ["validarNome"]
+"RegrasValidação" : null
 },
 {
 "Campo" : "NMESTADOCIVIL",
@@ -323,7 +319,7 @@ begin
 "Campo" : "DTNATURALIZACAO",
 "Descrição" : "Data de naturalização da pessoa.",
 "Tipo" : "Data",
-"Tamanho" : "8",
+"Tamanho" : "10",
 "Obrigatório" : "Não",
 "Padrão" : "",
 "Domínio" : null,
@@ -377,7 +373,7 @@ begin
 "Padrão" : "",
 "Domínio" : null,
 "SIGRH" : [{"Conceito" : "ECADENDERECO", "Coluna" : "NMLOGRADOURO"}],
-"RegrasValidação" : ["validarNome"]
+"RegrasValidação" : null
 },
 {
 "Campo" : "NUNUMERORES",
@@ -410,7 +406,7 @@ begin
 "Padrão" : "",
 "Domínio" : null,
 "SIGRH" : [{"Conceito" : "ECADENDERECO", "Coluna" : "CDBAIRRO"}, {"Conceito" : "ECADBAIRRO", "Coluna" : "NMBAIRRO"}],
-"RegrasValidação" : ["validarNome"]
+"RegrasValidação" : null
 },
 {
 "Campo" : "NMLOCALIDADERES",
@@ -421,7 +417,7 @@ begin
 "Padrão" : "",
 "Domínio" : null,
 "SIGRH" : [{"Conceito" : "ECADENDERECO", "Coluna" : "CDLOCALIDADE"}, {"Conceito" : "ECADLOCALIDADE", "Coluna" : "NMLOCALIDADE"}],
-"RegrasValidação" : ["validarNome"]
+"RegrasValidação" : null
 },
 {
 "Campo" : "SGESTADORES",
@@ -465,7 +461,7 @@ begin
 "Padrão" : "",
 "Domínio" : ["RUA", "ALAMEDA", "RODOVIA", "PRACA", "QUADRA", "SERVIDAO", "ETC", ""],
 "SIGRH" : [{"Conceito" : "ECADPESSOA", "Coluna" : "CDENDERECOCORRESP"}, {"Conceito" : "ECADTIPOLOGRADOURO", "Coluna" : "NMTIPOLOGRADOURO"}],
-"RegrasValidação" : ["validarNome"]
+"RegrasValidação" : null
 },
 {
 "Campo" : "NMLOGRADOUROCORRESP",
@@ -476,7 +472,7 @@ begin
 "Padrão" : "",
 "Domínio" : null,
 "SIGRH" : [{"Conceito" : "ECADENDERECO", "Coluna" : "NMLOGRADOURO"}],
-"RegrasValidação" : ["validarNome"]
+"RegrasValidação" : null
 },
 {
 "Campo" : "NUNUMEROCORRESP",
@@ -509,7 +505,7 @@ begin
 "Padrão" : "",
 "Domínio" : null,
 "SIGRH" : [{"Conceito" : "ECADENDERECO", "Coluna" : "CDBAIRRO"}, {"Conceito" : "ECADBAIRRO", "Coluna" : "NMBAIRRO"}],
-"RegrasValidação" : ["validarNome"]
+"RegrasValidação" : null
 },
 {
 "Campo" : "NMLOCALIDADECORRESP",
@@ -520,7 +516,7 @@ begin
 "Padrão" : "",
 "Domínio" : null,
 "SIGRH" : [{"Conceito" : "ECADENDERECO", "Coluna" : "CDLOCALIDADE"}, {"Conceito" : "ECADLOCALIDADE", "Coluna" : "NMLOCALIDADE"}],
-"RegrasValidação" : ["validarNome"]
+"RegrasValidação" : null
 },
 {
 "Campo" : "SGESTADOCORRESP",
@@ -663,7 +659,7 @@ begin
 "Campo" : "DTEXPEDICAO",
 "Descrição" : "Data de expedição da carteira de identidade.",
 "Tipo" : "Data",
-"Tamanho" : "8",
+"Tamanho" : "10",
 "Obrigatório" : "Não",
 "Padrão" : "",
 "Domínio" : null,
@@ -712,7 +708,7 @@ begin
 "Campo" : "DTEMISSAOTITULO",
 "Descrição" : "Data de emissão do título de eleitor.",
 "Tipo" : "Data",
-"Tamanho" : "8",
+"Tamanho" : "10",
 "Obrigatório" : "Não",
 "Padrão" : "",
 "Domínio" : null,
@@ -728,7 +724,7 @@ begin
 "Padrão" : "",
 "Domínio" : null,
 "SIGRH" : [{"Conceito" : "ECADPESSOA", "Coluna" : "CDMUNICIPIOTITULO"}],
-"RegrasValidação" : ["validarNome"]
+"RegrasValidação" : null
 },
 {
 "Campo" : "SGESTADOTITULO",
@@ -766,7 +762,7 @@ begin
 "Padrão" : "",
 "Domínio" : null,
 "SIGRH" : [{"Conceito" : "ECADPESSOA", "Coluna" : "NMCATEGORIA"}],
-"RegrasValidação" : ["validarNome"]
+"RegrasValidação" : null
 },
 {
 "Campo" : "SGESTADOHABILITACAO",
@@ -783,7 +779,7 @@ begin
 "Campo" : "DTPRIMHABILITACAO",
 "Descrição" : "Data da primeira habilitação.",
 "Tipo" : "Data",
-"Tamanho" : "8",
+"Tamanho" : "10",
 "Obrigatório" : "Não",
 "Padrão" : "",
 "Domínio" : null,
@@ -794,7 +790,7 @@ begin
 "Campo" : "DTVALIDADEHABILITACAO",
 "Descrição" : "Data de validade da habilitação.",
 "Tipo" : "Data",
-"Tamanho" : "8",
+"Tamanho" : "10",
 "Obrigatório" : "Não",
 "Padrão" : "",
 "Domínio" : null,
@@ -821,7 +817,7 @@ begin
 "Campo" : "DTCADASTRONIS",
 "Descrição" : "Data de cadastro do Número de Identificação Social (NIS) ou PIS/PASEP ou Número de Registro do Trabalhador (NIT).",
 "Tipo" : "Data",
-"Tamanho" : "8",
+"Tamanho" : "10",
 "Obrigatório" : "Não",
 "Padrão" : "",
 "Domínio" : null,
@@ -870,7 +866,7 @@ begin
 "Campo" : "DTEMISSAOCTPS",
 "Descrição" : "Data de emissão da CTPS.",
 "Tipo" : "Data",
-"Tamanho" : "8",
+"Tamanho" : "10",
 "Obrigatório" : "Não",
 "Padrão" : "",
 "Domínio" : null,
@@ -886,7 +882,7 @@ begin
 "Campo" : "DTINICIOEMPREGO",
 "Descrição" : "Data de início do primeiro emprego.",
 "Tipo" : "Data",
-"Tamanho" : "8",
+"Tamanho" : "10",
 "Obrigatório" : "Não",
 "Padrão" : "",
 "Domínio" : null,
@@ -897,7 +893,7 @@ begin
 "Campo" : "DTFIMEMPREGO",
 "Descrição" : "Data de fim do primeiro emprego.",
 "Tipo" : "Data",
-"Tamanho" : "8",
+"Tamanho" : "10",
 "Obrigatório" : "Não",
 "Padrão" : "",
 "Domínio" : null,
@@ -968,7 +964,7 @@ begin
 "Campo" : "DTENTRADA",
 "Descrição" : "Data de entrada no Brasil.",
 "Tipo" : "Data",
-"Tamanho" : "8",
+"Tamanho" : "10",
 "Obrigatório" : "Não",
 "Padrão" : "",
 "Domínio" : null,
@@ -979,7 +975,7 @@ begin
 "Campo" : "DTLIMITEPERM",
 "Descrição" : "Data limite de permanência no Brasil.",
 "Tipo" : "Data",
-"Tamanho" : "8",
+"Tamanho" : "10",
 "Obrigatório" : "Não",
 "Padrão" : "",
 "Domínio" : null,
@@ -1012,7 +1008,7 @@ begin
 "Campo" : "DTEXPEDICAORNE",
 "Descrição" : "Data da expedição do RNE",
 "Tipo" : "Data",
-"Tamanho" : "8",
+"Tamanho" : "10",
 "Obrigatório" : "Não",
 "Padrão" : "",
 "Domínio" : null,
@@ -1094,7 +1090,7 @@ begin
 "Campo" : "DTEMISSAORESERVISTA",
 "Descrição" : "Data de emissão da carteira de reservista.",
 "Tipo" : "Data",
-"Tamanho" : "8",
+"Tamanho" : "10",
 "Obrigatório" : "Não",
 "Padrão" : "",
 "Domínio" : null,
@@ -1132,7 +1128,7 @@ begin
 "Padrão" : "",
 "Domínio" : null,
 "SIGRH" : [{"Conceito" : "ECADPESSOA", "Coluna" : "CDREGIAOMILITAR"}, {"Conceito" : "ECADREGIAOMILITAR", "Coluna" : "NMREGIAOMILITAR"}],
-"RegrasValidação" : ["validarNome"]
+"RegrasValidação" : null
 },
 {
 "Campo" : "NMCIRCUNSCRICAO",
@@ -1143,7 +1139,7 @@ begin
 "Padrão" : "",
 "Domínio" : ["1. CSM", "2. CSM", "....", "31. CSM", ""],
 "SIGRH" : [{"Conceito" : "ECADPESSOA", "Coluna" : "CDCIRCUNSCRICAO"}, {"Conceito" : "ECADCIRCUNSCRICAO", "Coluna" : "NMCIRCUNSCRICAO"}],
-"RegrasValidação" : ["validarNome"]
+"RegrasValidação" : null
 }
 ]
 },
