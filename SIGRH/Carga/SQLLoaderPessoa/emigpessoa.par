@@ -1,0 +1,7 @@
+userid=SIGRHMIG/sigrh@//10.48.1.68:1521/sigrhrrtst
+control=emigpessoa.ctl
+log=emigpessoa.log
+bad=emigpessoa.bad
+data='SIGRH-RR-PESSOA-*.csv'
+direct=true
+silent=header, feedback

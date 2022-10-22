@@ -1,0 +1,7 @@
+userid=SIGRHMIG/sigrh@//10.48.1.68:1521/sigrhrrtst
+control=emigcontracheque.ctl
+log=emigcontracheque.log
+bad=emigcontracheque.bad
+data='SIGRH-RR - Contracheque*.csv'
+direct=true
+silent=header, feedback

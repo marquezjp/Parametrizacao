@@ -1,0 +1,7 @@
+userid=SIGRHMIG/sigrh@//10.48.1.68:1521/sigrhrrtst
+control=emigcapapagamento.ctl
+log=emigcapapagamento.log
+bad=emigcapapagamento.bad
+data='SIGRH-RR - Capa Pagamento*.csv'
+direct=true
+silent=header, feedback
