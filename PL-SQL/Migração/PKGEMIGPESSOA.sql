@@ -1,46 +1,37 @@
 set serveroutput on
 /
 
-select PKGMIGPESSOA.especificacaoLayout() from dual;
-/
-
-select json_query(PKGMIGPESSOA.especificacaoLayout(), '$.Arquivos[0].Grupos[0]' pretty ) from dual;
+select * from table(PKGMIGLAYOUT.listar(PKGMIGPESSOA.especificacaoLayout()));
 /
 
 select json_serialize(PKGMIGPESSOA.especificacaoLayout() returning clob pretty ) from dual;
 /
 
-select * from table(PKGMIGPESSOA.listarValidacao('emigpessoa'));
+--select listagg(campo, ', ') within group (order by rownum)
+--from table(PKGMIGLAYOUT.listar(PKGMIGPESSOA.especificacaoLayout()))
+
+select p.*
+from table(PKGMIGPESSOA.listar(PKGMIGPESSOA.obter('emigpessoa', pCriterio => 'nmpessoa like ''CARLA%'''))),
+json_table(jscampos, '$' columns (
+  NUCPF, DTNASCIMENTO, FLSEXO, NMPESSOA, NMSOCIAL, NMUSUAL, NMREDUZIDO, NMRAIS, NMMAE, NMPAI, NMPAIS, SGESTADO,
+  NMLOCALIDADENASC, NMESTADOCIVIL, NMRACA, DTNATURALIZACAO, DEEMAIL, NMTIPOHABITACAO, NMTIPOLOGRADOURORES, NMLOGRADOURORES,
+  NUNUMERORES, DECOMPLEMENTORES, NMBAIRRORES, NMLOCALIDADERES, SGESTADORES, NUCEPRES, FLMESMOENDERECO, NMTIPOLOGRADOUROCORRRESP,
+  NMLOGRADOUROCORRESP, NUNUMEROCORRESP, DECOMPLEMENTOCORRESP, NMBAIRROCORRESP, NMLOCALIDADECORRESP, SGESTADOCORRESP, NUCEPCORRESP,
+  NUDDDRES, NUTELEFONERES, NUDDDCONT, NUTELEFONECONT, NUDDDCEL, NUCELULAR, NUCARTEIRAIDENTIDADE, SGORGAOEMISSOR, NMORGAOEMISSOR,
+  SGESTADOCI, DTEXPEDICAO, NUTITULO, NUZONA, NUSECAO, DTEMISSAOTITULO, NMLOCALIDADETITULO, SGESTADOTITULO, NUCARTEIRAHAB, NMCATEGORIA,
+  SGESTADOHABILITACAO, DTPRIMHABILITACAO, DTVALIDADEHABILITACAO, NUNIS, DTCADASTRONIS, NUCTPS, NUSERIECTPS, SGESTADOCTPS, DTEMISSAOCTPS,
+  DTINICIOEMPREGO, DTFIMEMPREGO, NMTIPOEMPRESA, NUOCUPACAO, NMREGIMETRABALHO, NMREGIMEPREVIDENCIARIO, NMPAISORIGEM, DTENTRADA, DTLIMITEPERM,
+  NRRNE, ORGAOEMISSORRNE, DTEXPEDICAORNE, CLASSTRABESTRANGEIRO, NURESERVISTA, NUSERIE, SGORGAORESERVISTA, DEUNIDADE, NUANO,
+  DTEMISSAORESERVISTA, SGESTADORESERVISTA, NMCATEGCERTRESERVISTA, NMREGIAOMILITAR, NMCIRCUNSCRICAO, NMTIPONECESSIDADE, NMTIPODEFICIENCIA,
+  FLVAGADEFICIENTE, NMFATORRH, NMTIPOSANGUINEO)
+) p
+;
 /
 
---- Exemplo Listar o Arquivo de Migração
-declare
-vRefCursor sys_refcursor;
+select * from table(PKGMIGPESSOA.listarValidacao('emigpessoa', pCriterio => 'nmpessoa like ''CARLA%'''));
+/
 
-type arquivoMigracaoLinha is record(
-nmarquivo varchar2(50),
-nuregsitro number(8),
-jschaveunica varchar(500),
-jscampos clob
-);
-item arquivoMigracaoLinha;
-
-procedure print (p in varchar2) is
-begin dbms_output.put_line(p); end;
-
-begin
-  vRefCursor := PKGMIGPESSOA.obterArquivoMigracao('emigpessoa');
-
-  loop fetch vRefCursor into item;
-    exit when vRefCursor%NOTFOUND;
-    print(item.nmarquivo || ' ' ||
-          item.nuregsitro || ' ' ||
-          item.jschaveunica || ' ' ||
-          item.jscampos
-    );
-  end loop;
-
-end;
+select * from table(PKGMIGPESSOA.listarResumoValidacao('emigpessoa', pCriterio => 'nmpessoa like ''CARLA%'''));
 /
 
 -- Remover o Pacote
@@ -50,9 +41,115 @@ drop package PKGMIGPESSOA;
 -- Criar o Especificação do Pacote
 create or replace package PKGMIGPESSOA is
 
-function obterArquivoMigracao(pNomeTabela varchar2, pProprietario varchar2 default 'sigrhmig', pCriterio varchar2 default null) return sys_refcursor;
-function listarValidacao(pNomeTabela varchar2) return PKGMIGVALIDACAO.validacaoTabela pipelined;
-function listarResumoValidacao(pNomeTabela varchar2) return PKGMIGVALIDACAO.resumoValidacaoTabela pipelined;
+type arquivoMigracaoTabelaLinha is record(
+nmarquivo varchar2(50),
+nuregistro number(8),
+jschaveunica varchar(500),
+jscampos clob
+);
+type arquivoMigracaoTabela is table of arquivoMigracaoTabelaLinha;
+
+type resumoValidacaoTabelaLinha is record(
+decritica varchar2(500),
+nutotal number(8), 
+nucpf number(8), 
+dtnascimento number(8), 
+flsexo number(8), 
+nmpessoa number(8), 
+nmsocial number(8), 
+nmusual number(8), 
+nmreduzido number(8), 
+nmrais number(8), 
+nmmae number(8), 
+nmpai number(8), 
+nmpais number(8), 
+sgestado number(8), 
+nmlocalidadenasc number(8), 
+nmestadocivil number(8), 
+nmraca number(8), 
+dtnaturalizacao number(8), 
+deemail number(8), 
+nmtipohabitacao number(8), 
+nmtipologradourores number(8), 
+nmlogradourores number(8), 
+nunumerores number(8), 
+decomplementores number(8), 
+nmbairrores number(8), 
+nmlocalidaderes number(8), 
+sgestadores number(8), 
+nucepres number(8), 
+flmesmoendereco number(8), 
+nmtipologradourocorrresp number(8), 
+nmlogradourocorresp number(8), 
+nunumerocorresp number(8), 
+decomplementocorresp number(8), 
+nmbairrocorresp number(8), 
+nmlocalidadecorresp number(8), 
+sgestadocorresp number(8), 
+nucepcorresp number(8), 
+nudddres number(8), 
+nutelefoneres number(8), 
+nudddcont number(8), 
+nutelefonecont number(8), 
+nudddcel number(8), 
+nucelular number(8), 
+nucarteiraidentidade number(8), 
+sgorgaoemissor number(8), 
+nmorgaoemissor number(8), 
+sgestadoci number(8), 
+dtexpedicao number(8), 
+nutitulo number(8), 
+nuzona number(8), 
+nusecao number(8), 
+dtemissaotitulo number(8), 
+nmlocalidadetitulo number(8), 
+sgestadotitulo number(8), 
+nucarteirahab number(8), 
+nmcategoria number(8), 
+sgestadohabilitacao number(8), 
+dtprimhabilitacao number(8), 
+dtvalidadehabilitacao number(8), 
+nunis number(8), 
+dtcadastronis number(8), 
+nuctps number(8), 
+nuseriectps number(8), 
+sgestadoctps number(8), 
+dtemissaoctps number(8), 
+dtinicioemprego number(8), 
+dtfimemprego number(8), 
+nmtipoempresa number(8), 
+nuocupacao number(8), 
+nmregimetrabalho number(8), 
+nmregimeprevidenciario number(8), 
+nmpaisorigem number(8), 
+dtentrada number(8), 
+dtlimiteperm number(8), 
+nrrne number(8), 
+orgaoemissorrne number(8), 
+dtexpedicaorne number(8), 
+classtrabestrangeiro number(8), 
+nureservista number(8), 
+nuserie number(8), 
+sgorgaoreservista number(8), 
+deunidade number(8), 
+nuano number(8), 
+dtemissaoreservista number(8), 
+sgestadoreservista number(8), 
+nmcategcertreservista number(8), 
+nmregiaomilitar number(8), 
+nmcircunscricao number(8), 
+nmtiponecessidade number(8), 
+nmtipodeficiencia number(8), 
+flvagadeficiente number(8), 
+nmfatorrh number(8), 
+nmtiposanguineo number(8)
+);
+type resumoValidacaoTabela is table of resumoValidacaoTabelaLinha;
+
+function obter(pNomeTabela varchar2, pProprietario varchar2 default 'sigrhmig', pCriterio varchar2 default null) return sys_refcursor;
+function listar(pArquivoMigracaoRefCursor sys_refcursor) return PKGMIGPESSOA.arquivoMigracaoTabela pipelined;
+function listarValidacao(pNomeTabela varchar2, pProprietario varchar2 default null, pCriterio varchar2 default null) return PKGMIGVALIDACAO.validacaoTabela pipelined;
+function listarResumoValidacao(pNomeTabela varchar2, pProprietario varchar2 default null, pCriterio varchar2 default null) return PKGMIGPESSOA.resumoValidacaoTabela pipelined;
 function especificacaoLayout return clob;
 
 end PKGMIGPESSOA;
@@ -61,14 +158,20 @@ end PKGMIGPESSOA;
 -- Criar o Corpo do Pacote
 create or replace package body PKGMIGPESSOA is
 
-function obterArquivoMigracao(pNomeTabela varchar2, pProprietario varchar2 default 'sigrhmig', pCriterio varchar2 default null) return sys_refcursor is
+function obter(pNomeTabela varchar2, pProprietario varchar2 default 'sigrhmig', pCriterio varchar2 default null) return sys_refcursor is
+  vProprietario varchar2(50);
   vNomeCompletoTabela varchar2(50);
   vListaCampos varchar2(5000);
   vCriterio varchar2(100);
   vSQL varchar2(10000);
   vRefCursor sys_refcursor;
 begin
-  vNomeCompletoTabela := upper(pProprietario) || '.' || upper(pNomeTabela);
+  if pProprietario is null then
+    vProprietario := 'sigrhmig';
+  else
+    vProprietario := pProprietario;
+  end if;
+  vNomeCompletoTabela := upper(vProprietario) || '.' || upper(pNomeTabela);
 
   vSQL := '
 select listagg(nvl(tab.campo,''null'') || '' as '' || layout.campo, '', '')
@@ -83,7 +186,7 @@ left join (select column_name as campo from sys.all_tab_columns
 
   execute immediate vSQL into vListaCampos using pProprietario, pNomeTabela;
 
-  if vCriterio is not null then vCriterio := ' where ' || vCriterio || ' '; end if;
+  if pCriterio is not null then vCriterio := ' where ' || pCriterio || ' '; end if;
   
   vSQL := '
 select ''' || upper(pNomeTabela) || ''' as nmarquivo, rownum as nuregistro,
@@ -94,43 +197,252 @@ from (select ' || vListaCampos || ' from ' || vNomeCompletoTabela || vCriterio |
 
     open vRefCursor for vSQL;
     return vRefCursor;
-end obterArquivoMigracao;
+end obter;
 
-function listarValidacao(pNomeTabela varchar2) return PKGMIGVALIDACAO.validacaoTabela pipelined is
+function listar(pArquivoMigracaoRefCursor sys_refcursor) return PKGMIGPESSOA.arquivoMigracaoTabela pipelined is
+item PKGMIGPESSOA.arquivoMigracaoTabelaLinha;
+begin
+  loop fetch pArquivoMigracaoRefCursor into item;
+    exit when pArquivoMigracaoRefCursor%notfound;
+    pipe row(PKGMIGPESSOA.arquivoMigracaoTabelaLinha(
+      item.nmarquivo,
+      item.nuregistro,
+      item.jschaveunica,
+      item.jscampos
+    ));
+  end loop;
+
+end listar;
+
+function listarValidacao(pNomeTabela varchar2, pProprietario varchar2 default null, pCriterio varchar2 default null) return PKGMIGVALIDACAO.validacaoTabela pipelined is
 item PKGMIGVALIDACAO.validacaoTabelaLinha;
 begin
   for item in (
     select * from table(PKGMIGVALIDACAO.listar(
                           PKGMIGPESSOA.especificacaoLayout(),
-                          PKGMIGPESSOA.obterArquivoMigracao(pNomeTabela)
+                          PKGMIGPESSOA.obter('emigpessoa', pCriterio => 'nmpessoa like ''CARLA%''')
                         ))
   ) loop
-    pipe row(PKGMIGVALIDACAO.validacaoTabelaLinha(
-      item.nmarquivo,
-      item.nuregistro,
-      item.jschaveunica,
-      item.decampo,
-      item.deconteudo,
-      item.decritica,
-      item.dtcritica
-    ));
+    pipe row(item);
   end loop;
 
 end listarValidacao;
 
-function listarResumoValidacao(pNomeTabela varchar2) return PKGMIGVALIDACAO.resumoValidacaoTabela pipelined is
-item PKGMIGVALIDACAO.resumoValidacaoTabelaLinha;
+function listarResumoValidacao(pNomeTabela varchar2, pProprietario varchar2 default null, pCriterio varchar2 default null) return PKGMIGPESSOA.resumoValidacaoTabela pipelined is
+item PKGMIGPESSOA.resumoValidacaoTabelaLinha;
 begin
   for item in (
+    with
+    campos as (
     select decritica, decampo, count(*) as qtde
     from table(PKGMIGVALIDACAO.listar(
-              PKGMIGPESSOA.especificacaoLayout(),
-              PKGMIGPESSOA.obterArquivoMigracao(pNomeTabela)))
+               PKGMIGPESSOA.especificacaoLayout(),
+               PKGMIGPESSOA.obter('emigpessoa', pCriterio => 'nmpessoa like ''CARLA%''')))
     group by decritica, decampo
+    ),
+    
+    criticas as (
+    select decritica, sum(qtde) as qtde
+    from campos
+    group by decritica
+    )
+    
+    select * from (
+    select decritica, 'NUTOTAL' as decampo, qtde from criticas
+    union
+    select decritica, decampo, qtde from campos
+    order by decritica, decampo
+    )
+    pivot (sum(qtde) for decampo in (
+    'NUTOTAL' as NUTOTAL,
+    'NUCPF' as NUCPF,
+    'DTNASCIMENTO' as DTNASCIMENTO,
+    'FLSEXO' as FLSEXO,
+    'NMPESSOA' as NMPESSOA,
+    'NMSOCIAL' as NMSOCIAL,
+    'NMUSUAL' as NMUSUAL,
+    'NMREDUZIDO' as NMREDUZIDO,
+    'NMRAIS' as NMRAIS,
+    'NMMAE' as NMMAE,
+    'NMPAI' as NMPAI,
+    'NMPAIS' as NMPAIS,
+    'SGESTADO' as SGESTADO,
+    'NMLOCALIDADENASC' as NMLOCALIDADENASC,
+    'NMESTADOCIVIL' as NMESTADOCIVIL,
+    'NMRACA' as NMRACA,
+    'DTNATURALIZACAO' as DTNATURALIZACAO,
+    'DEEMAIL' as DEEMAIL,
+    'NMTIPOHABITACAO' as NMTIPOHABITACAO,
+    'NMTIPOLOGRADOURORES' as NMTIPOLOGRADOURORES,
+    'NMLOGRADOURORES' as NMLOGRADOURORES,
+    'NUNUMERORES' as NUNUMERORES,
+    'DECOMPLEMENTORES' as DECOMPLEMENTORES,
+    'NMBAIRRORES' as NMBAIRRORES,
+    'NMLOCALIDADERES' as NMLOCALIDADERES,
+    'SGESTADORES' as SGESTADORES,
+    'NUCEPRES' as NUCEPRES,
+    'FLMESMOENDERECO' as FLMESMOENDERECO,
+    'NMTIPOLOGRADOUROCORRRESP' as NMTIPOLOGRADOUROCORRRESP,
+    'NMLOGRADOUROCORRESP' as NMLOGRADOUROCORRESP,
+    'NUNUMEROCORRESP' as NUNUMEROCORRESP,
+    'DECOMPLEMENTOCORRESP' as DECOMPLEMENTOCORRESP,
+    'NMBAIRROCORRESP' as NMBAIRROCORRESP,
+    'NMLOCALIDADECORRESP' as NMLOCALIDADECORRESP,
+    'SGESTADOCORRESP' as SGESTADOCORRESP,
+    'NUCEPCORRESP' as NUCEPCORRESP,
+    'NUDDDRES' as NUDDDRES,
+    'NUTELEFONERES' as NUTELEFONERES,
+    'NUDDDCONT' as NUDDDCONT,
+    'NUTELEFONECONT' as NUTELEFONECONT,
+    'NUDDDCEL' as NUDDDCEL,
+    'NUCELULAR' as NUCELULAR,
+    'NUCARTEIRAIDENTIDADE' as NUCARTEIRAIDENTIDADE,
+    'SGORGAOEMISSOR' as SGORGAOEMISSOR,
+    'NMORGAOEMISSOR' as NMORGAOEMISSOR,
+    'SGESTADOCI' as SGESTADOCI,
+    'DTEXPEDICAO' as DTEXPEDICAO,
+    'NUTITULO' as NUTITULO,
+    'NUZONA' as NUZONA,
+    'NUSECAO' as NUSECAO,
+    'DTEMISSAOTITULO' as DTEMISSAOTITULO,
+    'NMLOCALIDADETITULO' as NMLOCALIDADETITULO,
+    'SGESTADOTITULO' as SGESTADOTITULO,
+    'NUCARTEIRAHAB' as NUCARTEIRAHAB,
+    'NMCATEGORIA' as NMCATEGORIA,
+    'SGESTADOHABILITACAO' as SGESTADOHABILITACAO,
+    'DTPRIMHABILITACAO' as DTPRIMHABILITACAO,
+    'DTVALIDADEHABILITACAO' as DTVALIDADEHABILITACAO,
+    'NUNIS' as NUNIS,
+    'DTCADASTRONIS' as DTCADASTRONIS,
+    'NUCTPS' as NUCTPS,
+    'NUSERIECTPS' as NUSERIECTPS,
+    'SGESTADOCTPS' as SGESTADOCTPS,
+    'DTEMISSAOCTPS' as DTEMISSAOCTPS,
+    'DTINICIOEMPREGO' as DTINICIOEMPREGO,
+    'DTFIMEMPREGO' as DTFIMEMPREGO,
+    'NMTIPOEMPRESA' as NMTIPOEMPRESA,
+    'NUOCUPACAO' as NUOCUPACAO,
+    'NMREGIMETRABALHO' as NMREGIMETRABALHO,
+    'NMREGIMEPREVIDENCIARIO' as NMREGIMEPREVIDENCIARIO,
+    'NMPAISORIGEM' as NMPAISORIGEM,
+    'DTENTRADA' as DTENTRADA,
+    'DTLIMITEPERM' as DTLIMITEPERM,
+    'NRRNE' as NRRNE,
+    'ORGAOEMISSORRNE' as ORGAOEMISSORRNE,
+    'DTEXPEDICAORNE' as DTEXPEDICAORNE,
+    'CLASSTRABESTRANGEIRO' as CLASSTRABESTRANGEIRO,
+    'NURESERVISTA' as NURESERVISTA,
+    'NUSERIE' as NUSERIE,
+    'SGORGAORESERVISTA' as SGORGAORESERVISTA,
+    'DEUNIDADE' as DEUNIDADE,
+    'NUANO' as NUANO,
+    'DTEMISSAORESERVISTA' as DTEMISSAORESERVISTA,
+    'SGESTADORESERVISTA' as SGESTADORESERVISTA,
+    'NMCATEGCERTRESERVISTA' as NMCATEGCERTRESERVISTA,
+    'NMREGIAOMILITAR' as NMREGIAOMILITAR,
+    'NMCIRCUNSCRICAO' as NMCIRCUNSCRICAO,
+    'NMTIPONECESSIDADE' as NMTIPONECESSIDADE,
+    'NMTIPODEFICIENCIA' as NMTIPODEFICIENCIA,
+    'FLVAGADEFICIENTE' as FLVAGADEFICIENTE,
+    'NMFATORRH' as NMFATORRH,
+    'NMTIPOSANGUINEO' as NMTIPOSANGUINEO
+    ))
+    order by decritica
   ) loop
-    pipe row(PKGMIGVALIDACAO.resumoValidacaoTabelaLinha(
-      item.decampo,
-      item.decritica
+    pipe row(PKGMIGPESSOA.resumoValidacaoTabelaLinha(
+      item.decritica,
+      item.nutotal,
+      item.nucpf,
+      item.dtnascimento,
+      item.flsexo,
+      item.nmpessoa,
+      item.nmsocial,
+      item.nmusual,
+      item.nmreduzido,
+      item.nmrais,
+      item.nmmae,
+      item.nmpai,
+      item.nmpais,
+      item.sgestado,
+      item.nmlocalidadenasc,
+      item.nmestadocivil,
+      item.nmraca,
+      item.dtnaturalizacao,
+      item.deemail,
+      item.nmtipohabitacao,
+      item.nmtipologradourores,
+      item.nmlogradourores,
+      item.nunumerores,
+      item.decomplementores,
+      item.nmbairrores,
+      item.nmlocalidaderes,
+      item.sgestadores,
+      item.nucepres,
+      item.flmesmoendereco,
+      item.nmtipologradourocorrresp,
+      item.nmlogradourocorresp,
+      item.nunumerocorresp,
+      item.decomplementocorresp,
+      item.nmbairrocorresp,
+      item.nmlocalidadecorresp,
+      item.sgestadocorresp,
+      item.nucepcorresp,
+      item.nudddres,
+      item.nutelefoneres,
+      item.nudddcont,
+      item.nutelefonecont,
+      item.nudddcel,
+      item.nucelular,
+      item.nucarteiraidentidade,
+      item.sgorgaoemissor,
+      item.nmorgaoemissor,
+      item.sgestadoci,
+      item.dtexpedicao,
+      item.nutitulo,
+      item.nuzona,
+      item.nusecao,
+      item.dtemissaotitulo,
+      item.nmlocalidadetitulo,
+      item.sgestadotitulo,
+      item.nucarteirahab,
+      item.nmcategoria,
+      item.sgestadohabilitacao,
+      item.dtprimhabilitacao,
+      item.dtvalidadehabilitacao,
+      item.nunis,
+      item.dtcadastronis,
+      item.nuctps,
+      item.nuseriectps,
+      item.sgestadoctps,
+      item.dtemissaoctps,
+      item.dtinicioemprego,
+      item.dtfimemprego,
+      item.nmtipoempresa,
+      item.nuocupacao,
+      item.nmregimetrabalho,
+      item.nmregimeprevidenciario,
+      item.nmpaisorigem,
+      item.dtentrada,
+      item.dtlimiteperm,
+      item.nrrne,
+      item.orgaoemissorrne,
+      item.dtexpedicaorne,
+      item.classtrabestrangeiro,
+      item.nureservista,
+      item.nuserie,
+      item.sgorgaoreservista,
+      item.deunidade,
+      item.nuano,
+      item.dtemissaoreservista,
+      item.sgestadoreservista,
+      item.nmcategcertreservista,
+      item.nmregiaomilitar,
+      item.nmcircunscricao,
+      item.nmtiponecessidade,
+      item.nmtipodeficiencia,
+      item.flvagadeficiente,
+      item.nmfatorrh,
+      item.nmtiposanguineo    
     ));
   end loop;
 
