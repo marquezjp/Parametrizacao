@@ -41,14 +41,6 @@ drop package PKGMIGPESSOA;
 -- Criar o Especificação do Pacote
 create or replace package PKGMIGPESSOA is
 
-type arquivoMigracaoTabelaLinha is record(
-nmarquivo varchar2(50),
-nuregistro number(8),
-jschaveunica varchar(500),
-jscampos clob
-);
-type arquivoMigracaoTabela is table of arquivoMigracaoTabelaLinha;
-
 type resumoValidacaoTabelaLinha is record(
 decritica varchar2(500),
 nutotal number(8), 
@@ -147,8 +139,8 @@ nmtiposanguineo number(8)
 type resumoValidacaoTabela is table of resumoValidacaoTabelaLinha;
 
 function obter(pNomeTabela varchar2, pProprietario varchar2 default 'sigrhmig', pCriterio varchar2 default null) return sys_refcursor;
-function listar(pArquivoMigracaoRefCursor sys_refcursor) return PKGMIGPESSOA.arquivoMigracaoTabela pipelined;
-function listarValidacao(pNomeTabela varchar2, pProprietario varchar2 default null, pCriterio varchar2 default null) return PKGMIGVALIDACAO.validacaoTabela pipelined;
+function listar(pArquivoMigracaoRefCursor sys_refcursor) return PKGMIGLAYOUT.arquivoMigracaoTabela pipelined;
+function listarValidacao(pNomeTabela varchar2, pProprietario varchar2 default null, pCriterio varchar2 default null, pListaCampos in varchar2 default null) return PKGMIGVALIDACAO.validacaoTabela pipelined;
 function listarResumoValidacao(pNomeTabela varchar2, pProprietario varchar2 default null, pCriterio varchar2 default null) return PKGMIGPESSOA.resumoValidacaoTabela pipelined;
 function especificacaoLayout return clob;
 
@@ -199,12 +191,12 @@ from (select ' || vListaCampos || ' from ' || vNomeCompletoTabela || vCriterio |
     return vRefCursor;
 end obter;
 
-function listar(pArquivoMigracaoRefCursor sys_refcursor) return PKGMIGPESSOA.arquivoMigracaoTabela pipelined is
-item PKGMIGPESSOA.arquivoMigracaoTabelaLinha;
+function listar(pArquivoMigracaoRefCursor sys_refcursor) return PKGMIGLAYOUT.arquivoMigracaoTabela pipelined is
+item PKGMIGLAYOUT.arquivoMigracaoTabelaLinha;
 begin
   loop fetch pArquivoMigracaoRefCursor into item;
     exit when pArquivoMigracaoRefCursor%notfound;
-    pipe row(PKGMIGPESSOA.arquivoMigracaoTabelaLinha(
+    pipe row(PKGMIGLAYOUT.arquivoMigracaoTabelaLinha(
       item.nmarquivo,
       item.nuregistro,
       item.jschaveunica,
@@ -214,13 +206,15 @@ begin
 
 end listar;
 
-function listarValidacao(pNomeTabela varchar2, pProprietario varchar2 default null, pCriterio varchar2 default null) return PKGMIGVALIDACAO.validacaoTabela pipelined is
+function listarValidacao(pNomeTabela varchar2, pProprietario varchar2 default null, pCriterio varchar2 default null, pListaCampos in varchar2 default null) return PKGMIGVALIDACAO.validacaoTabela pipelined is
 item PKGMIGVALIDACAO.validacaoTabelaLinha;
 begin
   for item in (
     select * from table(PKGMIGVALIDACAO.listar(
                           PKGMIGPESSOA.especificacaoLayout(),
-                          PKGMIGPESSOA.obter('emigpessoa', pCriterio => 'nmpessoa like ''CARLA%''')
+                          PKGMIGPESSOA.obter('emigpessoa'),
+--                          PKGMIGPESSOA.obter('emigpessoa', pCriterio => 'nmpessoa like ''CARLA%'''),
+                          pListaCampos
                         ))
   ) loop
     pipe row(item);
@@ -1487,7 +1481,7 @@ begin
 "Tamanho" : "1",
 "Obrigatório" : "Não",
 "Padrão" : "",
-"Domínio" : null,
+"Domínio" : ["S", "N"],
 "SIGRH" : [{"Conceito" : "ECADPESSOA", "Coluna" : "FLVAGADEFICIENTE"}],
 "RegrasValidação" : ["validarLista"]
 }

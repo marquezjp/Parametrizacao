@@ -77,9 +77,8 @@ type tLista is varray(50) of varchar2(100);
 
 function listar(
   pdocJSON in clob,
-  pArquivoMigracao in sys_refcursor
---  pNomeTabela in varchar2
---  pProprietario in varchar2 default null
+  pArquivoMigracao in sys_refcursor,
+  pListaCampos in varchar2 default null
 ) return validacaoTabela pipelined;
 
 function validar(
@@ -90,37 +89,37 @@ function validar(
   pRegravalidacao in varchar2 default null,
   pDominio in varchar2 default null,
   pTipo in varchar2 default 'VARCHAR2'
-) return varchar2;
+) return varchar2 result_cache;
 
 function gerarLista(pConteudo in varchar2, pSeparator in varchar2 default ',') return tLista;
 
-function validarTamanho(pConteudo in varchar2, pTamanho in varchar2 default null) return varchar2;
-function validarNumero(pConteudo in varchar2, pCaracteresEspeciais in varchar2 default '-,.') return varchar2;
-function validarValorMonetario(pConteudo in varchar2, pTipo in varchar2 default 'NUMBER(10,2)', pCaracteresEspeciais in varchar2 default '-,.') return varchar2;
-function validarData(pConteudo in varchar2, pFormato in varchar2 default 'DD/MM/YYYY') return varchar2;
-function validarDataNascimento(pConteudo in varchar2, pFormato in varchar2 default 'DD/MM/YYYY') return varchar2;
-function validarNome(pConteudo in varchar2) return varchar2;
-function validarEMail(pConteudo in varchar2) return varchar2;
-function validarLista(pConteudo in varchar2, pDominio in varchar2 default null) return varchar2;
-function validarDominio(pConteudo in varchar2, pCampo in varchar2 default null) return varchar2;
+function validarTamanho(pConteudo in varchar2, pTamanho in varchar2 default null) return varchar2 result_cache;
+function validarNumero(pConteudo in varchar2, pCaracteresEspeciais in varchar2 default '-,.') return varchar2 result_cache;
+function validarValorMonetario(pConteudo in varchar2, pTipo in varchar2 default 'NUMBER(10,2)', pCaracteresEspeciais in varchar2 default '-,.') return varchar2 result_cache;
+function validarData(pConteudo in varchar2, pFormato in varchar2 default 'DD/MM/YYYY') return varchar2 result_cache;
+function validarDataNascimento(pConteudo in varchar2, pFormato in varchar2 default 'DD/MM/YYYY') return varchar2 result_cache;
+function validarNome(pConteudo in varchar2) return varchar2 result_cache;
+function validarEMail(pConteudo in varchar2) return varchar2 result_cache;
+function validarLista(pConteudo in varchar2, pDominio in varchar2 default null) return varchar2 result_cache;
+function validarDominio(pConteudo in varchar2, pCampo in varchar2 default null) return varchar2 result_cache;
 
---function validarFaixa(pConteudo in varchar2) return varchar2;
---function validarIndice(pConteudo in varchar2) return varchar2;
+--function validarFaixa(pConteudo in varchar2) return varchar2 result_cache;
+--function validarIndice(pConteudo in varchar2) return varchar2 result_cache;
 
 /*
-function validarCEP(pConteudo in varchar2) return varchar2;
-function validarCNPJ(pConteudo in varchar2) return varchar2;
-function validarCPF(pConteudo in varchar2) return varchar2;
-function validarCargo(pConteudo in varchar2) return varchar2;
-function validarCargoComissionado(pConteudo in varchar2) return varchar2;
-function validarCarreira(pConteudo in varchar2) return varchar2;
-function validarClasse(pConteudo in varchar2) return varchar2;
-function validarCompetencia(pConteudo in varchar2) return varchar2;
-function validarEspecialidade(pConteudo in varchar2) return varchar2;
-function validarGrupoComissionado(pConteudo in varchar2) return varchar2;
-function validarGrupoMotivoAfastamento(pConteudo in varchar2) return varchar2;
-function validarGrupoOcupacional(pConteudo in varchar2) return varchar2;
-function validarMotivoAfastamento(pConteudo in varchar2) return varchar2;
+function validarCEP(pConteudo in varchar2) return varchar2 result_cache;
+function validarCNPJ(pConteudo in varchar2) return varchar2 result_cache;
+function validarCPF(pConteudo in varchar2) return varchar2 result_cache;
+function validarCargo(pConteudo in varchar2) return varchar2 result_cache;
+function validarCargoComissionado(pConteudo in varchar2) return varchar2 result_cache;
+function validarCarreira(pConteudo in varchar2) return varchar2 result_cache;
+function validarClasse(pConteudo in varchar2) return varchar2 result_cache;
+function validarCompetencia(pConteudo in varchar2) return varchar2 result_cache;
+function validarEspecialidade(pConteudo in varchar2) return varchar2 result_cache;
+function validarGrupoComissionado(pConteudo in varchar2) return varchar2 result_cache;
+function validarGrupoMotivoAfastamento(pConteudo in varchar2) return varchar2 result_cache;
+function validarGrupoOcupacional(pConteudo in varchar2) return varchar2 result_cache;
+function validarMotivoAfastamento(pConteudo in varchar2) return varchar2 result_cache;
 */
 
 end PKGMIGVALIDACAO;
@@ -132,10 +131,12 @@ package body PKGMIGVALIDACAO is
 
 function listar(
   pdocJSON in clob,
-  pArquivoMigracao in sys_refcursor
+  pArquivoMigracao in sys_refcursor,
+  pListaCampos in varchar2 default null
 ) return validacaoTabela pipelined as
 
   vCritica varchar2(400);
+  vCampoValido varchar2(400);
   vdtCritica timestamp;
   
   vArquivoMigracaoRefCursor sys_refcursor;
@@ -173,15 +174,18 @@ begin
     loop fetch vLayoutRefCursor into layout;
       exit when vLayoutRefCursor%NOTFOUND;
 
-      vCritica := PKGMIGVALIDACAO.validar(
-         pConteudo => json_value(mig.jscampos, '$.' || layout.campo)
-        ,pCampo => layout.campo
-        ,pObrigatorio => layout.obrigatorio
-        ,pTamanho => layout.tamanho
-        ,pRegravalidacao => layout.regravalidacao
-        ,pDominio => layout.dominio
-        ,pTipo => layout.tipo
-      );
+      vCritica := null;
+      if pListaCampos is null or validarLista(layout.campo, pListaCampos) is null then
+        vCritica := PKGMIGVALIDACAO.validar(
+          pConteudo => json_value(mig.jscampos, '$.' || layout.campo)
+          ,pCampo => layout.campo
+          ,pObrigatorio => layout.obrigatorio
+          ,pTamanho => layout.tamanho
+          ,pRegravalidacao => layout.regravalidacao
+          ,pDominio => layout.dominio
+          ,pTipo => layout.tipo
+        );
+      end if;
   
       if vCritica is not null then
         pipe row(validacaoTabelaLinha(
@@ -211,7 +215,7 @@ function validar(
   pRegravalidacao in varchar2 default null,
   pDominio in varchar2 default null,
   pTipo in varchar2 default 'VARCHAR2'
-) return varchar2 is
+) return varchar2 result_cache is
 
   vConteudo varchar2(500);
   vValidarFuncao varchar2(200);
@@ -276,7 +280,7 @@ end gerarLista;
 function validarTamanho(
   pConteudo in varchar2,
   pTamanho in varchar2 default null
-) return varchar2 is
+) return varchar2 result_cache is
   vTamanho number;
 begin
   if trim(translate(vTamanho, '01234567890', ' ')) is not null then
@@ -298,7 +302,7 @@ end validarTamanho;
 function validarNumero(
   pConteudo in varchar2,
   pCaracteresEspeciais in varchar2 default '-,.'
-) return varchar2 is
+) return varchar2 result_cache is
   vCritica varchar2(400);
 begin
   if trim(translate(pConteudo, '01234567890' || pCaracteresEspeciais, ' ')) is not null then
@@ -312,7 +316,7 @@ function validarValorMonetario(
   pConteudo in varchar2,
   pTipo in varchar2 default 'NUMBER(10,2)',
   pCaracteresEspeciais in varchar2 default '-,.'
-) return varchar2 is
+) return varchar2 result_cache is
   vCritica varchar2(400);
 begin
   vCritica := validarNumero(pConteudo);
@@ -324,7 +328,7 @@ end validarValorMonetario;
 function validarData (
   pConteudo in varchar2,
   pFormato in varchar2 default 'DD/MM/YYYY'
-) return varchar2 is
+) return varchar2 result_cache is
   lData date;
   vCritica varchar2(400);
 begin
@@ -337,7 +341,7 @@ end validarData;
 function validarDataNascimento (
   pConteudo in varchar2,
   pFormato in varchar2 default 'DD/MM/YYYY'
-) return varchar2 is
+) return varchar2 result_cache is
   lData date;
   vCritica varchar2(400);
 begin
@@ -353,7 +357,7 @@ end validarDataNascimento;
 
 function validarNome(
   pConteudo in varchar2
-) return varchar2 is
+) return varchar2 result_cache is
   vCritica varchar2(400);
 begin
   if length(trim(pConteudo)) < 3 then return 'Campo com tamanho menor que permitido'; end if;
@@ -362,7 +366,7 @@ end  validarNome;
 
 function validarEMail(
   pConteudo in varchar2
-) return varchar2 is
+) return varchar2 result_cache is
   vCritica varchar2(400);
 begin
   if not regexp_like(pConteudo, '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$') then
@@ -375,7 +379,7 @@ end validarEMail;
 function validarLista(
   pConteudo in varchar2,
   pDominio in varchar2 default null
-) return varchar2 is
+) return varchar2 result_cache is
   vCritica varchar2(400);
   vLista tLista := tLista();
 begin
@@ -392,7 +396,7 @@ end  validarLista;
 function validarDominio(
   pConteudo in varchar2,
   pCampo in varchar2 default null
-) return varchar2 is
+) return varchar2 result_cache is
   vCritica varchar2(400);
   vConceito JSON_OBJECT_T := JSON_OBJECT_T.parse('
 {
