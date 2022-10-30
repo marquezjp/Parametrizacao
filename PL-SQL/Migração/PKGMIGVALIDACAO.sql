@@ -96,8 +96,8 @@ function gerarLista(pConteudo in varchar2, pSeparator in varchar2 default ',') r
 function validarTamanho(pConteudo in varchar2, pTamanho in varchar2 default null) return varchar2 result_cache;
 function validarNumero(pConteudo in varchar2, pCaracteresEspeciais in varchar2 default '-,.') return varchar2 result_cache;
 function validarValorMonetario(pConteudo in varchar2, pTipo in varchar2 default 'NUMBER(10,2)', pCaracteresEspeciais in varchar2 default '-,.') return varchar2 result_cache;
-function validarData(pConteudo in varchar2, pFormato in varchar2 default 'DD/MM/YYYY') return varchar2 result_cache;
-function validarDataNascimento(pConteudo in varchar2, pFormato in varchar2 default 'DD/MM/YYYY') return varchar2 result_cache;
+function validarData(pConteudo in varchar2, pFormato in varchar2 default 'YYYY/MM/DD') return varchar2 result_cache;
+function validarDataNascimento(pConteudo in varchar2, pFormato in varchar2 default 'YYYY/MM/DD') return varchar2 result_cache;
 function validarNome(pConteudo in varchar2) return varchar2 result_cache;
 function validarEMail(pConteudo in varchar2) return varchar2 result_cache;
 function validarLista(pConteudo in varchar2, pDominio in varchar2 default null) return varchar2 result_cache;
@@ -283,7 +283,7 @@ function validarTamanho(
 ) return varchar2 result_cache is
   vTamanho number;
 begin
-  if trim(translate(vTamanho, '01234567890', ' ')) is not null then
+  if length(trim(translate(vTamanho, '01234567890', ' '))) != 0 then
     vTamanho := '4000';
   else
     vTamanho := to_number(pTamanho);
@@ -305,7 +305,7 @@ function validarNumero(
 ) return varchar2 result_cache is
   vCritica varchar2(400);
 begin
-  if trim(translate(pConteudo, '01234567890' || pCaracteresEspeciais, ' ')) is not null then
+  if length(trim(translate(pConteudo, '01234567890' || pCaracteresEspeciais, ' '))) != 0 then
     return 'Campo Numerico com caracteres não numéricos';
   end if;
 
@@ -327,7 +327,7 @@ end validarValorMonetario;
 
 function validarData (
   pConteudo in varchar2,
-  pFormato in varchar2 default 'DD/MM/YYYY'
+  pFormato in varchar2 default 'YYYY/MM/DD'
 ) return varchar2 result_cache is
   lData date;
   vCritica varchar2(400);
@@ -340,7 +340,7 @@ end validarData;
 
 function validarDataNascimento (
   pConteudo in varchar2,
-  pFormato in varchar2 default 'DD/MM/YYYY'
+  pFormato in varchar2 default 'YYYY/MM/DD'
 ) return varchar2 result_cache is
   lData date;
   vCritica varchar2(400);
@@ -421,13 +421,15 @@ function validarDominio(
 }
 ');
 
+  vDBLINK varchar2(50);
   vRetorno varchar2(500);
   vSQL varchar2(200);
    
 begin
   
+  vDBLINK := '@SIGRHRRPRELINK';
   if vConceito.has(pCampo) then
-    vSQL:= 'select ' || pCampo || ' from ' || vConceito.get_string(pCampo) || ' ' ||
+    vSQL:= 'select ' || pCampo || ' from ' || vConceito.get_string(pCampo) || vDBLINK || ' ' ||
            'where PKGMIGLAYOUT.normalizarString(' || pCampo || ') = :conteudo';
     execute immediate vSQL into vRetorno using pConteudo;
   end if;

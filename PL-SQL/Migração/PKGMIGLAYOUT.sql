@@ -1,47 +1,46 @@
-select PKGMIGLAYOUT.mostrar(PKGMIGCAPAPAGAMENTO.especificacaoLayout()) from dual;
+select PKGMIGLAYOUT.mostrar(PKGMIGPESSOA.especificacaoLayout()) from dual;
 /
 
-select * from table(PKGMIGLAYOUT.listar(PKGMIGCAPAPAGAMENTO.especificacaoLayout()));
+select * from table(PKGMIGLAYOUT.listar(PKGMIGPESSOA.especificacaoLayout()));
 /
 
-select PKGMIGCAPAPAGAMENTO.especificacaoLayout() from dual;
+select * from table(PKGMIGLAYOUT.listarEstatisticaDescritiva(
+                      PKGMIGPESSOA.especificacaoLayout(), 'emigpessoa_202210201319','sigrhmig')
+                   );
 /
 
-select * from table(PKGMIGLAYOUT.listarEstatisticaDescritiva(PKGMIGCAPAPAGAMENTO.especificacaoLayout(), 'emigcapapagamento2','sigrhmig'));
-/
-
--- Remover o Pacote
-drop package PKGMIGLAYOUT;
+select * from table(PKGMIGPESSOA.listarEstatisticaDescritiva('emigpessoa_202210201319','sigrhmig'));
 /
 
 --- Remover o Pacote
 drop package PKGMIGLAYOUT;
 /
 
+create or replace
+package PKGMIGLAYOUT is
 -- Criar o Especificação do Pacote
-create or replace package PKGMIGLAYOUT is
 
 type layoutTabelaLinha is record(
-  grupo VARCHAR2(50),
-  campo VARCHAR2(50),
-  descricao VARCHAR2(250),
-  tipo VARCHAR2(10),
-  tamanho VARCHAR2(5),
-  obrigatorio VARCHAR2(3),
-  padrao VARCHAR2(250),
-  dominio VARCHAR2(250),
-  regrasvalidacao VARCHAR2(250),
-  sigrh VARCHAR2(250)
+  grupo varchar2(50),
+  campo varchar2(50),
+  descricao varchar2(250),
+  tipo varchar2(10),
+  tamanho varchar2(5),
+  obrigatorio varchar2(3),
+  padrao varchar2(250),
+  dominio varchar2(250),
+  regrasvalidacao varchar2(250),
+  sigrh varchar2(250)
 );
 type layoutTabela is table of layoutTabelaLinha;
 
 type validacaoTabelaLinha is record(
-  campo VARCHAR2(50),
-  obrigatorio VARCHAR2(3),
-  tamanho VARCHAR2(5),
-  regravalidacao VARCHAR2(250),
-  dominio VARCHAR2(250),
-  tipo VARCHAR2(10),
+  campo varchar2(50),
+  obrigatorio varchar2(3),
+  tamanho varchar2(5),
+  regravalidacao varchar2(250),
+  dominio varchar2(250),
+  tipo varchar2(10),
   ordem number(3)
 );
 type validacaoTabela is table of validacaoTabelaLinha;
@@ -84,6 +83,11 @@ function listarValidacao(docJSON in clob) return sys_refcursor;
 function gerarSQLEstatisticasArquivo(
   pNomeTabela in varchar2,
   pCampo in varchar2,
+  pObrigatorio in varchar2,
+  pTamanho in varchar2,
+  pRegraValidacao in varchar2,
+  pDominio in varchar2,
+  pTipo in varchar2,
   pOrdem in number,
   pStatus in varchar2 default null
 ) return varchar2;
@@ -97,8 +101,9 @@ function listarEstatisticaDescritiva(
 end PKGMIGLAYOUT;
 /
 
+create or replace
+package body PKGMIGLAYOUT is
 -- Criar o Corpo do Pacote
-create or replace package body PKGMIGLAYOUT is
 
 function normalizarString(pTexto varchar2) return varchar2 as
 begin
@@ -215,13 +220,18 @@ end listarValidacao;
 function gerarSQLEstatisticasArquivo(
   pNomeTabela in varchar2,
   pCampo in varchar2,
+  pObrigatorio in varchar2,
+  pTamanho in varchar2,
+  pRegraValidacao in varchar2,
+  pDominio in varchar2,
+  pTipo in varchar2,
   pOrdem in number,
   pStatus in varchar2 default null
 ) return varchar2 is
 begin
 
   if pStatus = 'Ausente' then
-    return 'select ' || pCampo || ' as campo, ' || pOrdem || ' as ordem, ' || pStatus || ' as status,
+    return 'select ''' || pCampo || ''' as campo, ' || pOrdem || ' as ordem, ''' || pStatus || ''' as status,
             null as registros,
             null as unicos,
             null as nulos,
@@ -238,7 +248,7 @@ begin
   end if;
 
   return '
-with  
+with
 listaunicos as (select distinct ' || pCampo || ' from ' || pNomeTabela || '),
 lista as (
 select ''' || pCampo || ''' as campolista, listagg(' || pCampo || ', ''; '') within group (order by ' || pCampo || ') as dominio
@@ -246,28 +256,51 @@ from listaunicos
 where (select count(*) from listaunicos) < 50  
 ),
 estatistica as (
-select ''' || pCampo || ''' as campo, ' || pOrdem || ' as ordem, null as status,
+select ''' || pCampo || ''' as campo, ' || pOrdem || ' as ordem, ''' || pStatus || ''' as status,
 count(*) as registros,
 count(distinct ' || pCampo || ') as unicos,
 count(case when ' || pCampo || ' is null then 1 else null end) as nulos,
 count(case when to_char(' || pCampo || ') = ''0'' then 1 else null end) as zeros,
-count(case when ' || pCampo || ' is not null and trim(TRANSLATE(' || pCampo || ', ''0123456789 -,.'', '' '')) is null then 1 else null end) as numericos,
-count(case PKGMIGVALIDACAO.validarData(' || pCampo || ') when null then 1 else null end) as datas,
-min(case PKGMIGVALIDACAO.validarNumero(' || pCampo || ') when null then trim(translate(' || pCampo || ', '' -,.'', '' '')) else null end) as minimos,
-max(case PKGMIGVALIDACAO.validarNumero(' || pCampo || ') when null then trim(translate(' || pCampo || ', '' -,.'', '' '')) else null end) as maximos
+count(case when ' || pCampo || ' is not null
+            and length(trim(translate(' || pCampo || ', ''0123456789 -,.'', '' ''))) = 0
+           then 1
+           else null
+      end) as numericos,
+count(case when ''' || pTipo || ''' = ''Date''
+            and ' || pCampo || ' is not null
+            and length(PKGMIGVALIDACAO.validarData(' || pCampo || ')) > 1
+            then 1
+            else null
+      end) as datas,
+count(case when length(PKGMIGVALIDACAO.validar(
+  pConteudo => ' || pCampo || ',
+  pCampo => ''' || pCampo || ''',
+  pObrigatorio => ''' || pObrigatorio || ''',
+  pTamanho => ''' || pTamanho || ''',
+  pRegravalidacao => ''' || pRegraValidacao || ''',
+  pDominio => ''' || pDominio || ''',
+  pTipo => ''' || pTipo || '''
+)) > 1 then 1 else null end) as invalidos,
+min(case when ' || pCampo || ' is not null
+          and length(trim(translate(' || pCampo || ', ''0123456789 -,.'', '' ''))) = 0
+          and length(trim(translate(' || pCampo || ', '' "-,.'', '' ''))) < 20
+         then to_number(trim(translate(' || pCampo || ', '' "-,.'', '' '')))
+         else null
+    end) as minimos,
+max(case when ' || pCampo || ' is not null
+          and length(trim(translate(' || pCampo || ', ''0123456789 -,.'', '' ''))) = 0
+          and length(trim(translate(' || pCampo || ', '' "-,.'', '' ''))) < 20
+         then to_number(trim(translate(' || pCampo || ', '' "-,.'', '' '')))
+         else null
+    end) as maximos
 from ' || pNomeTabela || '
 )
 
-select campo, ordem, status, registros, unicos, nulos, zeros, numericos, datas,
-(select count(*) from table(PKGMIGPESSOA.listarValidacao(''emigpessoa'', pListaCampos => ''["' || pCampo || '"]''))) as invalidos,
-null as validos,
+select campo, ordem, status, registros, unicos, nulos, zeros, numericos, datas, invalidos,
+round(((nvl(registros,0) - nvl(invalidos,0)) / nullif( nvl(registros,0),0)) * 100, 2) as validos,
 minimos, maximos,
-case
-  when unicos = 0 then ''NULL''
-  when unicos = 1 then dominio
-  else null
-end as padrao,
-case when unicos > 1 then null else null end as dominio
+case unicos when 0 then null when 1 then dominio else null end as padrao,
+case when unicos > 1 then dominio else null end as dominio
 from estatistica
 left join lista on campolista = campo
 ';
@@ -279,32 +312,43 @@ function listarEstatisticaDescritiva(
   pNomeTabela in varchar2,
   pProprietario in varchar2 default null
 ) return estatisticaDescritivaTabela pipelined as
-vSQL varchar2(2000);
+vSQL varchar2(4000);
 vNomeTabela varchar2(50);
 
 type camposTabelaRecord is record (
   campo varchar2(50),
-  ordem number(6),
+  obrigatorio varchar2(3),
+  tamanho varchar2(5),
+  regravalidacao varchar2(250),
+  dominio varchar2(250),
+  tipo varchar2(10),
+  ordem number(3),
   status varchar2(50)
 );
 camposTabela camposTabelaRecord;
  
 cursor cCamposTabela (pdocJSON clob, vNomeTabela varchar2, vProprietario varchar2) is
 with
-layout as (select campo, rownum as ordem from table(PKGMIGLAYOUT.listar(pdocJSON))),
-tab as (select column_name as campo, column_id as ordem from sys.all_tab_columns
-        where owner = upper(vProprietario) and table_name = upper(vNomeTabela))
+layout as (select campo, obrigatorio, tamanho, trim(translate(regrasvalidacao, '[]"', ' ')) as regravalidacao, dominio, tipo, rownum as ordem
+           from table(PKGMIGLAYOUT.listar(pdocJSON)))),
+tab as (select column_name as campo, 'Não' as obrigatorio, data_length as tamanho, null as regravalidacao, null as dominio, data_type as tipo, column_id as ordem
+        from sys.all_tab_columns where owner = upper(vProprietario) and table_name = upper(vNomeTabela))
 select
-nvl(tab.campo,layout.campo) as campo,
-nvl(tab.ordem,layout.ordem) as ordem,
+nvl(layout.campo,tab.campo) as campo,
+nvl(layout.obrigatorio,tab.obrigatorio) as obrigatorio,
+nvl(layout.tamanho,tab.tamanho) as tamanho,
+nvl(layout.regravalidacao,tab.regravalidacao) as regravalidacao,
+nvl(layout.dominio,tab.dominio) as dominio,
+nvl(layout.tipo,tab.tipo) as tipo,
+nvl(layout.ordem,tab.ordem) as ordem,
 case
  when tab.campo is null then 'Ausente'
  when layout.campo is null then 'Ignorado'
  else 'Presente'
-end as tipo
+end as status
 from tab
-full join layout on layout.campo = tab.campo
---where nvl(tab.ordem,layout.ordem) < 10
+full join layout on layout.campo = tab.campo 
+--where nvl(tab.ordem,layout.ordem) between 81 and 100
 order by ordem
 ;
 
@@ -326,7 +370,6 @@ type estatisticaDescritivaLinha is record(
   dominio   varchar2(1500)
 );
 estatisticasArquivo estatisticaDescritivaLinha;
---vRegistros number(8);
 
 begin
   if pProprietario is null then vNomeTabela := upper(pNomeTabela);
@@ -337,34 +380,19 @@ begin
   loop fetch cCamposTabela into camposTabela;
     exit when cCamposTabela%notfound;
 
-/*
-    if camposTabela.status = 'Ausente' then
-      pipe row(estatisticaDescritivaTabelaLinha(
+      vSQL := gerarSQLEstatisticasArquivo(
+        vNomeTabela,
         camposTabela.campo,
+        camposTabela.obrigatorio,
+        camposTabela.tamanho,
+        camposTabela.regravalidacao,
+        camposTabela.dominio,
+        camposTabela.tipo,
         camposTabela.ordem,
-        camposTabela.status,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
-      ));
-    else
-*/
-      vSQL := gerarSQLEstatisticasArquivo(vNomeTabela, camposTabela.campo, camposTabela.ordem, camposTabela.status);
+        camposTabela.status
+      );
       execute immediate vSQL into estatisticasArquivo;
 
---      vSQL := 'select null as campo, null as ordem, null as status, null as registros, null as unicos, null as nulos, null as zeros, null as numericos, null as datas, null as minimos, null as maximos, null as padrao, null as dominio from dual';
---      execute immediate vSQL into estatisticasArquivo;
-
---      vSQL := 'select count(*) as registros from SIGRHMIG.EMIGCAPAPAGAMENTO2';
---      execute immediate vSQL into vRegistros;
-  
       pipe row(estatisticaDescritivaTabelaLinha(
         camposTabela.campo,
         camposTabela.ordem,
@@ -376,13 +404,12 @@ begin
         estatisticasArquivo.numericos,
         estatisticasArquivo.datas,
         estatisticasArquivo.invalidos,
-        null, --round((nvl(estatisticasArquivo.invalidos,0)/nullif(nvl(estatisticasArquivo.registros,0),0))*100,2),
+        estatisticasArquivo.validos,
         estatisticasArquivo.minimos,
         estatisticasArquivo.maximos,
         estatisticasArquivo.padrao,
         estatisticasArquivo.dominio
       ));
---    end if;
 
   end loop; 
    

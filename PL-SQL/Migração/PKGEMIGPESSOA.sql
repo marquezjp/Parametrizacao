@@ -34,6 +34,9 @@ select * from table(PKGMIGPESSOA.listarValidacao('emigpessoa', pCriterio => 'nmp
 select * from table(PKGMIGPESSOA.listarResumoValidacao('emigpessoa', pCriterio => 'nmpessoa like ''CARLA%'''));
 /
 
+select * from table(PKGMIGPESSOA.listarEstatisticaDescritiva('emigpessoa_202210201319'));
+/
+
 -- Remover o Pacote
 drop package PKGMIGPESSOA;
 /
@@ -142,6 +145,7 @@ function obter(pNomeTabela varchar2, pProprietario varchar2 default 'sigrhmig', 
 function listar(pArquivoMigracaoRefCursor sys_refcursor) return PKGMIGLAYOUT.arquivoMigracaoTabela pipelined;
 function listarValidacao(pNomeTabela varchar2, pProprietario varchar2 default null, pCriterio varchar2 default null, pListaCampos in varchar2 default null) return PKGMIGVALIDACAO.validacaoTabela pipelined;
 function listarResumoValidacao(pNomeTabela varchar2, pProprietario varchar2 default null, pCriterio varchar2 default null) return PKGMIGPESSOA.resumoValidacaoTabela pipelined;
+function listarEstatisticaDescritiva(pNomeTabela varchar2, pProprietario varchar2 default null, pCriterio varchar2 default null) return PKGMIGLAYOUT.estatisticaDescritivaTabela pipelined;
 function especificacaoLayout return clob;
 
 end PKGMIGPESSOA;
@@ -442,6 +446,22 @@ begin
 
 end listarResumoValidacao;
 
+function listarEstatisticaDescritiva(
+  pNomeTabela varchar2,
+  pProprietario varchar2 default null,
+  pCriterio varchar2 default null
+) return PKGMIGLAYOUT.estatisticaDescritivaTabela pipelined is
+item PKGMIGLAYOUT.estatisticaDescritivaTabelaLinha;
+begin
+  for item in (select * from table(PKGMIGLAYOUT.listarEstatisticaDescritiva(
+                                      PKGMIGPESSOA.especificacaoLayout(), pNomeTabela,pProprietario)
+                                   )
+  ) loop
+    pipe row(item);
+  end loop;
+
+end listarEstatisticaDescritiva;
+
 function especificacaoLayout return clob is
 begin
   return '
@@ -470,7 +490,7 @@ begin
 {
 "Campo" : "DTNASCIMENTO",
 "Descrição" : "Data de nascimento da pessoa.",
-"Tipo" : "Data",
+"Tipo" : "Date",
 "Tamanho" : "10",
 "Obrigatório" : "Sim",
 "Padrão" : "",
@@ -624,7 +644,7 @@ begin
 {
 "Campo" : "DTNATURALIZACAO",
 "Descrição" : "Data de naturalização da pessoa.",
-"Tipo" : "Data",
+"Tipo" : "Date",
 "Tamanho" : "10",
 "Obrigatório" : "Não",
 "Padrão" : "",
@@ -964,7 +984,7 @@ begin
 {
 "Campo" : "DTEXPEDICAO",
 "Descrição" : "Data de expedição da carteira de identidade.",
-"Tipo" : "Data",
+"Tipo" : "Date",
 "Tamanho" : "10",
 "Obrigatório" : "Não",
 "Padrão" : "",
@@ -1013,7 +1033,7 @@ begin
 {
 "Campo" : "DTEMISSAOTITULO",
 "Descrição" : "Data de emissão do título de eleitor.",
-"Tipo" : "Data",
+"Tipo" : "Date",
 "Tamanho" : "10",
 "Obrigatório" : "Não",
 "Padrão" : "",
@@ -1084,7 +1104,7 @@ begin
 {
 "Campo" : "DTPRIMHABILITACAO",
 "Descrição" : "Data da primeira habilitação.",
-"Tipo" : "Data",
+"Tipo" : "Date",
 "Tamanho" : "10",
 "Obrigatório" : "Não",
 "Padrão" : "",
@@ -1095,7 +1115,7 @@ begin
 {
 "Campo" : "DTVALIDADEHABILITACAO",
 "Descrição" : "Data de validade da habilitação.",
-"Tipo" : "Data",
+"Tipo" : "Date",
 "Tamanho" : "10",
 "Obrigatório" : "Não",
 "Padrão" : "",
@@ -1122,7 +1142,7 @@ begin
 {
 "Campo" : "DTCADASTRONIS",
 "Descrição" : "Data de cadastro do Número de Identificação Social (NIS) ou PIS/PASEP ou Número de Registro do Trabalhador (NIT).",
-"Tipo" : "Data",
+"Tipo" : "Date",
 "Tamanho" : "10",
 "Obrigatório" : "Não",
 "Padrão" : "",
@@ -1171,7 +1191,7 @@ begin
 {
 "Campo" : "DTEMISSAOCTPS",
 "Descrição" : "Data de emissão da CTPS.",
-"Tipo" : "Data",
+"Tipo" : "Date",
 "Tamanho" : "10",
 "Obrigatório" : "Não",
 "Padrão" : "",
@@ -1187,7 +1207,7 @@ begin
 {
 "Campo" : "DTINICIOEMPREGO",
 "Descrição" : "Data de início do primeiro emprego.",
-"Tipo" : "Data",
+"Tipo" : "Date",
 "Tamanho" : "10",
 "Obrigatório" : "Não",
 "Padrão" : "",
@@ -1198,7 +1218,7 @@ begin
 {
 "Campo" : "DTFIMEMPREGO",
 "Descrição" : "Data de fim do primeiro emprego.",
-"Tipo" : "Data",
+"Tipo" : "Date",
 "Tamanho" : "10",
 "Obrigatório" : "Não",
 "Padrão" : "",
@@ -1269,7 +1289,7 @@ begin
 {
 "Campo" : "DTENTRADA",
 "Descrição" : "Data de entrada no Brasil.",
-"Tipo" : "Data",
+"Tipo" : "Date",
 "Tamanho" : "10",
 "Obrigatório" : "Não",
 "Padrão" : "",
@@ -1280,7 +1300,7 @@ begin
 {
 "Campo" : "DTLIMITEPERM",
 "Descrição" : "Data limite de permanência no Brasil.",
-"Tipo" : "Data",
+"Tipo" : "Date",
 "Tamanho" : "10",
 "Obrigatório" : "Não",
 "Padrão" : "",
@@ -1313,7 +1333,7 @@ begin
 {
 "Campo" : "DTEXPEDICAORNE",
 "Descrição" : "Data da expedição do RNE",
-"Tipo" : "Data",
+"Tipo" : "Date",
 "Tamanho" : "10",
 "Obrigatório" : "Não",
 "Padrão" : "",
@@ -1395,7 +1415,7 @@ begin
 {
 "Campo" : "DTEMISSAORESERVISTA",
 "Descrição" : "Data de emissão da carteira de reservista.",
-"Tipo" : "Data",
+"Tipo" : "Date",
 "Tamanho" : "10",
 "Obrigatório" : "Não",
 "Padrão" : "",
