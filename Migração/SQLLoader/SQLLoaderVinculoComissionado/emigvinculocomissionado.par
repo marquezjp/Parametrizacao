@@ -1,0 +1,7 @@
+userid=SIGRHMIG/sigrh@//10.48.1.68:1521/sigrhrrtst
+control=emigvinculocomissionado.ctl
+log=emigvinculocomissionado.log
+bad=emigvinculocomissionado.bad
+data='SIGRH-RR-VINCULO-COMISSIONADO-*.csv'
+direct=true
+silent=header, feedback
