@@ -18,7 +18,7 @@ inner join epagfolhapagamento f on f.cdfolhapagamento = capa.cdfolhapagamento
                                and f.flcalculodefinitivo = 'S'
 inner join epagtipofolhapagamento tfo on tfo.cdtipofolhapagamento = f.cdtipofolhapagamento
 inner join epagtipocalculo tc on tc.cdtipocalculo = f.cdtipocalculo
-inner join vcadorgao o on o.cdorgao = f.cdorgao
+inner join ecadhistorgao o on o.cdorgao = f.cdorgao
 inner join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
 
 where capa.vlproventos != 0 or capa.vldescontos !=0

@@ -1,13 +1,9 @@
 --- Listar os Vinculos com Diferenças entre os Totais de Proventos e Descontos
 
 --- Apurar o Totas de Proventos e Descontos das Rubricas
-with totalrubricas as (
-select *
-from (
-select
- f.cdorgao,
- pag.cdfolhapagamento,
- pag.cdvinculo,
+with
+TotalGrupoRubrica as (
+select f.cdorgao, pag.cdfolhapagamento, pag.cdvinculo,
  case
   when rub.cdtiporubrica in (1, 2, 4, 10, 12) then 1
   when rub.cdtiporubrica in (5, 6, 8, 11, 13) then 5
@@ -15,47 +11,25 @@ select
   else 0
  end as cdtiporubrica,
  sum(nvl(pag.vlpagamento, 0)) as Valor
-
 from epaghistoricorubricavinculo pag
 inner join epagfolhapagamento f on f.cdfolhapagamento = pag.cdfolhapagamento
                                and f.flcalculodefinitivo = 'S'
 inner join epagrubricaagrupamento arub on arub.cdrubricaagrupamento = pag.cdrubricaagrupamento
 inner join epagrubrica rub on rub.cdrubrica = arub.cdrubrica and rub.cdtiporubrica != 9
-
 where pag.vlpagamento != 0
-
-group by
- f.cdorgao,
- pag.cdfolhapagamento,
- pag.cdvinculo,
+group by f.cdorgao, pag.cdfolhapagamento, pag.cdvinculo,
  (case
   when rub.cdtiporubrica in (1, 2, 4, 10, 12) then 1
   when rub.cdtiporubrica in (5, 6, 8, 11, 13) then 5
   when rub.cdtiporubrica = 9                  then 9
   else 0
  end)
- 
-order by
- f.cdorgao,
- pag.cdfolhapagamento,
- pag.cdvinculo,
- (case
-  when rub.cdtiporubrica in (1, 2, 4, 10, 12) then 1
-  when rub.cdtiporubrica in (5, 6, 8, 11, 13) then 5
-  when rub.cdtiporubrica = 9                  then 9
-  else 0
- end)
-)
-pivot 
-(
- sum(Valor)
- for cdtiporubrica in (1 as vlproventos, 5 as vldescontos)
-)
+),
 
-order by
- cdorgao,
- cdfolhapagamento,
- cdvinculo
+TotalVinculos as (
+select cdorgao, cdfolhapagamento, cdvinculo, vlproventos, vldescontos from TotalGrupoRubrica
+pivot (sum(Valor) for cdtiporubrica in (1 as vlproventos, 5 as vldescontos))
+order by cdorgao, cdfolhapagamento, cdvinculo
 )
 
 --- Listar Vinculos com Diferenca entre o Total das Rubricas e os Totais das Capas
@@ -70,6 +44,7 @@ select
  lpad(f.nusequencialfolha,2,'0') as Seq,
 
  lpad(v.numatricula,7,0) || '-' || lpad(v.nudvmatricula,1,0) || '-' || lpad(v.nuseqmatricula,2,0) as Matricula,
+ m.numatriculalegado as MatriculaLegado,
  lpad(p.nucpf, 11, 0) as CPF,
  p.nmpessoa as Nome,
  v.dtadmissao as DataAdmissao,
@@ -93,7 +68,7 @@ select
  
  nvl2(capa.cdvinculo, 'CAPA/RUBRICAS', 'RUBRICAS') as Registros
  
-from totalrubricas t
+from TotalVinculos t
 inner join epagfolhapagamento f on f.cdfolhapagamento = t.cdfolhapagamento
 inner join epagtipofolhapagamento tf on tf.cdtipofolhapagamento = f.cdtipofolhapagamento
 inner join epagtipocalculo tc on tc.cdtipocalculo = f.cdtipocalculo
@@ -101,6 +76,7 @@ inner join epagtipocalculo tc on tc.cdtipocalculo = f.cdtipocalculo
 inner join vcadorgao o on o.cdorgao = t.cdorgao
 inner join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
 inner join ecadvinculo v on v.cdvinculo = t.cdvinculo
+inner join emigmatricula m on m.numatricula = v.numatricula and m.nuseqmatricula = v.nuseqmatricula
 inner join ecadpessoa p on p.cdpessoa = v.cdpessoa
 
 left join epagcapahistrubricavinculo capa on capa.cdfolhapagamento = t.cdfolhapagamento and capa.cdvinculo = t.cdvinculo
@@ -121,6 +97,7 @@ select
  lpad(f.nusequencialfolha,2,'0') as Seq,
 
  lpad(v.numatricula || '-' || v.nudvmatricula,9,0) as Matricula,
+ m.numatriculalegado as MatriculaLegado,
  lpad(p.nucpf, 11, 0) as CPF,
  p.nmpessoa as Nome,
  v.dtadmissao as DataAdmissao,
@@ -153,9 +130,10 @@ inner join epagtipocalculo tc on tc.cdtipocalculo = f.cdtipocalculo
 inner join vcadorgao o on o.cdorgao = f.cdorgao
 inner join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
 inner join ecadvinculo v on v.cdvinculo = capa.cdvinculo
+inner join emigmatricula m on m.numatricula = v.numatricula and m.nuseqmatricula = v.nuseqmatricula
 inner join ecadpessoa p on p.cdpessoa = v.cdpessoa
 
-left join totalrubricas t on capa.cdfolhapagamento = t.cdfolhapagamento and capa.cdvinculo = t.cdvinculo
+left join TotalVinculos t on capa.cdfolhapagamento = t.cdfolhapagamento and capa.cdvinculo = t.cdvinculo
  
 where t.cdvinculo is null
   and (nvl(capa.vlproventos, 0) != 0 or nvl(capa.vldescontos, 0) != 0)

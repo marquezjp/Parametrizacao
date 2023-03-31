@@ -1,10 +1,69 @@
 with
 idades as (
+/* Todas as Pessoas do ecadPessoa
 select
-case when nvl(length(PKGMIGVALIDACAO.validarData(dtnascimento,'YYYY/MM/DD')),0) = 0
-then trunc((months_between(sysdate, to_date(dtnascimento,'YYYY/MM/DD')))/12) else null end as idade,
+trunc((months_between(sysdate, to_date(dtnascimento,'YYYY/MM/DD')))/12) as idade,
 case when upper(trim(flsexo)) in ('F', 'M') then upper(trim(flsexo)) else ' ' end as sexo
-from sigrhmig.emigpessoa_202210201319
+from sigrhmig.emigpessoa2
+*/
+--/* Somente as Pessoas com Vinculos em Órgãos da Adminnistração Direta
+select trunc(months_between(sysdate, p.dtnascimento) / 12) as idade, p.flsexo as sexo from ecadpessoa p
+inner join (select distinct cdpessoa from ecadvinculo v
+            inner join ecadhistorgao o on o.cdorgao = v.cdorgao and o.cdagrupamento = 1
+) direta on direta.cdpessoa = p.cdpessoa
+--*/
+/* Somente as Pessoas com Vinuclos em Órgãos da Administração Direta com Pagamento em 2022
+select trunc(months_between(sysdate, p.dtnascimento) / 12) as idade, p.flsexo as sexo from ecadpessoa p
+inner join (select distinct cdpessoa from epagcapahistrubricavinculo capa
+            inner join epagfolhapagamento f on f.cdfolhapagamento = capa.cdfolhapagamento
+                   and f.nuanoreferencia = 2022 and f.cdtipocalculo not in (2, 3)
+            inner join ecadvinculo v on v.cdvinculo = capa.cdvinculo
+            inner join ecadhistorgao o on o.cdorgao = f.cdorgao and o.cdagrupamento = 1
+) ano on ano.cdpessoa = p.cdpessoa
+*/
+/* Todas as Pessoas dos Arquivos de Migração com Vinculos em Órgãos da Administração Direta
+select
+trunc((months_between(sysdate, to_date(dtnascimento,'YYYY/MM/DD')))/12) as idade,
+case when upper(trim(flsexo)) in ('F', 'M') then upper(trim(flsexo)) else ' ' end as sexo
+from (
+select nucpf, min(nvl(dtnascimento,sysdate)) as dtnascimento, max(flsexo) as flsexo from (
+select distinct nucpf, to_date(dtnascimento default null on conversion error,'YYYY/MM/DD') as dtnascimento, case when upper(trim(flsexo)) in ('F', 'M') then upper(trim(flsexo)) else ' ' end as flsexo
+from sigrhmig.emigvinculoefetivo2
+where dtcarga = '20221219'
+  and upper(trim(sgorgao)) in ('VICE-GOV', 'CASA CIVIL', 'CASA MILITAR', 'SECOM', 'PGE-RR', 'COGER', 'CPL',
+                        'SEPLAN', 'SEFAZ', 'SEGAD', 'SEINF', 'SEADI', 'SETRABES', 'SEED', 'SECULT', 'SESAU',
+                        'SESP', 'SEJUC', 'SEI', 'SECIDADES', 'DPE-RR', 'PC-RR', 'OGE-RR', 'SERBRAS', 'SEEDIS',
+                        'SEEGD', 'SEERF', 'SEURB-RR', 'SEGABI', 'SEPIN', 'SEEGI', 'SEEPI', 'SEAPI', 'SEPAQ',
+                        'SEAGI', 'SETI', 'SERI', 'SEPHD', 'SEAE', 'SEAI', 'SEDE', 'SEERI', 'SEPES', 'SEPE', 'SEPM',
+                        'CONANTD', 'CONCULT', 'CONEDUC', 'PRODEB', 'CONPEN', 'CONREFIS', 'CONRODE', 'PENSIONIST',
+                        'PLANTONIST', 'VICE GOV', 'CASACIVIL', 'CERIM', 'CSAMILITAR', 'POLCIVIL', 'SEURB', 'COGERR',
+                        'OGERR', 'PROGE', 'DEFPUB', 'SEEPE')
+union
+select distinct nucpf, to_date(dtnascimento default null on conversion error,'DD/MM/YYYY') as dtnascimento, case when upper(trim(flsexo)) in ('F', 'M') then upper(trim(flsexo)) else ' ' end as flsexo
+from sigrhmig.emigvinculocomissionado2
+where dtcarga = '20221219'
+  and upper(trim(sgorgao)) in ('VICE-GOV', 'CASA CIVIL', 'CASA MILITAR', 'SECOM', 'PGE-RR', 'COGER', 'CPL',
+                        'SEPLAN', 'SEFAZ', 'SEGAD', 'SEINF', 'SEADI', 'SETRABES', 'SEED', 'SECULT', 'SESAU',
+                        'SESP', 'SEJUC', 'SEI', 'SECIDADES', 'DPE-RR', 'PC-RR', 'OGE-RR', 'SERBRAS', 'SEEDIS',
+                        'SEEGD', 'SEERF', 'SEURB-RR', 'SEGABI', 'SEPIN', 'SEEGI', 'SEEPI', 'SEAPI', 'SEPAQ',
+                        'SEAGI', 'SETI', 'SERI', 'SEPHD', 'SEAE', 'SEAI', 'SEDE', 'SEERI', 'SEPES', 'SEPE', 'SEPM',
+                        'CONANTD', 'CONCULT', 'CONEDUC', 'PRODEB', 'CONPEN', 'CONREFIS', 'CONRODE', 'PENSIONIST',
+                        'PLANTONIST', 'VICE GOV', 'CASACIVIL', 'CERIM', 'CSAMILITAR', 'POLCIVIL', 'SEURB', 'COGERR',
+                        'OGERR', 'PROGE', 'DEFPUB', 'SEEPE')
+union
+select distinct nucpf, to_date(dtnascimento default null on conversion error,'YYYY/MM/DD HH24:MI:SS') as dtnascimento, case when upper(trim(flsexo)) in ('F', 'M') then upper(trim(flsexo)) else ' ' end as flsexo
+from sigrhmig.emigcapapagamento2
+where upper(trim(sgorgao)) in ('VICE-GOV', 'CASA CIVIL', 'CASA MILITAR', 'SECOM', 'PGE-RR', 'COGER', 'CPL',
+                        'SEPLAN', 'SEFAZ', 'SEGAD', 'SEINF', 'SEADI', 'SETRABES', 'SEED', 'SECULT', 'SESAU',
+                        'SESP', 'SEJUC', 'SEI', 'SECIDADES', 'DPE-RR', 'PC-RR', 'OGE-RR', 'SERBRAS', 'SEEDIS',
+                        'SEEGD', 'SEERF', 'SEURB-RR', 'SEGABI', 'SEPIN', 'SEEGI', 'SEEPI', 'SEAPI', 'SEPAQ',
+                        'SEAGI', 'SETI', 'SERI', 'SEPHD', 'SEAE', 'SEAI', 'SEDE', 'SEERI', 'SEPES', 'SEPE', 'SEPM',
+                        'CONANTD', 'CONCULT', 'CONEDUC', 'PRODEB', 'CONPEN', 'CONREFIS', 'CONRODE', 'PENSIONIST',
+                        'PLANTONIST', 'VICE GOV', 'CASACIVIL', 'CERIM', 'CSAMILITAR', 'POLCIVIL', 'SEURB', 'COGERR',
+                        'OGERR', 'PROGE', 'DEFPUB', 'SEEPE')
+) group by nucpf
+)
+*/
 ),
 faixas as (
 select
@@ -19,7 +78,8 @@ case
   when idade between 30 and  34 then 'DE 30 A 34 ANOS'
   when idade between 25 and  29 then 'DE 25 A 29 ANOS'
   when idade between 18 and  24 then 'DE 18 A 24 ANOS'
-  when idade between  0 and  17 then 'ATÉ 17 ANOS'
+  when idade between 13 and  17 then 'DE 13 A 17 ANOS'
+  when idade between  0 and  12 then 'ATÉ 12 ANOS'
   else 'NÂO INFORMADA'
 end as faixa,
 sexo
@@ -57,7 +117,8 @@ case faixa
   when 'DE 30 A 34 ANOS' then 8
   when 'DE 25 A 29 ANOS' then 9
   when 'DE 18 A 24 ANOS' then 10
-  when 'ATÉ 17 ANOS' then 11
+  when 'DE 13 A 17 ANOS' then 11
+  when 'ATÉ 12 ANOS'     then 12
   else 12
 end
 ;

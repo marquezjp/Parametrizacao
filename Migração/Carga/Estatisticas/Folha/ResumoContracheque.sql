@@ -1,5 +1,5 @@
-select *
-from (
+with
+TotalGrupoRubrica as (
 select 
  a.sgagrupamento as Agrupamento,
  f.nuanomesreferencia as AnoMes,
@@ -9,71 +9,54 @@ select
  tfo.nmtipofolhapagamento as Folha,
  upper(tc.nmtipocalculo) as Tipo,
  f.nusequencialfolha as Seq,
+ pag.cdvinculo as Vinculo,
  case
   when rub.cdtiporubrica in (1, 2, 4, 10, 12) then '1-PROVENTO'
   when rub.cdtiporubrica in (5, 6, 8, 11, 13) then '5-DESCONTO'
   when rub.cdtiporubrica = 9                  then '9-BASE DE CÁLCULO'
   else ' '
  end as GrupoRubrica,
- --count(*) as Qtde,
- sum(nvl(pag.vlpagamento, 0)) as Valor
-
+ sum(nvl(pag.vlpagamento, 0)) as Valor,
+ count(1) as Lancamentos
 from epaghistoricorubricavinculo pag
 inner join epagfolhapagamento f on f.cdfolhapagamento = pag.cdfolhapagamento
                                and f.flcalculodefinitivo = 'S'
+                               and f.nuanoreferencia = 2022
 inner join epagtipofolhapagamento tfo on tfo.cdtipofolhapagamento = f.cdtipofolhapagamento
 inner join epagtipocalculo tc on tc.cdtipocalculo = f.cdtipocalculo
-inner join vcadorgao o on o.cdorgao = f.cdorgao
+inner join ecadhistorgao o on o.cdorgao = f.cdorgao
 inner join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
 inner join epagrubricaagrupamento arub on arub.cdrubricaagrupamento = pag.cdrubricaagrupamento
 inner join epagrubrica rub on rub.cdrubrica = arub.cdrubrica and rub.cdtiporubrica != 9
-
-where pag.vlpagamento != 0
-
+where pag.vlpagamento != 0 and o.cdagrupamento = 1
 group by
- a.sgagrupamento,
- f.nuanomesreferencia,
- f.nuanoreferencia,
- f.numesreferencia,
- o.sgorgao,
- tfo.nmtipofolhapagamento,
- tc.nmtipocalculo,
- f.nusequencialfolha,
+ a.sgagrupamento, f.nuanomesreferencia, f.nuanoreferencia, f.numesreferencia, o.sgorgao,
+ tfo.nmtipofolhapagamento, tc.nmtipocalculo, f.nusequencialfolha,
+ pag.cdvinculo,
  (case
   when rub.cdtiporubrica in (1, 2, 4, 10, 12) then '1-PROVENTO'
   when rub.cdtiporubrica in (5, 6, 8, 11, 13) then '5-DESCONTO'
   when rub.cdtiporubrica = 9                  then '9-BASE DE CÁLCULO'
   else ' '
  end)
- 
-order by
- a.sgagrupamento,
- f.nuanomesreferencia,
- f.nuanoreferencia,
- f.numesreferencia,
- o.sgorgao,
- tfo.nmtipofolhapagamento,
- tc.nmtipocalculo,
- f.nusequencialfolha,
- (case
-  when rub.cdtiporubrica in (1, 2, 4, 10, 12) then '1-PROVENTO'
-  when rub.cdtiporubrica in (5, 6, 8, 11, 13) then '5-DESCONTO'
-  when rub.cdtiporubrica = 9                  then '9-BASE DE CÁLCULO'
-  else ' '
- end)
-)
-pivot 
-(
- sum(Valor)
- for GrupoRubrica in ('1-PROVENTO' as PROVENTOS, '5-DESCONTO' as DESCONTOS)
+),
+TotalVinculos as (
+select Agrupamento, AnoMes, Ano, Mes, Orgao, Folha, Tipo, Seq, Vinculo,
+ sum(Proventos) as Proventos,
+ sum(Descontos) as Descontos,
+ sum(Lancamentos) as Lancamentos
+from TotalGrupoRubrica
+pivot (sum(Valor) for GrupoRubrica in ('1-PROVENTO' as Proventos, '5-DESCONTO' as Descontos))
+group by Agrupamento, AnoMes, Ano, Mes, Orgao, Folha, Tipo, Seq, Vinculo
+order by Agrupamento, AnoMes, Ano, Mes, Orgao, Folha, Tipo, Seq, Vinculo
 )
 
-order by
- Agrupamento,
- AnoMes,
- Ano,
- Mes,
- Orgao,
- Folha,
- Tipo,
- Seq
+select Agrupamento, AnoMes, Ano, Mes, Orgao, Folha, Tipo, Seq,
+ sum(Proventos) as Proventos,
+ sum(Descontos) as Descontos,
+ sum(Lancamentos) as Lancamentos,
+ count(1) as Servidores
+from TotalVinculos
+group by Agrupamento, AnoMes, Ano, Mes, Orgao, Folha, Tipo, Seq
+order by Agrupamento, AnoMes, Ano, Mes, Orgao, Folha, Tipo, Seq
+

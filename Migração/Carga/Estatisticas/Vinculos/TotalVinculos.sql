@@ -9,15 +9,23 @@ select
    when cef.cdrelacaotrabalho = 3 then 'CONTRATO TEMPORARIO'
    else 'OUTRO'
  end as relacao_vinculo,
- case when dtdesligamento is not null and dtdesligamento < trunc(sysdate) then 'DESLIGADOS'
-      else 'VIGENTES'
+ case
+   when dtdesligamento is not null and dtdesligamento < trunc(sysdate) then 'DESLIGADOS'
+   when ano.cdvinculo is null then 'DESLIGADOS'
+   else 'VIGENTES'
  end as situacao,
  count(*) as vinculos
 from ecadvinculo v
-inner join vcadorgao o on o.cdorgao = v.cdorgao
+inner join ecadhistorgao o on o.cdorgao = v.cdorgao
 inner join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
 left join ecadhistcargoefetivo cef on cef.cdvinculo = v.cdvinculo
 left join ecadhistcargocom cco on cco.cdvinculo = v.cdvinculo
+left join (select distinct cdvinculo from epagcapahistrubricavinculo capa
+           inner join epagfolhapagamento f on f.cdfolhapagamento = capa.cdfolhapagamento
+                  and f.nuanoreferencia = 2022 and f.cdtipocalculo not in (2, 3)
+           inner join ecadhistorgao o on o.cdorgao = f.cdorgao and o.cdagrupamento = 1
+) ano on ano.cdvinculo = v.cdvinculo
+where o.cdagrupamento = 1
 group by
  a.sgagrupamento,
  o.sgorgao,
@@ -28,8 +36,10 @@ group by
    when cef.cdrelacaotrabalho = 3 then 'CONTRATO TEMPORARIO'
    else 'OUTRO'
  end,
- case when dtdesligamento is not null and dtdesligamento < trunc(sysdate) then 'DESLIGADOS'
-      else 'VIGENTES'
+ case
+   when dtdesligamento is not null and dtdesligamento < trunc(sysdate) then 'DESLIGADOS'
+   when ano.cdvinculo is null then 'DESLIGADOS'
+   else 'VIGENTES'
  end
 ),
 

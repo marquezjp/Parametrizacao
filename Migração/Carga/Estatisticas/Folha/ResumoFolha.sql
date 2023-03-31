@@ -16,7 +16,7 @@ select
  
 from epagfolhapagamento f
 inner join ecadagrupamento a on a.cdagrupamento = f.cdagrupamento
-inner join vcadorgao o on o.cdorgao = f.cdorgao
+inner join ecadhistorgao o on o.cdorgao = f.cdorgao
 inner join epagtipofolhapagamento tpfol on tpfol.cdtipofolhapagamento = f.cdtipofolhapagamento
 inner join epagtipocalculo tpcal on tpcal.cdtipocalculo = f.cdtipocalculo
 group by 
