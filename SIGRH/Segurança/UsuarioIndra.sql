@@ -28,18 +28,17 @@ insert into ecadpessoa
   flpiscertificado, 
   flcpfcertificado, 
   flreabilitada, 
-  flvagadeficiente, 
-  flnucelularwhatsapp
+  flvagadeficiente --, flnucelularwhatsapp
 )
 values
 (
-  '1000002', 
+  '2', 
   '12900804450', 
   '01/03/2020', 
   'M', 
-  'USUARIO INDRA MACEIO', 
-  'USUARIO INDRA MACEIO', 
-  'USUARIO INDRA MACEIO', 
+  'USUARIO INDRA BOA VISTA', 
+  'USUARIO INDRA BOA VISTA', 
+  'USUARIO INDRA BOA VISTA', 
   'PAI', 
   'MAE', 
   '1', 
@@ -61,8 +60,7 @@ values
   'N', 
   'N', 
   'N', 
-  'N', 
-  'N'
+  'N' --, 'N'
 );
 
 insert into esegusuario
@@ -90,20 +88,20 @@ flrecebeemailliberacaofolha
 )
 values
 (
-'1000002', 
+'2', 
 '12900804450', 
-'MACEIO', 
-'USUARIO INDRA MACEIO', 
-'$2a$08$kV9SLeTR8BvlVawme1ZQBu4DlhTKT8CBxnimLfU/Oa2naNgNeUcSq', 
+'BOAVISTA', 
+'USUARIO INDRA BOA VISTA', 
+'FcVJ8qjRasvqyXxuq/oTUQ==', 
 '1', 
-'$2a$08$BAyQ8NaOJ4m9a2VnQtO3iuP63Jia40YmonbFog/xBgyFdZdXfKz4.', 
-'$2a$08$0vzbEfADg0MS4wHheAlpr.zxcuJWOzBI7vhHjqSGUxDlY007vcy/u', 
+'FcVJ8qjRasvqyXxuq/oTUQ==', 
+'FcVJ8qjRasvqyXxuq/oTUQ==', 
 'Acesso Ativo', 
 'S', 
 '11111111111', 
 '01/03/2020', 
 '01/03/2020', 
-'01/03/2020', 
+trunc(sysdate), 
 'N', 
 '172.16.22.104', 
 'S', 
@@ -150,7 +148,7 @@ values
  null,
  null,
  to_date('01/03/20','DD/MM/RR'),
- to_date('01/03/20','DD/MM/RR'),
+ trunc(sysdate),
  'N',
  'N',
  'N',
@@ -177,7 +175,7 @@ values
  (select cdautorizacaoacesso from esegautorizacaoacesso
    where cdusuario = (select cdusuario from esegusuario where nucpf = '12900804450')
      and cdagrupamento = 1 and cdorgao is null),
- (select cdperfilagrupamento from esegperfilagrupamento where nmperfilagrupamento = 'GERAL')
+ (select cdperfilagrupamento from esegperfilagrupamento where cdagrupamento = 1 and nmperfilagrupamento = 'GERAL')
 );
 
 insert into esegfuncionalidadegestor
@@ -193,7 +191,7 @@ insert into esegfuncionalidadegestor
  cdusuario
 )
 select
- (select max(cdfuncionalidadegestor) from esegfuncionalidadegestor)+rownum as cdfuncionalidadegestor,
+ (select nvl(max(cdfuncionalidadegestor),0) from esegfuncionalidadegestor)+rownum as cdfuncionalidadegestor,
  cdfuncagrupamento,
  (select cdautorizacaoacesso from esegautorizacaoacesso
    where cdusuario = (select cdusuario from esegusuario where nucpf = '12900804450')
@@ -204,4 +202,5 @@ select
  to_date('01/03/20','DD/MM/RR') as dtinclusao,
  to_timestamp('01/03/20 18:00:00,000000000','DD/MM/RR HH24:MI:SSXFF') as dtultalteracao,
  (select cdusuario from esegusuario where nucpf = '12900804450') as cdusuario
-from esegfuncionalidadeagrupamento;
+from esegfuncionalidadeagrupamento
+where cdagrupamento = 1;
