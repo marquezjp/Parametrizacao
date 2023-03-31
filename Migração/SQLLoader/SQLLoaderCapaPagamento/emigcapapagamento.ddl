@@ -1,13 +1,13 @@
-select * from emigcapapagamento_202210181032;
+select * from emigcapapagamento_202303221106;
 /
 
-select count(*) from emigcapapagamento_202210181032;
+select count(*) from emigcapapagamento_202303221106;
 /
 
-drop table emigcapapagamento_202210181032;
+drop table emigcapapagamento_202303221106;
 /
 
-create table emigcapapagamento_202210181032 (
+create table emigcapapagamento_202303221106 (
 sgorgao varchar2(250),
 numatriculalegado varchar2(250),
 nucpf varchar2(250),
@@ -82,14 +82,14 @@ numatinstituidorlegado varchar2(250),
 nupercentcota varchar2(250)
 );
 
-create index idx01emigcapapagamento_202210181032 on emigcapapagamento_202210181032 (
+create index idx01emigcapapagamento_202303221106 on emigcapapagamento_202303221106 (
     replace(translate(trim(upper(sgorgao)),'ÁÇÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕ','ACEIOUAEIOUAEIOUAO'),' ')
 );
 
-create index idx02emigcapapagamento_202210181032 on emigcapapagamento_202210181032 (
+create index idx02emigcapapagamento_202303221106 on emigcapapagamento_202303221106 (
     nuanoreferencia,
     numesreferencia
 );
 
-grant select on emigcapapagamento_202210181032 to SIGRH;
+grant select on emigcapapagamento_202303221106 to SIGRH;
 /

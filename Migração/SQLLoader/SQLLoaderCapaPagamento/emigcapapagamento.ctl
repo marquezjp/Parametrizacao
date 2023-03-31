@@ -1,7 +1,7 @@
 options (skip=1)
 load data
 characterset UTF8
-into table emigcapapagamento_202210181032
+into table emigcapapagamento_202303201002
 insert
 fields terminated by';'
 trailing nullcols (

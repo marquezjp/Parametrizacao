@@ -1,13 +1,13 @@
-select * from emigcontracheque_202210191132;
+select * from emigcontracheque_202303221106;
 /
 
-select count(*) from emigcontracheque_202210191132;
+select count(*) from emigcontracheque_202303221106;
 /
 
-drop table emigcontracheque_202210191132;
+drop table emigcontracheque_202303221106;
 /
 
-create table emigcontracheque_202210191132 (
+create table emigcontracheque_202303221106 (
 sgorgao varchar2(250),
 numatriculalegado varchar2(250),
 nucpf varchar2(250),
@@ -31,6 +31,6 @@ nuprocessoretroativo varchar2(250),
 qtmeses varchar2(250)
 );
 
-grant select on emigcontracheque_202210191132 to SIGRH;
+grant select on emigcontracheque_202303221106 to SIGRH;
 
 /
