@@ -1,22 +1,52 @@
-with vinculos as (
-select
- ml.sgorgao,
- ml.matricula_legado as numatriculalegado,
- ml.nucpf,
- p.nmpessoa,
- v.dtadmissao
-from sigrhmig.emigmatricula ml
-inner join ecadvinculo v on v.numatricula = ml.numatricula
-inner join ecadpessoa p on p.cdpessoa = v.cdpessoa
+with
+depara as (
+select de, para
+from json_table('{"depara":[
+{"de":"CASACIVIL", "para":"CASA CIVIL"},
+{"de":"CERIM", "para":"CASA CIVIL"},
+{"de":"CSAMILITAR", "para":"CASA MILITAR"},
+{"de":"BM", "para":"CBM-RR"},
+{"de":"COGERR", "para":"COGER"},
+{"de":"DEFPUB", "para":"DPE-RR"},
+{"de":"IDEFER", "para":"IDEFER-RR"},
+{"de":"IPEM", "para":"IPEM-RR"},
+{"de":"CONJUCERR", "para":"JUCERR"},
+{"de":"OGERR", "para":"OGE-RR"},
+{"de":"POLCIVIL", "para":"PC-RR"},
+{"de":"PROGE", "para":"PGE-RR"},
+{"de":"PM", "para":"PM-RR"},
+{"de":"CONCULT", "para":"SECULT"},
+{"de":"CONEDUC", "para":"SEED"},
+{"de":"PRODEB", "para":"SEED"},
+{"de":"CONREFIS", "para":"SEFAZ"},
+{"de":"PENSIONIST", "para":"SEGAD"},
+{"de":"CONRODE", "para":"SEINF"},
+{"de":"CONANTD", "para":"SEJUC"},
+{"de":"CONPEN", "para":"SEJUC"},
+{"de":"SEEPE", "para":"SEPE"},
+{"de":"PLANTONIST", "para":"SESAU"},
+{"de":"SEURB", "para":"SEURB-RR"},
+{"de":"UNIVIR", "para":"UNIVIRR"},
+{"de":"VICE GOV", "para":"VICE-GOV"},
+]}', '$.depara[*]'
+columns (de, para)
+)),
+orgaos as (
+select upper(trim(sgagrupamento)) as sgagrupamento, upper(trim(sgorgao)) as sgorgao
+from emigorgaocsv
 ),
 
-pessoas as (
-select distinct
- ml.nucpf,
- p.nmpessoa
-from sigrhmig.emigmatricula ml
-inner join ecadvinculo v on v.numatricula = ml.numatricula
-inner join ecadpessoa p on p.cdpessoa = v.cdpessoa
+vinculos as (
+select o.sgagrupamento, o.sgorgao, trim(numatriculalegado, nucpf, nmpessoa, dtadmissao from (
+select sgorgao, numatriculalegado, nucpf, nmpessoa, dtadmissao from emigvinculoefetivocsv union
+select sgorgao, numatriculalegado, nucpf, nmpessoa, dtadmissao from emigvinculocomissionadocsv union
+select sgorgao, numatriculalegado, nucpf, nmpessoa, dtadmissao from emigvinculobolsistacsv union
+select sgorgao, numatriculalegado, nucpf, nmpessoa, dtadmissao from emigvinculorecebidocsv union
+select sgorgao, numatriculalegado, nucpf, nmpessoa, dtadmissao from emigvinculocedidocsv union
+select sgorgao, numatriculalegado, nucpf, nmpessoa, dtadmissao from emigvinculopensaonaoprevcsv
+) v
+left join depara on upper(trim(depara.de)) = upper(trim(v.sgorgao))
+left join orgaos o on upper(trim(o.sgorgao)) = nvl(upper(trim(depara.para)),upper(trim(v.sgorgao)))
 ),
 
 primeiro_vinculo as (
@@ -30,16 +60,14 @@ group by v.nucpf
 ordem_matriculas as (
 select
  pv.dtadmissao,
- p.nmpessoa,
  pv.nucpf
 from primeiro_vinculo pv
-inner join pessoas p on p.nucpf = pv.nucpf
-order by pv.dtadmissao, p.nmpessoa
+order by pv.dtadmissao
 ),
 
 nova_matricula as (
 select
- rownum as numatricula,
+ rownum + 100000 as numatricula,
  mod(
      mod(
          (to_number(substr(lpad(rownum,7,0),1,1))*8 +
@@ -57,6 +85,7 @@ from ordem_matriculas
 )
 
 select
+-- v.sgagrupamento,
  v.sgorgao,
  v.numatriculalegado,
  v.nucpf,
