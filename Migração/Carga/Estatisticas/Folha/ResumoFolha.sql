@@ -1,73 +1,74 @@
---- Resumo de Folhas de Pagamentos (ecadFolhaPagamento)
-with totais_folha as (
+--- Resumo de Capa de Pagamentos
+with
+totais as (
 select
  case a.sgagrupamento
-   when 'ADM-DIR' then 'ADM-DIRETA'
-   else 'ADM-INDIRETA'
+  when 'ADM-DIR' then 'ADM-DIRETA'
+  when 'MILITAR' then 'MILITAR'
+  else 'ADM-INDIRETA'
  end as Agrupamento,
  lpad(f.nuanoreferencia,4,0) as Ano,
  lpad(f.numesreferencia,2,0) as Mes,
--- o.sgorgao as Orgao,
  case
-   when f.cdtipofolhapagamento = 2 and f.cdtipocalculo = 5 then upper(tpcal.nmtipocalculo)
-   else upper(tpfol.nmtipofolhapagamento)
+   when upper(tfo.nmtipofolhapagamento) = 'FOLHA NORMAL' and upper(tc.nmtipocalculo) = 'SUPLEMENTAR' then upper(upper(trim(nmtipocalculo)))
+   else upper(tfo.nmtipofolhapagamento)
  end as TipoFolha,
- count(*) as Folhas
- 
-from epagfolhapagamento f
-inner join ecadagrupamento a on a.cdagrupamento = f.cdagrupamento
+ sum(nvl(capa.vlproventos, 0)) as Proventos, 
+ sum(nvl(capa.vldescontos, 0)) as Descontos,
+ sum(nvl(capa.vlcredito, 0)) as Credito,
+ count(capa.cdvinculo) as Pagamentos,
+ count(distinct lpad(trim(f.nusequencialfolha),2,0) || o.sgorgao) as Folhas
+from epagcapahistrubricavinculo capa
+inner join epagfolhapagamento f on f.cdfolhapagamento = capa.cdfolhapagamento
+                               and f.flcalculodefinitivo = 'S'
+inner join epagtipofolhapagamento tfo on tfo.cdtipofolhapagamento = f.cdtipofolhapagamento
+inner join epagtipocalculo tc on tc.cdtipocalculo = f.cdtipocalculo
 inner join ecadhistorgao o on o.cdorgao = f.cdorgao
-inner join epagtipofolhapagamento tpfol on tpfol.cdtipofolhapagamento = f.cdtipofolhapagamento
-inner join epagtipocalculo tpcal on tpcal.cdtipocalculo = f.cdtipocalculo
-group by 
- a.sgagrupamento,
+inner join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
+
+where (capa.vlproventos != 0 or capa.vldescontos !=0)
+  and o.cdagrupamento = 1
+          
+group by
+ case a.sgagrupamento
+  when 'ADM-DIR' then 'ADM-DIRETA'
+  when 'MILITAR' then 'MILITAR'
+  else 'ADM-INDIRETA'
+ end,
  f.nuanoreferencia,
  f.numesreferencia,
--- o.sgorgao,
  case
-   when f.cdtipofolhapagamento = 2 and f.cdtipocalculo = 5 then upper(tpcal.nmtipocalculo)
-   else upper(tpfol.nmtipofolhapagamento)
+   when upper(tfo.nmtipofolhapagamento) = 'FOLHA NORMAL' and upper(tc.nmtipocalculo) = 'SUPLEMENTAR' then upper(upper(trim(nmtipocalculo)))
+   else upper(tfo.nmtipofolhapagamento)
  end
+),
 
-order by
- a.sgagrupamento,
- f.nuanoreferencia,
- f.numesreferencia,
--- o.sgorgao,
- case
-   when f.cdtipofolhapagamento = 2 and f.cdtipocalculo = 5 then upper(tpcal.nmtipocalculo)
-   else upper(tpfol.nmtipofolhapagamento)
- end
-)
-
-select
- Agrupamento,
- Ano,
- Mes,
--- Orgao,
+totais_folha as (
+select Agrupamento, Ano, Mes,
+ Proventos, Descontos, Credito, Pagamentos,
  nvl(FOLHAS_NORMAL,0) as FOLHAS_MENSAIS,
  nvl(FOLHAS_SUPLEMENTARES,0) as FOLHAS_SUPLEMENTARES,
  nvl(FOLHAS_13_SALARIO,0) as FOLHAS_13_SALARIO,
- nvl(FOLHAS_ADIANT_13_SALARIO,0) as FOLHAS_ADIANT_13_SALARIO,
- nvl(FOLHAS_BOLSISTA,0) as FOLHAS_BOLSISTA,
- nvl(FOLHAS_FERIAS,0) as FOLHAS_FERIAS,
- nvl(FOLHAS_RESCISAO_CONTRATUAL,0) as FOLHAS_RESCISAO_CONTRATUAL,
- nvl(FOLHAS_INSTITUIDORES_PENSAO,0) as FOLHAS_INSTITUIDORES_PENSAO
-from totais_folha
+ nvl(FOLHAS_ADIANT_13_SALARIO,0) as FOLHAS_ADIANT_13_SALARIO
+from totais
 pivot (sum(Folhas) for TipoFolha in (
  'FOLHA NORMAL' as FOLHAS_NORMAL,
  'SUPLEMENTAR' as FOLHAS_SUPLEMENTARES,
- '13 SALARIO' as FOLHAS_13_SALARIO,
- 'FOLHA DE ADIANT 13 SALARIO' as FOLHAS_ADIANT_13_SALARIO,
- 'FOLHA DE BOLSISTA' as FOLHAS_BOLSISTA,
- 'FERIAS' as FOLHAS_FERIAS,
- 'RESCISAO CONTRATUAL' as FOLHAS_RESCISAO_CONTRATUAL,
- 'INSTITUIDORES DE PENSÃO' as FOLHAS_INSTITUIDORES_PENSAO
-)
-)
-order by
- Agrupamento,
- Ano,
- Mes
--- Orgao
+ '13º SALARIO' as FOLHAS_13_SALARIO,
+ 'ADIANTAMENTO 13º' as FOLHAS_ADIANT_13_SALARIO
+)))
+
+select Agrupamento, Ano || lpad(Mes,2,0) as AnoMes, Ano, Mes, --Orgao,
+ sum(Proventos) as Proventos,
+ sum(Descontos) as Descontos,
+ sum(Credito) as Credito,
+ sum(Pagamentos) as Pagamentos,
+ sum(FOLHAS_MENSAIS) as FOLHAS_MENSAIS,
+ sum(FOLHAS_SUPLEMENTARES) as FOLHAS_SUPLEMENTARES,
+ sum(FOLHAS_13_SALARIO) as FOLHAS_13_SALARIO,
+ sum(FOLHAS_ADIANT_13_SALARIO) as FOLHAS_ADIANT_13_SALARIO
+from totais_folha
+group by Ano || lpad(Mes,2,0), Agrupamento, Ano, Mes
+order by Ano || lpad(Mes,2,0) desc, Agrupamento, Ano, Mes
 ;
+

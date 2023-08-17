@@ -1,18 +1,24 @@
---- Resumo de Capa de Pagamentos
+--- Resumo Capa de Pagamentos
 select
- a.sgagrupamento as Agrupamento,
- f.nuanomesreferencia as AnoMes,
- lpad(f.nuanoreferencia,4,0) as Ano,
- lpad(f.numesreferencia,2,0) as Mes,
+-- a.sgagrupamento as Agrupamento,
+ case a.sgagrupamento
+  when 'ADM-DIR' then 'ADM-DIRETA'
+  when 'MILITAR' then 'MILITAR'
+  else 'ADM-INDIRETA'
+ end as Agrupamento,
+ lpad(trim(f.nuanoreferencia),4,0) || lpad(trim(f.numesreferencia),2,0) as AnoMes,
+ lpad(trim(f.nuanoreferencia),4,0) as Ano,
+ lpad(trim(f.numesreferencia),2,0) as Mes,
  o.sgorgao as Orgao,
- tfo.nmtipofolhapagamento as Folha,
+ upper(tfo.nmtipofolhapagamento) as Folha,
  upper(tc.nmtipocalculo) as Tipo,
- f.nusequencialfolha as Seq,
- sum(nvl(capa.vlproventos, 0)) as Proventos, 
+ lpad(f.nusequencialfolha,2,0) as Seq,
+
+ sum(nvl(capa.vlproventos, 0)) as Proventos,
  sum(nvl(capa.vldescontos, 0)) as Descontos,
- sum(nvl(capa.vlcredito, 0)) as Credito,
- count(*) as Servidores
-  
+ sum(nvl(vlproventos, 0) - nvl(vldescontos, 0)) as Credito,
+ count(capa.cdvinculo) as Servidores
+
 from epagcapahistrubricavinculo capa
 inner join epagfolhapagamento f on f.cdfolhapagamento = capa.cdfolhapagamento
                                and f.flcalculodefinitivo = 'S'
@@ -20,25 +26,33 @@ inner join epagtipofolhapagamento tfo on tfo.cdtipofolhapagamento = f.cdtipofolh
 inner join epagtipocalculo tc on tc.cdtipocalculo = f.cdtipocalculo
 inner join ecadhistorgao o on o.cdorgao = f.cdorgao
 inner join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
+where (   to_number(replace(trim(nvl(vlproventos, 0)), '.', ',')) != 0
+       or to_number(replace(trim(nvl(vldescontos, 0)), '.', ',')) != 0)
+  and o.cdagrupamento = 1
 
-where capa.vlproventos != 0 or capa.vldescontos !=0
-          
 group by
- a.sgagrupamento,
- f.nuanomesreferencia,
- f.nuanoreferencia,
- f.numesreferencia,
- tfo.nmtipofolhapagamento,
- tc.nmtipocalculo,
- f.nusequencialfolha,
- o.sgorgao
+ case a.sgagrupamento
+  when 'ADM-DIR' then 'ADM-DIRETA'
+  when 'MILITAR' then 'MILITAR'
+  else 'ADM-INDIRETA'
+ end,
+ lpad(trim(f.nuanoreferencia),4,0) || lpad(trim(f.numesreferencia),2,0),
+ lpad(trim(f.nuanoreferencia),4,0),
+ lpad(trim(f.numesreferencia),2,0),
+ o.sgorgao,
+ upper(tfo.nmtipofolhapagamento),
+ upper(tc.nmtipocalculo),
+ lpad(trim(nusequencialfolha),2,0)
 
 order by
- a.sgagrupamento,
- f.nuanomesreferencia,
- f.nuanoreferencia,
- f.numesreferencia,
+ case a.sgagrupamento
+  when 'ADM-DIR' then 'ADM-DIRETA'
+  when 'MILITAR' then 'MILITAR'
+  else 'ADM-INDIRETA'
+ end,
+ lpad(trim(f.nuanoreferencia),4,0) || lpad(trim(f.numesreferencia),2,0) desc,
  o.sgorgao,
- tfo.nmtipofolhapagamento,
- tc.nmtipocalculo,
- f.nusequencialfolha
+ upper(tfo.nmtipofolhapagamento),
+ upper(tc.nmtipocalculo),
+ lpad(trim(nusequencialfolha),2,0)
+;
