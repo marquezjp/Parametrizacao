@@ -1,13 +1,19 @@
 with
 pessoas as (
---/*
+--/* -- Informações do Cadastro de Pessoas dos Arquivos de Migração
 select
 trunc((months_between(sysdate, to_date(p.dtnascimento,'DD/MM/YYYY')))/12) as idade,
 case when upper(trim(p.flsexo)) in ('F', 'M') then upper(trim(p.flsexo)) else ' ' end as sexo
 from sigrhmig.emigpessoacsv p
 --*/
-/*
+/* -- Informações do cadastro de Pessoas Carregado no SIGRH
 select trunc((months_between(sysdate, p.dtnascimento))/12) as idade, p.flsexo as sexo from ecadpessoa p
+*/
+/* -- Informações do cadastro de Pessoas Carregado no SIGRH somente da Administração Direta
+select trunc((months_between(sysdate, p.dtnascimento))/12) as idade, p.flsexo as sexo from ecadpessoa p
+inner join (select distinct cdpessoa from ecadvinculo v
+            inner join ecadhistorgao o on o.cdorgao = v.cdorgao and o.cdagrupamento = 1
+) direta on direta.cdpessoa = p.cdpessoa
 */
 ),
 faixas as (

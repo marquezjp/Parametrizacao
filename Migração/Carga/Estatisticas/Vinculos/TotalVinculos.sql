@@ -5,13 +5,14 @@ select
  case
    when cef.cdrelacaotrabalho = 5 and cef.cdvinculo is not null and cco.cdvinculo is null then 'EFETIVO'
    when cef.cdrelacaotrabalho = 5 and cef.cdvinculo is not null and cco.cdvinculo is not null then 'COMISSIONADO NO MESMO VINCULO EFETIVO'
-   when cco.cdvinculo is not null and cef.cdvinculo is null then 'COMISSIONADO PURO'
+   when cco.cdvinculo is not null and cef.cdvinculo is null then 'COMISSIONADO'
    when cef.cdrelacaotrabalho = 3 then 'CONTRATO TEMPORARIO'
+   when penesp.cdvinculobeneficiario is not null then 'PENSAO NAO PREV'
+--   else 'PENSAO NAO PREV'
    else 'OUTRO'
  end as relacao_vinculo,
  case
    when dtdesligamento is not null and dtdesligamento < trunc(sysdate) then 'DESLIGADOS'
-   when ano.cdvinculo is null then 'DESLIGADOS'
    else 'VIGENTES'
  end as situacao,
  count(*) as vinculos
@@ -20,11 +21,7 @@ inner join ecadhistorgao o on o.cdorgao = v.cdorgao
 inner join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
 left join ecadhistcargoefetivo cef on cef.cdvinculo = v.cdvinculo
 left join ecadhistcargocom cco on cco.cdvinculo = v.cdvinculo
-left join (select distinct cdvinculo from epagcapahistrubricavinculo capa
-           inner join epagfolhapagamento f on f.cdfolhapagamento = capa.cdfolhapagamento
-                  and f.nuanoreferencia = 2022 and f.cdtipocalculo not in (2, 3)
-           inner join ecadhistorgao o on o.cdorgao = f.cdorgao and o.cdagrupamento = 1
-) ano on ano.cdvinculo = v.cdvinculo
+left join epvdhistpensaonaoprev penesp on penesp.cdvinculobeneficiario = v.cdvinculo 
 where o.cdagrupamento = 1
 group by
  a.sgagrupamento,
@@ -32,13 +29,14 @@ group by
  case
    when cef.cdrelacaotrabalho = 5 and cef.cdvinculo is not null and cco.cdvinculo is null then 'EFETIVO'
    when cef.cdrelacaotrabalho = 5 and cef.cdvinculo is not null and cco.cdvinculo is not null then 'COMISSIONADO NO MESMO VINCULO EFETIVO'
-   when cco.cdvinculo is not null and cef.cdvinculo is null then 'COMISSIONADO PURO'
+   when cco.cdvinculo is not null and cef.cdvinculo is null then 'COMISSIONADO'
    when cef.cdrelacaotrabalho = 3 then 'CONTRATO TEMPORARIO'
+   when penesp.cdvinculobeneficiario is not null then 'PENSAO NAO PREV'
+--   else 'PENSAO NAO PREV'
    else 'OUTRO'
  end,
  case
    when dtdesligamento is not null and dtdesligamento < trunc(sysdate) then 'DESLIGADOS'
-   when ano.cdvinculo is null then 'DESLIGADOS'
    else 'VIGENTES'
  end
 ),
@@ -74,15 +72,27 @@ select
  sum(vinculos) as vinculos
 from total_agrupamento
 group by situacao
-)
+),
 
+resumo as (
 select
  nvl(sgagrupamento,'TOTAL GERAL') as agrupamento,
- nvl2(sgagrupamento,nvl(sgorgao,'TOTAL AGRUPAMENTO'),null) as orgao,
- nvl2(sgorgao,nvl(relacao_vinculo,'TOTAL ORGAO'),null) as relacao_vinculo,
+ nvl2(sgagrupamento,nvl(sgorgao,''),null) as orgao,
+ nvl2(sgorgao,nvl(relacao_vinculo,''),null) as relacao_vinculo,
  nvl(vigentes,0) + nvl(desligados,0) as vinculos,
  nvl(vigentes,0) as vigentes,
- nvl(desligados,0) as desligados
+ nvl(desligados,0) as desligados,
+ case relacao_vinculo
+   when ''                    then 0
+   when 'EFETIVO'             then 2
+   when 'MILITAR'             then 3
+   when 'CONTRATO TEMPORARIO' then 4
+   when 'COMISSIONADO'        then 5
+   when 'ESTAGIARIO'          then 6
+   when 'CEDIDO'              then 7
+   when 'RECEBIDO'            then 8
+   when 'PENSAO NAO PREV'     then 9
+  end as ordem_relacao_vinculo
 from (
 select * from total_geral       union
 select * from total_agrupamento union
@@ -93,10 +103,15 @@ pivot (sum(vinculos) for situacao in ('VIGENTES' as VIGENTES, 'DESLIGADOS' as DE
 order by
  sgagrupamento nulls first,
  sgorgao nulls first,
- case relacao_vinculo
-   when 'EFETIVO'             then 2
-   when 'CONTRATO TEMPORARIO' then 3
-   when 'COMISSIONADO PURO'   then 4
-   when 'OUTRO'               then 9
-   else 0
-  end nulls first
+ ordem_relacao_vinculo nulls first
+)
+
+select agrupamento, orgao, relacao_vinculo, vinculos, vigentes, desligados from resumo
+/*
+select 'VINCULO' as tipo, agrupamento as grupo, '202305' as anomes, orgao,
+json_arrayagg(json_object(nvl(relacao_vinculo, 'TOTAL') value resumo_relacao_vinculo)) as resumo_orgao
+from (select agrupamento, orgao, relacao_vinculo, json_object(vinculos, vigentes, desligados) as resumo_relacao_vinculo from resumo)
+group by agrupamento, orgao
+order by case when agrupamento = 'TOTAL GERAL' then null else agrupamento end nulls first, orgao nulls first
+*/
+;
