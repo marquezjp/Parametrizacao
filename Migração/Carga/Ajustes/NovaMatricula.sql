@@ -1,6 +1,6 @@
 with
 depara as (
-select de, para
+select upper(trim(de)) as de, upper(trim(para)) as para
 from json_table('{"depara":[
 {"de":"CASACIVIL", "para":"CASA CIVIL"},
 {"de":"CERIM", "para":"CASA CIVIL"},
@@ -33,20 +33,37 @@ columns (de, para)
 )),
 orgaos as (
 select upper(trim(sgagrupamento)) as sgagrupamento, upper(trim(sgorgao)) as sgorgao
-from emigorgaocsv
+from sigrhmig.emigorgaocsv
 ),
-
 vinculos as (
-select o.sgagrupamento, o.sgorgao, trim(numatriculalegado, nucpf, nmpessoa, dtadmissao from (
-select sgorgao, numatriculalegado, nucpf, nmpessoa, dtadmissao from emigvinculoefetivocsv union
-select sgorgao, numatriculalegado, nucpf, nmpessoa, dtadmissao from emigvinculocomissionadocsv union
-select sgorgao, numatriculalegado, nucpf, nmpessoa, dtadmissao from emigvinculobolsistacsv union
-select sgorgao, numatriculalegado, nucpf, nmpessoa, dtadmissao from emigvinculorecebidocsv union
-select sgorgao, numatriculalegado, nucpf, nmpessoa, dtadmissao from emigvinculocedidocsv union
-select sgorgao, numatriculalegado, nucpf, nmpessoa, dtadmissao from emigvinculopensaonaoprevcsv
+select
+o.sgagrupamento,
+o.sgorgao,
+lpad(trim(numatriculalegado),9,0) as numatriculalegado,
+lpad(trim(nucpf),11,0) as nucpf,
+translate(
+    regexp_replace(
+      upper(trim(replace(nmpessoa, '''', ''))),
+      '[[:space:]]+', chr(32)
+    ),
+    'ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕËÏÖÜÇÑŠÝŸŽåáéíóúàèìòùâêîôûãõëïöüçñšýÿž',
+    'AEIOUAEIOUAEIOUAOEIOUCNSYYZaaeiouaeiouaeiouaoeioucnsyyz'
+  ) as nmpessoa,
+to_char(to_date(dtadmissao,'DD/MM/YYYY'),'DD/MM/YYYY') as dtadmissao
+from (
+select upper(trim(sgorgao)) as sgorgao, numatriculalegado, nucpf, nmpessoa, dtadmissao from sigrhmig.emigvinculoefetivocsv union
+select upper(trim(sgorgao)) as sgorgao, numatriculalegado, nucpf, nmpessoa, dtadmissao from sigrhmig.emigvinculocomissionadocsv union
+select upper(trim(sgorgao)) as sgorgao, numatriculalegado, nucpf, nmpessoa, dtadmissao from sigrhmig.emigvinculobolsistacsv union
+select upper(trim(sgorgao)) as sgorgao, numatriculalegado, nucpf, nmpessoa, dtadmissao from sigrhmig.emigvinculorecebidocsv union
+select upper(trim(sgorgao)) as sgorgao, numatriculalegado, nucpf, nmpessoa, dtadmissao from sigrhmig.emigvinculocedidocsv union
+select upper(trim(sgorgao)) as sgorgao, numatriculalegado, nucpf, nmpessoa, dtadmissao from sigrhmig.emigvinculopensaonaoprevcsv
 ) v
-left join depara on upper(trim(depara.de)) = upper(trim(v.sgorgao))
-left join orgaos o on upper(trim(o.sgorgao)) = nvl(upper(trim(depara.para)),upper(trim(v.sgorgao)))
+left join depara on depara.de = v.sgorgao
+left join orgaos o on o.sgorgao = nvl(depara.para, v.sgorgao)
+where to_number(trim(numatriculalegado)) != 0
+   and to_number(trim(nucpf)) != 0
+   and to_number(replace(trim(dtadmissao),'/','')) != 0
+   and to_date(trim(dtadmissao),'DD/MM/YYYY') >= '01/01/1900'
 ),
 
 primeiro_vinculo as (
@@ -70,13 +87,13 @@ select
  rownum + 100000 as numatricula,
  mod(
      mod(
-         (to_number(substr(lpad(rownum,7,0),1,1))*8 +
-          to_number(substr(lpad(rownum,7,0),2,1))*7 +
-          to_number(substr(lpad(rownum,7,0),3,1))*6 +
-          to_number(substr(lpad(rownum,7,0),4,1))*5 +
-          to_number(substr(lpad(rownum,7,0),5,1))*4 +
-          to_number(substr(lpad(rownum,7,0),6,1))*3 +
-          to_number(substr(lpad(rownum,7,0),7,1))*2
+         (to_number(substr(lpad(rownum + 100000,7,0),1,1))*8 +
+          to_number(substr(lpad(rownum + 100000,7,0),2,1))*7 +
+          to_number(substr(lpad(rownum + 100000,7,0),3,1))*6 +
+          to_number(substr(lpad(rownum + 100000,7,0),4,1))*5 +
+          to_number(substr(lpad(rownum + 100000,7,0),5,1))*4 +
+          to_number(substr(lpad(rownum + 100000,7,0),6,1))*3 +
+          to_number(substr(lpad(rownum + 100000,7,0),7,1))*2
          ) * 10,
          11),
      10) as nudvmatricula,
@@ -93,7 +110,7 @@ select
  v.nmpessoa,
  lpad(nm.numatricula,7,0) as numatricula,
  nm.nudvmatricula,
- lpad(rank() over (partition by nm.numatricula order by nm.numatricula, v.dtadmissao, v.numatriculalegado),2,0) as nuseqmatricula
+ lpad(rank() over (partition by nm.numatricula order by nm.numatricula, v.dtadmissao, v.sgagrupamento, v.numatriculalegado),2,0) as nuseqmatricula
 from vinculos v
 inner join nova_matricula nm on nm.nucpf = v.nucpf
 
