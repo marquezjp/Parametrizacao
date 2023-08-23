@@ -1,0 +1,6 @@
+userid=SIGRHMIG/sigrh@//10.48.1.68:1521/sigrhrrtst
+control=flatfile.ctl
+log=flatfile.log
+bad=flatfile.bad
+data=flatfile.dat
+direct=true
