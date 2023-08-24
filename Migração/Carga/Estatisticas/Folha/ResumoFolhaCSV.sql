@@ -34,7 +34,10 @@ columns (de, para)
 )),
 orgaos as (
 select upper(trim(sgagrupamento)) as sgagrupamento, upper(trim(sgorgao)) as sgorgao
-from emigorgaocsv
+from sigrhmig.emigorgaocsv union
+select 'ADM-DIR' as sgagrupamento, 'SEGOD' as sgorgao from dual union
+select 'ADM-DIR' as sgagrupamento, 'SELC'  as sgorgao from dual union
+select 'ADM-DIR' as sgagrupamento, 'SEPI'  as sgorgao from dual
 ),
 totais as (
 select
@@ -58,7 +61,7 @@ select
  sum(to_number(replace(trim(nvl(vlproventos, 0)), '.', ',')) - to_number(replace(trim(nvl(vldescontos, 0)), '.', ','))) as Credito,
  count(lpad(trim(numatriculalegado), 10, 0)) as Pagamentos,
  count(distinct lpad(trim(nusequencialfolha),2,0) || o.sgorgao) as Folhas
-from emigcapapagamentocsv capa
+from sigrhmig.emigcapapagamentocsv capa
 left join depara on upper(trim(depara.de)) = upper(trim(capa.sgorgao))
 left join orgaos o on upper(trim(o.sgorgao)) = nvl(upper(trim(depara.para)),upper(trim(capa.sgorgao)))
 where (to_number(replace(trim(nvl(vlproventos, 0)), '.', ',')) != 0

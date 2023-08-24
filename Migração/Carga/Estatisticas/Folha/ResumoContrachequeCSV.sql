@@ -34,7 +34,10 @@ columns (de, para)
 )),
 orgaos as (
 select upper(trim(sgagrupamento)) as sgagrupamento, upper(trim(sgorgao)) as sgorgao
-from emigorgaocsv
+from sigrhmig.emigorgaocsv union
+select 'ADM-DIR' as sgagrupamento, 'SEGOD' as sgorgao from dual union
+select 'ADM-DIR' as sgagrupamento, 'SELC'  as sgorgao from dual union
+select 'ADM-DIR' as sgagrupamento, 'SEPI'  as sgorgao from dual
 ),
 TotalGrupoRubrica as (
 select 
@@ -60,7 +63,7 @@ select
  end as GrupoRubrica,
  sum(to_number(replace(trim(nvl(vlpagamento, 0)), '.', ','))) as Valor,
  count(1) as Lancamentos
-from emigcontrachequecsv pag
+from sigrhmig.emigcontrachequecsv pag
 left join depara on upper(trim(depara.de)) = upper(trim(pag.sgorgao))
 left join orgaos o on upper(trim(o.sgorgao)) = nvl(upper(trim(depara.para)),upper(trim(pag.sgorgao)))
 where to_number(replace(trim(nvl(vlpagamento, 0)), '.', ',')) != 0

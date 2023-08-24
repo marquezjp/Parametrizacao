@@ -33,30 +33,36 @@ columns (de, para)
 )),
 orgaos as (
 select upper(trim(sgagrupamento)) as sgagrupamento, upper(trim(sgorgao)) as sgorgao
-from emigorgaocsv
+from sigrhmig.emigorgaocsv union
+select 'ADM-DIR' as sgagrupamento, 'SEGOD' as sgorgao from dual union
+select 'ADM-DIR' as sgagrupamento, 'SELC'  as sgorgao from dual union
+select 'ADM-DIR' as sgagrupamento, 'SEPI'  as sgorgao from dual
 ),
 vinculos as (
 select distinct o.sgagrupamento, v.numatriculalegado, v.dtadmissao, v.nucpf, o.sgorgao, v.origem from (
-select distinct sgorgao, lpad(trim(numatriculalegado),10,0) as numatriculalegado, lpad(trim(nucpf),11,0) as nucpf, to_char(to_date(dtadmissao,'YYYY-MM-DD HH24:MI:SS'), 'DD/MM/YYYY') as dtadmissao, '1-CEF' as origem
-from emigvinculoefetivocsv union
-select distinct sgorgao, lpad(trim(numatriculalegado),10,0) as numatriculalegado, lpad(trim(nucpf),11,0) as nucpf, to_char(to_date(dtadmissao,'YYYY-MM-DD HH24:MI:SS'), 'DD/MM/YYYY') as dtadmissao, '2-CCO' as origem
-from emigvinculocomissionadocsv union
-select distinct sgorgao, lpad(trim(numatriculalegado),10,0) as numatriculalegado, lpad(trim(nucpf),11,0) as nucpf, to_char(to_date(dtadmissao,'YYYY-MM-DD HH24:MI:SS'), 'DD/MM/YYYY') as dtadmissao, '3-BOL' as origem
-from emigvinculobolsistacsv union
-select distinct sgorgao, lpad(trim(numatriculalegado),10,0) as numatriculalegado, lpad(trim(nucpf),11,0) as nucpf, to_char(to_date(dtadmissao,'YYYY-MM-DD HH24:MI:SS'), 'DD/MM/YYYY') as dtadmissao, '4-REC' as origem
-from emigvinculorecebidocsv union
-select distinct sgorgao, lpad(trim(numatriculalegado),10,0) as numatriculalegado, lpad(trim(nucpf),11,0) as nucpf, to_char(to_date(dtadmissao,'YYYY-MM-DD HH24:MI:SS'), 'DD/MM/YYYY') as dtadmissao, '5-CED' as origem
-from emigvinculocedidocsv union
-select distinct sgorgao, lpad(trim(numatriculalegado),10,0) as numatriculalegado, lpad(trim(nucpf),11,0) as nucpf, to_char(to_date(dtadmissao,'YYYY-MM-DD HH24:MI:SS'), 'DD/MM/YYYY') as dtadmissao, '6-PNP' as origem
-from emigvinculopensaonaoprevcsv
+select distinct sgorgao, lpad(trim(numatriculalegado),9,0) as numatriculalegado, lpad(trim(nucpf),11,0) as nucpf, to_char(to_date(dtadmissao,'DD/MM/YYYY'), 'DD/MM/YYYY') as dtadmissao, '1-CEF' as origem
+from sigrhmig.emigvinculoefetivocsv union
+select distinct sgorgao, lpad(trim(numatriculalegado),9,0) as numatriculalegado, lpad(trim(nucpf),11,0) as nucpf, to_char(to_date(dtadmissao,'DD/MM/YYYY'), 'DD/MM/YYYY') as dtadmissao, '2-CCO' as origem
+from sigrhmig.emigvinculocomissionadocsv union
+select distinct sgorgao, lpad(trim(numatriculalegado),9,0) as numatriculalegado, lpad(trim(nucpf),11,0) as nucpf, to_char(to_date(dtadmissao,'DD/MM/YYYY'), 'DD/MM/YYYY') as dtadmissao, '3-BOL' as origem
+from sigrhmig.emigvinculobolsistacsv union
+select distinct sgorgao, lpad(trim(numatriculalegado),9,0) as numatriculalegado, lpad(trim(nucpf),11,0) as nucpf, to_char(to_date(dtadmissao,'DD/MM/YYYY'), 'DD/MM/YYYY') as dtadmissao, '4-REC' as origem
+from sigrhmig.emigvinculorecebidocsv union
+select distinct sgorgao, lpad(trim(numatriculalegado),9,0) as numatriculalegado, lpad(trim(nucpf),11,0) as nucpf, to_char(to_date(dtadmissao,'DD/MM/YYYY'), 'DD/MM/YYYY') as dtadmissao, '5-CED' as origem
+from sigrhmig.emigvinculocedidocsv union
+select distinct sgorgao, lpad(trim(numatriculalegado),9,0) as numatriculalegado, lpad(trim(nucpf),11,0) as nucpf, to_char(to_date(dtadmissao,'DD/MM/YYYY'), 'DD/MM/YYYY') as dtadmissao, '6-PNP' as origem
+from sigrhmig.emigvinculopensaonaoprevcsv
 ) v
 left join depara on upper(trim(depara.de)) = upper(trim(v.sgorgao))
 left join orgaos o on upper(trim(o.sgorgao)) = nvl(upper(trim(depara.para)),upper(trim(v.sgorgao)))
 --where o.sgagrupamento = 'AGRU-ADM-DIR'
 ),
 capa as (
-select distinct o.sgagrupamento, lpad(trim(capa.numatriculalegado),10,0) as numatriculalegado, to_char(to_date(trim(capa.dtadmissao), 'YYYY-MM-DD HH24:MI:SS'), 'DD/MM/YYYY') as dtadmissao, lpad(trim(capa.nucpf),11,0) as nucpf, o.sgorgao, '9-PAG' as origem
-from emigcapapagamentocsv capa
+select distinct o.sgagrupamento, lpad(trim(capa.numatriculalegado),9,0) as numatriculalegado,
+case when regexp_like(trim(capa.dtadmissao), '^(0?[1-9]|[12]\d|3[01])/(0?[1-9]|1[0-2])/(19[0-9]{2}|20[0-2][0-9])') then trim(capa.dtadmissao)
+else to_char(to_date(trim(capa.dtadmissao), 'YYYY-MM-DD HH24:MI:SS'), 'DD/MM/YYYY') end as dtadmissao,
+lpad(trim(capa.nucpf),11,0) as nucpf, o.sgorgao, '9-PAG' as origem
+from sigrhmig.emigcapapagamentocsv capa
 left join depara on upper(trim(depara.de)) = upper(trim(capa.sgorgao))
 left join orgaos o on upper(trim(o.sgorgao)) = nvl(upper(trim(depara.para)),upper(trim(capa.sgorgao)))
 --where o.sgagrupamento = 'AGRU-ADM-DIR'

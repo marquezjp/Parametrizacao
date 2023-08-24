@@ -34,7 +34,10 @@ columns (de, para)
 )),
 orgaos as (
 select upper(trim(sgagrupamento)) as sgagrupamento, upper(trim(sgorgao)) as sgorgao
-from emigorgaocsv
+from sigrhmig.emigorgaocsv union
+select 'ADM-DIR' as sgagrupamento, 'SEGOD' as sgorgao from dual union
+select 'ADM-DIR' as sgagrupamento, 'SELC'  as sgorgao from dual union
+select 'ADM-DIR' as sgagrupamento, 'SEPI'  as sgorgao from dual
 ),
 
 --- Obter os Vinculos com Capa de Pagamento
@@ -56,15 +59,19 @@ select
  lpad(to_number(trim(replace(numatriculalegado,'"',''))),10,0) as numatriculalegado,
  lpad(capa.nucpf, 11, 0) as nucpf,
  capa.nmpessoa as nmpessoa,
- to_date(trim(capa.dtadmissao), 'YYYY-MM-DD HH24:MI:SS') as dtadmissao,
+ case
+   when regexp_like(trim(capa.dtadmissao), '^(0?[1-9]|[12]\d|3[01])/(0?[1-9]|1[0-2])/(19[0-9]{2}|20[0-2][0-9])')
+   then to_date(dtadmissao,'DD/MM/YYYY')
+   else to_date(trim(capa.dtadmissao), 'YYYY-MM-DD HH24:MI:SS')
+ end as dtadmissao,
  to_number(nvl(replace(capa.vlproventos,'.',','), 0)) as vlproventos,
  to_number(nvl(replace(capa.vldescontos,'.',','), 0)) as vldescontos
 from sigrhmig.emigcapapagamentocsv capa
 left join depara on upper(trim(depara.de)) = upper(trim(capa.sgorgao))
 left join orgaos o on upper(trim(o.sgorgao)) = nvl(upper(trim(depara.para)),upper(trim(capa.sgorgao)))
 where (to_number(nvl(replace(capa.vlproventos,'.',','), 0)) != 0 or to_number(nvl(replace(capa.vldescontos,'.',','), 0)) != 0)
-  --and lpad(capa.nuanoreferencia,4,0) >= 2020
-  --and o.sgagrupamento = 'AGRU-ADM-DIR'
+  and lpad(capa.nuanoreferencia,4,0) >= 2020
+  and o.sgagrupamento = 'ADM-DIR'
 ),
 
 --- Apurar o Totas de Proventos e Descontos das Rubricas do Detalha do Contracheque
@@ -98,8 +105,8 @@ left join depara on upper(trim(depara.de)) = upper(trim(pag.sgorgao))
 left join orgaos o on upper(trim(o.sgorgao)) = nvl(upper(trim(depara.para)),upper(trim(pag.sgorgao)))
 where upper(trim(nmtiporubrica)) != 'BASE'
   and to_number(nvl(replace(vlpagamento,'.',','),0)) != 0
-  --and lpad(pag.nuanoreferencia,4,0) >= 2020
-  --and o.sgagrupamento = 'ADM-DIR'
+  and lpad(pag.nuanoreferencia,4,0) >= 2020
+  and o.sgagrupamento = 'ADM-DIR'
 )
 pivot ( sum(vlpagamento) for cdtiporubrica in (1 as vlproventos, 5 as vldescontos))
 )

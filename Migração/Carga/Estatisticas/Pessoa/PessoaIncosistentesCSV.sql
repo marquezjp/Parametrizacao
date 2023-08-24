@@ -1,16 +1,20 @@
 with
 pessoas as (
 select lpad(trim(nucpf),11,0) as nucpf, nmpessoa, dtnascimento, flsexo, nmmae, '0-PES' as origem
-from emigpessoacsv p
+from sigrhmig.emigpessoacsv p
+),
+pessoasdups as (
+select nucpf from pessoas
+group by nucpf having count(1) > 1
 ),
 vinculos as (
-select distinct lpad(trim(nucpf),11,0) as nucpf, nmpessoa, dtnascimento, flsexo, nmmae, '1-CEF' as origem from emigvinculoefetivocsv union
-select distinct lpad(trim(nucpf),11,0) as nucpf, nmpessoa, dtnascimento, flsexo, nmmae, '2-CCO' as origem from emigvinculocomissionadocsv union
-select distinct lpad(trim(nucpf),11,0) as nucpf, nmpessoa, dtnascimento, flsexo, nmmae, '3-BOL' as origem from emigvinculobolsistacsv union
-select distinct lpad(trim(nucpf),11,0) as nucpf, nmpessoa, dtnascimento, flsexo, nmmae, '4-REC' as origem from emigvinculorecebidocsv union
-select distinct lpad(trim(nucpf),11,0) as nucpf, nmpessoa, dtnascimento, flsexo, nmmae, '5-CED' as origem from emigvinculocedidocsv union
-select distinct lpad(trim(nucpf),11,0) as nucpf, nmpessoa, dtnascimento, flsexo, nmmae, '6-PNP' as origem from emigvinculopensaonaoprevcsv union
-select distinct lpad(trim(nucpf),11,0) as nucpf, nmpessoa, to_char(to_date(dtnascimento, 'YYYY-MM-DD HH24:MI:SS'), 'DD/MM/YYYY') as dtnascimento, flsexo, nmmae, '9-PAG' as origem from emigcapapagamentocsv
+select distinct lpad(trim(nucpf),11,0) as nucpf, nmpessoa, dtnascimento, flsexo, nmmae, '1-CEF' as origem from sigrhmig.emigvinculoefetivocsv union
+select distinct lpad(trim(nucpf),11,0) as nucpf, nmpessoa, dtnascimento, flsexo, nmmae, '2-CCO' as origem from sigrhmig.emigvinculocomissionadocsv union
+select distinct lpad(trim(nucpf),11,0) as nucpf, nmpessoa, dtnascimento, flsexo, nmmae, '3-BOL' as origem from sigrhmig.emigvinculobolsistacsv union
+select distinct lpad(trim(nucpf),11,0) as nucpf, nmpessoa, dtnascimento, flsexo, nmmae, '4-REC' as origem from sigrhmig.emigvinculorecebidocsv union
+select distinct lpad(trim(nucpf),11,0) as nucpf, nmpessoa, dtnascimento, flsexo, nmmae, '5-CED' as origem from sigrhmig.emigvinculocedidocsv union
+select distinct lpad(trim(nucpf),11,0) as nucpf, nmpessoa, dtnascimento, flsexo, nmmae, '6-PNP' as origem from sigrhmig.emigvinculopensaonaoprevcsv union
+select distinct lpad(trim(nucpf),11,0) as nucpf, nmpessoa, to_char(to_date(dtnascimento, 'YYYY-MM-DD HH24:MI:SS'), 'DD/MM/YYYY') as dtnascimento, flsexo, nmmae, '9-PAG' as origem from sigrhmig.emigcapapagamentocsv
 ),
 cpfsunicos as (
 select distinct nucpf from vinculos
@@ -25,6 +29,13 @@ having count(1) > 1
 )
 
 --select count(distinct nucpf) from (
+
+select p.nucpf, p.nmpessoa, p.dtnascimento, p.flsexo, p.nmmae, p.origem, 'Cadasdro de Pessoas Duplicado' as obs
+from pessoas p
+left join pessoasdups on pessoasdups.nucpf = p.nucpf
+where pessoasdups.nucpf is not null
+
+union all
 
 select v.nucpf, v.nmpessoa, v.dtnascimento, v.flsexo, v.nmmae, v.origem, 'Não Existe no Cadasdro de Pessoas' as obs
 from vinculos v

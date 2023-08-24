@@ -33,19 +33,22 @@ columns (de, para)
 )),
 orgaos as (
 select upper(trim(sgagrupamento)) as sgagrupamento, upper(trim(sgorgao)) as sgorgao
-from emigorgaocsv
+from sigrhmig.emigorgaocsv union
+select 'ADM-DIR' as sgagrupamento, 'SEGOD' as sgorgao from dual union
+select 'ADM-DIR' as sgagrupamento, 'SELC'  as sgorgao from dual union
+select 'ADM-DIR' as sgagrupamento, 'SEPI'  as sgorgao from dual
 ),
 orgaoscsv as (
-select distinct upper(trim(sgorgao)) as sgorgao from emigvinculoefetivocsv union
-select distinct upper(trim(sgorgao)) as sgorgao from emigvinculocomissionadocsv union
+select distinct upper(trim(sgorgao)) as sgorgao from sigrhmig.emigvinculoefetivocsv union
+select distinct upper(trim(sgorgao)) as sgorgao from sigrhmig.emigvinculocomissionadocsv union
 
-select distinct upper(trim(sgorgao)) as sgorgao from emigvinculobolsistacsv union
-select distinct upper(trim(sgorgao)) as sgorgao from emigvinculorecebidocsv union
-select distinct upper(trim(sgorgao)) as sgorgao from emigvinculocedidocsv union
-select distinct upper(trim(sgorgao)) as sgorgao from emigvinculopensaonaoprevcsv union
+select distinct upper(trim(sgorgao)) as sgorgao from sigrhmig.emigvinculobolsistacsv union
+select distinct upper(trim(sgorgao)) as sgorgao from sigrhmig.emigvinculorecebidocsv union
+select distinct upper(trim(sgorgao)) as sgorgao from sigrhmig.emigvinculocedidocsv union
+select distinct upper(trim(sgorgao)) as sgorgao from sigrhmig.emigvinculopensaonaoprevcsv union
 
-select distinct upper(trim(sgorgao)) as sgorgao from emigcapapagamentocsv union
-select distinct upper(trim(sgorgao)) as sgorgao from emigcontrachequecsv
+select distinct upper(trim(sgorgao)) as sgorgao from sigrhmig.emigcapapagamentocsv union
+select distinct upper(trim(sgorgao)) as sgorgao from sigrhmig.emigcontrachequecsv
 ),
 -- Identificar as Siglas de Órgão NÃO existente na Tabela de Órgãos 
 converter as (
@@ -59,5 +62,5 @@ select --o.sgorgao as de, depara.para as para,
 from converter o
 left join depara on upper(trim(depara.de)) = upper(trim(o.sgorgao))
 -- Identificar as Siglas de Órgão que Ainda NÃO tem DePara para a Tabela de Órgão
---where depara.de is null
+where depara.de is null
 order by depara.para, o.sgorgao
