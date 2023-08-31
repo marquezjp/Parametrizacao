@@ -74,6 +74,11 @@ where (to_number(nvl(replace(capa.vlproventos,'.',','), 0)) != 0 or to_number(nv
   and o.sgagrupamento = 'ADM-DIR'
 ),
 
+capadup as (
+select sgagrupamento, sgorgao, nuanomesreferencia, nusequencialfolha, numatriculalegado
+from capa group by sgagrupamento, sgorgao, nuanomesreferencia, nusequencialfolha, numatriculalegado having count(1) > 1
+),
+
 --- Apurar o Totas de Proventos e Descontos das Rubricas do Detalha do Contracheque
 totalrubricas as (
 select * from (
@@ -113,7 +118,7 @@ pivot ( sum(vlpagamento) for cdtiporubrica in (1 as vlproventos, 5 as vldesconto
 
 --select AnoMes, count(1) from (
 
---- Listar Vinculos com Diferenca entre o Total das Rubricas e os Totais das Capas
+--- Listar Vinculos com Diferenca entre o Total das Rubricas e os Totais das Capas Não Duplicadas
 select
  t.sgagrupamento as Agrupamento,
  t.nuanomesreferencia as AnoMes,
@@ -133,15 +138,45 @@ select
  nvl(t.vldescontos, 0) - nvl(capa.vldescontos, 0) as DiffDescontos,
  nvl2(capa.numatriculalegado, 'CAPA/RUBRICAS', 'RUBRICAS') as Registros
 from totalrubricas t
-left join capa on capa.sgagrupamento = t.sgagrupamento
-              and capa.sgorgao = t.sgorgao
-              and capa.nuanomesreferencia = t.nuanomesreferencia
---              and capa.nmtipofolha = t.nmtipofolha
---              and capa.nmtipocalculo = t.nmtipocalculo
-              and capa.nusequencialfolha = t.nusequencialfolha
-              and capa.numatriculalegado = t.numatriculalegado
-              and capa.nucpf = t.nucpf
-where (nvl(capa.vlproventos, 0) != nvl(t.vlproventos, 0) or nvl(capa.vldescontos, 0) != nvl(t.vldescontos, 0))
+left join capa on capa.sgagrupamento = t.sgagrupamento and capa.sgorgao = t.sgorgao
+          and capa.nuanomesreferencia = t.nuanomesreferencia and capa.nusequencialfolha = t.nusequencialfolha
+          and capa.numatriculalegado = t.numatriculalegado
+left join capadup on capadup.sgagrupamento = capa.sgagrupamento and capadup.sgorgao = capa.sgorgao
+          and capadup.nuanomesreferencia = capa.nuanomesreferencia and capadup.nusequencialfolha = capa.nusequencialfolha
+          and capadup.numatriculalegado = capa.numatriculalegado
+where capadup.sgagrupamento is null
+  and (nvl(capa.vlproventos, 0) != nvl(t.vlproventos, 0) or nvl(capa.vldescontos, 0) != nvl(t.vldescontos, 0))
+
+union all
+
+--- Listar Vinculos com Diferenca entre o Total das Rubricas e os Totais das Capas Duplicadas
+select
+ t.sgagrupamento as Agrupamento,
+ t.nuanomesreferencia as AnoMes,
+ t.sgorgao as Orgao,
+ t.nmtipofolha as Folha,
+ t.nmtipocalculo as Tipo,
+ t.nusequencialfolha as Seq,
+ t.numatriculalegado as MatriculaLegado,
+ t.nucpf as CPF,
+ capa.nmpessoa as Nome,
+ capa.dtadmissao as DataAdmissao,
+ nvl(capa.vlproventos, 0) as ProventosCapa,
+ nvl(capa.vldescontos, 0) as DescontosCapa,
+ nvl(t.vlproventos, 0) as ProventosRubricas,
+ nvl(t.vldescontos, 0) as DescontosRubricas,
+ nvl(t.vlproventos, 0) - nvl(capa.vlproventos, 0) as DiffProventos,
+ nvl(t.vldescontos, 0) - nvl(capa.vldescontos, 0) as DiffDescontos,
+ nvl2(capa.numatriculalegado, 'CAPA DUPLICADA', 'RUBRICAS') as Registros
+from totalrubricas t
+left join capa on capa.sgagrupamento = t.sgagrupamento and capa.sgorgao = t.sgorgao
+          and capa.nuanomesreferencia = t.nuanomesreferencia and capa.nusequencialfolha = t.nusequencialfolha
+          and capa.numatriculalegado = t.numatriculalegado
+left join capadup on capadup.sgagrupamento = capa.sgagrupamento and capadup.sgorgao = capa.sgorgao
+          and capadup.nuanomesreferencia = capa.nuanomesreferencia and capadup.nusequencialfolha = capa.nusequencialfolha
+          and capadup.numatriculalegado = capa.numatriculalegado
+where capadup.sgagrupamento is not null
+  and (nvl(capa.vlproventos, 0) != nvl(t.vlproventos, 0) or nvl(capa.vldescontos, 0) != nvl(t.vldescontos, 0))
 
 union all
 
@@ -163,16 +198,17 @@ select
  nvl(t.vldescontos, 0) as DescontosRubricas,
  nvl(t.vlproventos, 0) - nvl(capa.vlproventos, 0) as DiffProventos,
  nvl(t.vldescontos, 0) - nvl(capa.vldescontos, 0) as DiffDescontos,
- nvl2(t.numatriculalegado, 'CAPA/RUBRICAS', 'CAPA') as Registros
+ case when capadup.sgagrupamento is null
+   then nvl2(t.numatriculalegado, 'CAPA/RUBRICAS', 'CAPA')
+   else nvl2(t.numatriculalegado, 'CAPA/RUBRICAS', 'CAPA DUPLICADA')
+ end as Registros
 from capa
-left join totalrubricas t on t.sgagrupamento = capa.sgagrupamento
-                         and t.sgorgao = capa.sgorgao
-                         and t.nuanomesreferencia = capa.nuanomesreferencia
---                         and t.nmtipofolha = capa.nmtipofolha
---                         and t.nmtipocalculo = capa.nmtipocalculo
-                         and t.nusequencialfolha = capa.nusequencialfolha
-                         and t.numatriculalegado = capa.numatriculalegado
-                         and t.nucpf = capa.nucpf
+left join totalrubricas t on t.sgagrupamento = capa.sgagrupamento and t.sgorgao = capa.sgorgao
+          and t.nuanomesreferencia = capa.nuanomesreferencia and t.nusequencialfolha = capa.nusequencialfolha
+          and t.numatriculalegado = capa.numatriculalegado
+left join capadup on capadup.sgagrupamento = capa.sgagrupamento and capadup.sgorgao = capa.sgorgao
+          and capadup.nuanomesreferencia = capa.nuanomesreferencia and capadup.nusequencialfolha = capa.nusequencialfolha
+          and capadup.numatriculalegado = capa.numatriculalegado
 where t.sgagrupamento is null
   and (nvl(capa.vlproventos, 0) != 0 and nvl(capa.vldescontos, 0) != 0)
 
