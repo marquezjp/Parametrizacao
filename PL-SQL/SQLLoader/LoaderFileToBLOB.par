@@ -1,0 +1,1 @@
+sqlldr userid=SIGRHMIG/sigrh@//10.48.1.68:1521/sigrhrrtst control=LoaderFileToBLOB.ctl
