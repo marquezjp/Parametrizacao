@@ -117,3 +117,28 @@ left join existe on existe.cdvinculo = a.cdvinculo
                 and existe.dtinicio = a.dtinicio
 where existe.cdvinculo is null
 ;
+
+insert into etrbhistisencaopartecontrib
+select
+(select nvl(max(cdhistisencaopartecontrib),0) from etrbhistisencaopartecontrib) + rownum as cdhistisencaopartecontrib,
+cdisencaopartecontribuicao as cdisencaopartecontribuicao,
+3 as cdsitregistroisencao, -- 'Incluído (atestado automaticamente)'
+2024 as nuanoiniciovigencia,
+11 as numesiniciovigencia,
+null as nuanofimvigencia,
+null as numesfimvigencia,
+to_date('30/10/2024', 'DD/MM/YYYY') as dtconcessaoisencao,
+null as dtateste,
+'N' as flisencaolaudopericial,
+null as cddocumento,
+null as cdtipopublicacao,
+null as dtpublicacao,
+null as nupublicacao,
+null as nupaginicial,
+null as cdmeiopublicacao,
+null as deoutromeio,
+systimestamp as dtultalteracao, 
+'Vínculo de Cargo Comissionado concomitante com Vínculo de Cargo Efetivo.' as dejustificativa,
+'N' as flanulado,
+null as dtanulado
+from etrbisencaopartecontribuicao;

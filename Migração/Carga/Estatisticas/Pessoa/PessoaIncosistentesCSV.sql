@@ -14,7 +14,11 @@ select distinct lpad(trim(nucpf),11,0) as nucpf, nmpessoa, dtnascimento, flsexo,
 select distinct lpad(trim(nucpf),11,0) as nucpf, nmpessoa, dtnascimento, flsexo, nmmae, '4-REC' as origem from sigrhmig.emigvinculorecebidocsv union
 select distinct lpad(trim(nucpf),11,0) as nucpf, nmpessoa, dtnascimento, flsexo, nmmae, '5-CED' as origem from sigrhmig.emigvinculocedidocsv union
 select distinct lpad(trim(nucpf),11,0) as nucpf, nmpessoa, dtnascimento, flsexo, nmmae, '6-PNP' as origem from sigrhmig.emigvinculopensaonaoprevcsv union
+select distinct lpad(trim(nucpf),11,0) as nucpf, nmpessoa, dtnascimento, flsexo, nmmae, '9-PAG' as origem from sigrhmig.emigcapapagamentocsv
+where nuanoreferencia >= 2020
+union
 select distinct lpad(trim(nucpf),11,0) as nucpf, nmpessoa, to_char(to_date(dtnascimento, 'YYYY-MM-DD HH24:MI:SS'), 'DD/MM/YYYY') as dtnascimento, flsexo, nmmae, '9-PAG' as origem from sigrhmig.emigcapapagamentocsv
+where nuanoreferencia < 2020
 ),
 cpfsunicos as (
 select distinct nucpf from vinculos

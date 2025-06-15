@@ -33,7 +33,7 @@ inner join ecadhistorgao o on o.cdorgao = f.cdorgao
 inner join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
 inner join epagrubricaagrupamento arub on arub.cdrubricaagrupamento = pag.cdrubricaagrupamento
 inner join epagrubrica rub on rub.cdrubrica = arub.cdrubrica and rub.cdtiporubrica != 9
-where pag.vlpagamento != 0 and o.cdagrupamento = 1
+where pag.vlpagamento != 0 and o.cdagrupamento not in (1, 19)
 group by
  case a.sgagrupamento
   when 'ADM-DIR' then 'ADM-DIRETA'

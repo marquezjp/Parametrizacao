@@ -22,7 +22,7 @@ inner join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
 left join ecadhistcargoefetivo cef on cef.cdvinculo = v.cdvinculo
 left join ecadhistcargocom cco on cco.cdvinculo = v.cdvinculo
 left join epvdhistpensaonaoprev penesp on penesp.cdvinculobeneficiario = v.cdvinculo 
-where o.cdagrupamento = 1
+where o.cdagrupamento not in (1, 19)
 group by
  a.sgagrupamento,
  o.sgorgao,

@@ -9,6 +9,7 @@ select
  end as Agrupamento,
  lpad(f.nuanoreferencia,4,0) as Ano,
  lpad(f.numesreferencia,2,0) as Mes,
+ o.sgorgao as Orgao,
  case
    when upper(tfo.nmtipofolhapagamento) = 'FOLHA NORMAL' and upper(tc.nmtipocalculo) = 'SUPLEMENTAR' then upper(upper(trim(nmtipocalculo)))
    else upper(tfo.nmtipofolhapagamento)
@@ -27,7 +28,7 @@ inner join ecadhistorgao o on o.cdorgao = f.cdorgao
 inner join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
 
 where (capa.vlproventos != 0 or capa.vldescontos !=0)
-  and o.cdagrupamento = 1
+  and o.cdagrupamento not in (1, 19)
           
 group by
  case a.sgagrupamento
@@ -35,6 +36,7 @@ group by
   when 'MILITAR' then 'MILITAR'
   else 'ADM-INDIRETA'
  end,
+ o.sgorgao,
  f.nuanoreferencia,
  f.numesreferencia,
  case
@@ -44,7 +46,7 @@ group by
 ),
 
 totais_folha as (
-select Agrupamento, Ano, Mes,
+select Agrupamento, Ano, Mes, Orgao,
  Proventos, Descontos, Credito, Pagamentos,
  nvl(FOLHAS_NORMAL,0) as FOLHAS_MENSAIS,
  nvl(FOLHAS_SUPLEMENTARES,0) as FOLHAS_SUPLEMENTARES,
@@ -58,7 +60,7 @@ pivot (sum(Folhas) for TipoFolha in (
  'ADIANTAMENTO 13º' as FOLHAS_ADIANT_13_SALARIO
 )))
 
-select Agrupamento, Ano || lpad(Mes,2,0) as AnoMes, Ano, Mes, --Orgao,
+select Agrupamento, Ano || lpad(Mes,2,0) as AnoMes, Ano, Mes, Orgao,
  sum(Proventos) as Proventos,
  sum(Descontos) as Descontos,
  sum(Credito) as Credito,
@@ -68,7 +70,7 @@ select Agrupamento, Ano || lpad(Mes,2,0) as AnoMes, Ano, Mes, --Orgao,
  sum(FOLHAS_13_SALARIO) as FOLHAS_13_SALARIO,
  sum(FOLHAS_ADIANT_13_SALARIO) as FOLHAS_ADIANT_13_SALARIO
 from totais_folha
-group by Ano || lpad(Mes,2,0), Agrupamento, Ano, Mes
-order by Ano || lpad(Mes,2,0) desc, Agrupamento, Ano, Mes
+group by Ano || lpad(Mes,2,0), Agrupamento, Ano, Mes, Orgao
+order by Ano || lpad(Mes,2,0) desc, Agrupamento, Ano, Mes, Orgao
 ;
 

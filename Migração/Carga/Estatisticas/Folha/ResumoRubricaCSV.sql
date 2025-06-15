@@ -33,8 +33,18 @@ from json_table('{"depara":[
 columns (de, para)
 )),
 orgaos as (
+/* -- Origem CSV
 select upper(trim(sgagrupamento)) as sgagrupamento, upper(trim(sgorgao)) as sgorgao
 from sigrhmig.emigorgaocsv
+--union
+--select 'ADM-DIR' as sgagrupamento, 'SEGOD' as sgorgao from dual union
+--select 'ADM-DIR' as sgagrupamento, 'SELC'  as sgorgao from dual union
+--select 'ADM-DIR' as sgagrupamento, 'SEPI'  as sgorgao from dual
+*/
+--/* -- Origem SIGRH
+select distinct a.sgagrupamento, o.sgorgao from ecadhistorgao o
+inner join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
+--*/
 )
 
 select 

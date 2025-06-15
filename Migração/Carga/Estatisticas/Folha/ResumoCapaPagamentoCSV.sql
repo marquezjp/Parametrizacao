@@ -33,11 +33,18 @@ from json_table('{"depara":[
 columns (de, para)
 )),
 orgaos as (
+/* -- Origem CSV
 select upper(trim(sgagrupamento)) as sgagrupamento, upper(trim(sgorgao)) as sgorgao
-from sigrhmig.emigorgaocsv union
-select 'ADM-DIR' as sgagrupamento, 'SEGOD' as sgorgao from dual union
-select 'ADM-DIR' as sgagrupamento, 'SELC'  as sgorgao from dual union
-select 'ADM-DIR' as sgagrupamento, 'SEPI'  as sgorgao from dual
+from sigrhmig.emigorgaocsv
+--union
+--select 'ADM-DIR' as sgagrupamento, 'SEGOD' as sgorgao from dual union
+--select 'ADM-DIR' as sgagrupamento, 'SELC'  as sgorgao from dual union
+--select 'ADM-DIR' as sgagrupamento, 'SEPI'  as sgorgao from dual
+*/
+--/* -- Origem SIGRH
+select distinct a.sgagrupamento, o.sgorgao from ecadhistorgao o
+inner join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
+--*/
 )
 
 select
@@ -63,10 +70,9 @@ select
 from sigrhmig.emigcapapagamentocsv capa
 left join depara on upper(trim(depara.de)) = upper(trim(capa.sgorgao))
 left join orgaos o on upper(trim(o.sgorgao)) = nvl(upper(trim(depara.para)),upper(trim(capa.sgorgao)))
-
-where to_number(replace(trim(nvl(vlproventos, 0)), '.', ',')) != 0
-   or to_number(replace(trim(nvl(vldescontos, 0)), '.', ',')) != 0
-
+where (to_number(replace(trim(nvl(vlproventos, 0)), '.', ',')) != 0
+   or  to_number(replace(trim(nvl(vldescontos, 0)), '.', ',')) != 0)
+   --and lpad(trim(nuanoreferencia),4,0) = 2023   
 group by
  o.sgagrupamento,
  lpad(trim(nuanoreferencia),4,0) || lpad(trim(numesreferencia),2,0),

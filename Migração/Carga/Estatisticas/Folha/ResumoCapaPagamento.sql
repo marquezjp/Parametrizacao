@@ -12,7 +12,7 @@ select
  o.sgorgao as Orgao,
  upper(tfo.nmtipofolhapagamento) as Folha,
  upper(tc.nmtipocalculo) as Tipo,
- lpad(f.nusequencialfolha,2,0) as Seq,
+ lpad(trim(f.nusequencialfolha),2,0) as Seq,
 
  sum(nvl(capa.vlproventos, 0)) as Proventos,
  sum(nvl(capa.vldescontos, 0)) as Descontos,
@@ -28,7 +28,7 @@ inner join ecadhistorgao o on o.cdorgao = f.cdorgao
 inner join ecadagrupamento a on a.cdagrupamento = o.cdagrupamento
 where (   to_number(replace(trim(nvl(vlproventos, 0)), '.', ',')) != 0
        or to_number(replace(trim(nvl(vldescontos, 0)), '.', ',')) != 0)
-  and o.cdagrupamento = 1
+  and o.cdagrupamento not in (1, 19)
 
 group by
  case a.sgagrupamento
