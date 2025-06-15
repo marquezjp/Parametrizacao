@@ -26,6 +26,12 @@ define usuario = (select cdusuario from esegusuario where nucpf = '51902290259')
 select * from esegusuario
 where cdusuario = &usuario;
 
+delete from eseglogcampo
+where cdlogtabela in (select cdlogtabela from eseglogtabela
+                      where cdlog in (select cdlog from eseglog
+                                      where cdautorizacaoacesso in (select cdautorizacaoacesso from esegautorizacaoacesso
+                                                                    where cdusuario = &usuario)));
+
 delete from eseglogtabela
 where cdlog in (select cdlog from eseglog
                  where cdautorizacaoacesso in (select cdautorizacaoacesso from esegautorizacaoacesso where cdusuario = &usuario));
@@ -45,13 +51,13 @@ where cdautorizacaoacesso in (select cdautorizacaoacesso from esegautorizacaoace
 delete from esegautorizacaoperfil
 where cdautorizacaoacesso in (select cdautorizacaoacesso from esegautorizacaoacesso where cdusuario = &usuario);
 
-delete from esegautorizacaoacesso
-where cdusuario = &usuario;
-
 delete from eseghistsenhaacesso
 where cdusuario = &usuario;
 
 delete from esegusuariohistorico
+where cdusuario = &usuario;
+
+delete from esegautorizacaoacesso
 where cdusuario = &usuario;
 
 delete from esegusuario
