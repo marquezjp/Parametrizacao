@@ -1,0 +1,48 @@
+version: '3.3'
+
+# Name: SIGRHRRUbuntu
+# Usuário: sigrh
+# Senha: sigrh
+# 
+# Nome do Host: server.mrqz.me
+# Porta: 1521
+# Nome do Serviço: SIGRH
+# 
+# docker login container-registry.oracle.com
+# joaopaulo.marquez@gmail
+# BpwqD4=jOook7M+U#m_
+# 
+# docker pull container-registry.oracle.com/database/enterprise_ru:latest
+# 
+# docker exec -it Oracle bash -c "source /home/oracle/.bashrc; sqlplus /nolog"
+# 
+# connect sys as sysdba;
+# alter session set "_ORACLE_SCRIPT"=true;
+# create user jotape identified by jotape;
+# grant all privileges to jotape;
+# 
+# alter user sigrh identified by sigrh;
+# 
+# conn / as sysdba
+# select status from v$instance;
+# alter database mount;
+# alter database open;
+# 
+
+services:
+  db:
+    image: container-registry.oracle.com/database/enterprise
+    container_name: Oracle
+    hostname: dbserver
+    restart: always
+    ports:
+      - 1521:1521
+      - 8080:8080
+      - 5500:5500
+    environment:
+      - ORACLE_PWD=Oracle2023
+      - ORACLE_SID=SIGRH
+      - ORACLE_PDB=SIGRHDB1
+    volumes:
+      - P:\DBServer\Oracle\SIGRH-RR:/opt/oracle/oradata
+      - P:\DBServer\Oracle\SIGRH-RR\DUMP:/opt/oracle/oradata/datapump
