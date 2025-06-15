@@ -1,7 +1,7 @@
-userid=SIGRHMIG/sigrh@//10.48.1.68:1521/sigrhrrtst
+userid=SIGRHMIG/mS2u#Rh@//192.168.1.10:1521/sigrhprd
 control=emigcontracheque.ctl
 log=emigcontracheque.log
 bad=emigcontracheque.bad
-data='SIGRH-RR - Contracheque*.csv'
+data='SIGRH-RR-CONTRACHEQUE-202310*.csv'
 direct=true
 silent=header, feedback

@@ -1,36 +1,38 @@
-select * from emigcontracheque_202303221106;
+select * from emigcontrachequecsv_202310;
 /
 
-select count(*) from emigcontracheque_202303221106;
+select count(*) from emigcontrachequecsv_202310;
 /
 
-drop table emigcontracheque_202303221106;
+drop table emigcontrachequecsv_202310;
 /
 
-create table emigcontracheque_202303221106 (
-sgorgao varchar2(250),
-numatriculalegado varchar2(250),
-nucpf varchar2(250),
-nuanoreferencia varchar2(250),
-numesreferencia varchar2(250),
-nmtipofolha varchar2(250),
-nmtipocalculo varchar2(250),
-nusequencialfolha varchar2(250),
-nmtiporubrica varchar2(250),
-nurubrica varchar2(250),
-nmrubrica varchar2(250),
-nusufixorubrica varchar2(250),
-vlpagamento varchar2(250),
-vlindicerubrica varchar2(250),
-detipoindice varchar2(250),
-qtparcelas varchar2(250),
-nuparcela varchar2(250),
-nuanomesrefdirefenca varchar2(250),
-nucpfbenfpensaoalimento varchar2(250),
-nuprocessoretroativo varchar2(250),
-qtmeses varchar2(250)
+create table emigcontrachequecsv_202310 (
+nuseq number, 
+sgorgao varchar2(200 byte), 
+numatriculalegado varchar2(200 byte), 
+nucpf varchar2(200 byte), 
+nuanoreferencia varchar2(200 byte), 
+numesreferencia varchar2(200 byte), 
+nuanomesrefdiferenca varchar2(200 byte), 
+nmtipofolha varchar2(200 byte), 
+nmtipocalculo varchar2(200 byte), 
+nusequencialfolha varchar2(200 byte), 
+nmtiporubrica varchar2(200 byte), 
+nurubrica varchar2(200 byte), 
+nmrubrica varchar2(200 byte), 
+nusufixorubrica varchar2(200 byte), 
+vlpagamento varchar2(200 byte), 
+vlindicerubrica varchar2(200 byte), 
+detipoindice varchar2(200 byte), 
+qtparcelas varchar2(200 byte), 
+nuparcela varchar2(200 byte), 
+nucpfbenfpensaoalimento varchar2(200 byte), 
+nuprocessoretroativo varchar2(200 byte), 
+qtmeses varchar2(200 byte), 
+dtadmissao varchar2(200 byte)
 );
+/
 
-grant select on emigcontracheque_202303221106 to SIGRH;
-
+grant select on emigcontrachequecsv_202310 to sigrh;
 /

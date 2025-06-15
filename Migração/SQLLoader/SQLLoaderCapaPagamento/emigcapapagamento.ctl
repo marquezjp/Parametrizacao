@@ -1,14 +1,15 @@
 options (skip=1)
 load data
 characterset UTF8
-into table emigcapapagamento_202303201002
+into table emigcapapagamentocsv_202310
 insert
 fields terminated by';'
 trailing nullcols (
+nuseq sequence(max,1),
 sgorgao,
 numatriculalegado,
 nucpf,
-flgopcao13,
+flopcao13salario,
 nuanoreferencia,
 numesreferencia,
 nmtipofolha,
@@ -45,14 +46,14 @@ decentrocusto,
 nudependentes,
 dtinicioafastamento,
 dtfimafastamento,
-dtfimprevistoafa,
+dtfimprevistoafastamento,
 fltipoafastamento,
 flremunerado,
 flremuneracaointegral,
 demotivoafastamento,
 nmgrupomotivoafastamento,
 flacidentetrabalho,
-deobservacao,
+deobservacaoafastamento,
 nubancocredito,
 nuagenciacredito,
 nucontacredito,
@@ -67,7 +68,7 @@ deespecialidade,
 nunivelcef,
 nureferenciacef,
 fltipoocupacao,
-nmgrupoocupacional,
+degrupocomissionado,
 decargocomissionado,
 nunivelcco,
 nureferenciacco,

@@ -1,16 +1,17 @@
 options (skip=1)
 load data
 characterset UTF8
-into table emigcontracheque_202303201320
+into table emigcontrachequecsv_202310
 insert
 fields terminated by';'
 trailing nullcols (
+nuseq sequence(max,1),
 sgorgao,
 numatriculalegado,
 nucpf,
 nuanoreferencia,
 numesreferencia,
-nuanomesrefdirefenca,
+nuanomesrefdiferenca,
 nmtipofolha,
 nmtipocalculo,
 nusequencialfolha,
@@ -25,5 +26,6 @@ qtparcelas,
 nuparcela,
 nucpfbenfpensaoalimento,
 nuprocessoretroativo,
-qtmeses
+qtmeses,
+dtadmissao
 )
