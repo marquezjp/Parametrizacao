@@ -1,3 +1,13 @@
+select lower(col.table_name) as TableName, lower(col.column_name) as ColumnName, data_type as ColumnType, data_length as ColumnLength, col.column_id as Id
+from all_tab_columns col
+--where col.table_name = upper('ecadvinculo') order by  col.column_id;
+where col.column_name like upper('cdafastamento')
+  and col.table_name like upper('eafa%')
+order by col.table_name, col.column_name
+;
+
+---------------------------------------------------
+
 select
  lower(substr(col.table_name,1,4)) as SubSystem,
  lower(col.table_name) as TableName,
