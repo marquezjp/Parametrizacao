@@ -13,7 +13,7 @@ CREATE OR REPLACE TYPE tpConfiguracaoResumo AS OBJECT (
   sgOrgao         VARCHAR2(15),
   sgModulo        VARCHAR2(3),
   sgConceito      VARCHAR2(20),
-  dtExportacao    TIMESTAMP,
+  dtExportacao    VARCHAR2(25),
   nuConteudos     NUMBER
 );
 
@@ -23,7 +23,7 @@ CREATE OR REPLACE TYPE tpConfiguracaoListar AS OBJECT (
   sgOrgao         VARCHAR2(15),
   sgModulo        VARCHAR2(3),
   sgConceito      VARCHAR2(20),
-  dtExportacao    TIMESTAMP,
+  dtExportacao    VARCHAR2(25),
   cdIdentificacao VARCHAR2(20), 
   jsConteudo      CLOB
 );

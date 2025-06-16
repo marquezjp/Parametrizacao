@@ -1,5 +1,21 @@
 -- ===========================================================================
 --- Como executar o Pacote de exportação das configurações de rubricas
+SET SERVEROUTPUT ON;
+EXEC PKGMIG_ConfiguracaoPadrao.PExportar('ADM-DIR', 'VALORREFERENCIA');
+
+select * from table(PKGMIG_ConfiguracaoPadrao.fnResumo(psgConceito => 'VALORREFERENCIA'));
+select * from table(PKGMIG_ConfiguracaoPadrao.fnListar('ADM-DIR', NULL, 'PAG', 'VALORREFERENCIA', '15/06/2025 13:47:01'));
+
+select * from table(PKGMIG_ConfiguracaoPadrao.fnResumoLog(psgConceito => 'VALORREFERENCIA'));
+select * from table(PKGMIG_ConfiguracaoPadrao.fnListarLog('EXPORTACAO', '20250615134701'));
+
+EXEC PKGMIG_ConfiguracaoPadrao.PExcluirLog('EXPORTACAO', '20250615132310', 'ADM-DIR', 'PAG', 'VALORREFERENCIA');
+
+select * from emigConfiguracaoPadrao
+--delete from emigConfiguracaoPadrao
+where TO_CHAR(dtExportacao, 'DD/MM/YYYY HH24:MI:SS') = '15/06/2025 13:23:10'
+;
+
 EXEC PKGMIG_ConfiguracaoPadrao.PExportar('INDIR-FEMARH', 'BASE');
 EXEC PKGMIG_ConfiguracaoPadrao.PExportar('INDIR-IPEM/RR', 'BASE');
 EXEC PKGMIG_ConfiguracaoPadrao.PExportar('MILITAR', 'BASE');

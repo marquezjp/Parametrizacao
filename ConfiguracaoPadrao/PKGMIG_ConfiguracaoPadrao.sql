@@ -1,5 +1,8 @@
 --- Pacote de Exportação e Importação das Configurações Padrão
 CREATE OR REPLACE PACKAGE PKGMIG_ConfiguracaoPadrao AS
+
+  TYPE tpLista IS TABLE OF VARCHAR2(50) INDEX BY PLS_INTEGER;
+
   -- Constantes de nível de debug
   cDEBUG_NIVEL_0   CONSTANT PLS_INTEGER := 0;
   cDEBUG_DESLIGADO CONSTANT PLS_INTEGER := 1;
@@ -27,12 +30,26 @@ CREATE OR REPLACE PACKAGE PKGMIG_ConfiguracaoPadrao AS
     pnuNivelLog IN NUMBER DEFAULT NULL, pnuDEBUG IN NUMBER DEFAULT NULL
   );
 
+  PROCEDURE PAtualizarSequence(psgAgrupamento IN VARCHAR2, psgOrgao IN VARCHAR2,
+    ptpOperacao IN VARCHAR2, pdtOperacao IN TIMESTAMP,
+    psgModulo IN CHAR, psgConceito IN VARCHAR2,
+--    pListaTabelas IN tpLista,
+    pnuDEBUG IN NUMBER DEFAULT NULL
+  );
+
+  PROCEDURE pGerarResumo(psgAgrupamento IN VARCHAR2, psgOrgao IN VARCHAR2,
+    ptpOperacao IN VARCHAR2, pdtOperacao IN TIMESTAMP,
+    psgModulo IN CHAR, psgConceito IN VARCHAR2,
+    pdtTermino IN TIMESTAMP, pnuTempoExcusao IN INTERVAL DAY TO SECOND,
+    pnuDEBUG IN NUMBER DEFAULT NULL
+  );
+
   FUNCTION fnResumo (psgAgrupamento IN VARCHAR2 DEFAULT NULL, psgOrgao IN VARCHAR2 DEFAULT NULL,
-    psgModulo IN CHAR DEFAULT NULL, psgConceito IN VARCHAR2 DEFAULT NULL, pdtExportacao IN TIMESTAMP DEFAULT NULL
+    psgModulo IN CHAR DEFAULT NULL, psgConceito IN VARCHAR2 DEFAULT NULL, pdtExportacao IN VARCHAR2 DEFAULT NULL
   ) RETURN tpConfiguracaoResumoTabela PIPELINED;
 
   FUNCTION fnListar (psgAgrupamento IN VARCHAR2, psgOrgao IN VARCHAR2,
-    psgModulo IN CHAR, psgConceito IN VARCHAR2, pdtExportacao IN TIMESTAMP
+    psgModulo IN CHAR, psgConceito IN VARCHAR2, pdtExportacao IN VARCHAR2
   ) RETURN tpConfiguracaoListarTabela PIPELINED;
 
   FUNCTION fnResumoLog(psgAgrupamento IN VARCHAR2 DEFAULT NULL, psgOrgao IN VARCHAR2 DEFAULT NULL,

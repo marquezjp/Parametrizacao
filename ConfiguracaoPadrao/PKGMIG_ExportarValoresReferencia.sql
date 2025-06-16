@@ -5,8 +5,8 @@ CREATE OR REPLACE PACKAGE PKGMIG_ExportarValoresReferencia AS
   --   Importar dados das Formulas de Calculo a partir da Configuração Padrão JSON
   -- 
   -- ValorReferencia => epagValorReferencia
-  --  └── VersaoValorReferencia => epagValorReferenciaVersao
-  --          └── VigenciasValorReferencia => epagHistValorReferencia
+  --  └── Versões => epagValorReferenciaVersao
+  --          └── Vigencias => epagHistValorReferencia
   --
   -- PROCEDURE:
   --   PExportar
@@ -21,6 +21,8 @@ CREATE OR REPLACE PACKAGE PKGMIG_ExportarValoresReferencia AS
   cDEBUG_NIVEL_3   CONSTANT PLS_INTEGER := 4;
 
   PROCEDURE pExportar(psgAgrupamento IN VARCHAR2, pnuDEBUG IN NUMBER DEFAULT NULL);
-  FUNCTION fnCursorValoresReferencia(psgAgrupamento IN VARCHAR2) RETURN SYS_REFCURSOR;
+  FUNCTION fnCursorValoresReferencia(psgAgrupamento IN VARCHAR2, psgOrgao IN VARCHAR2,
+    psgModulo IN CHAR, psgConceito IN VARCHAR2, pdtExportacao IN TIMESTAMP,
+    pnuVersao IN CHAR, pflAnulado IN CHAR) RETURN SYS_REFCURSOR;
 END PKGMIG_ExportarValoresReferencia;
 /

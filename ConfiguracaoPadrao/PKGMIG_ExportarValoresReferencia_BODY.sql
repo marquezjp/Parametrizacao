@@ -28,20 +28,21 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarValoresReferencia AS
     vsgAgrupamento      VARCHAR2(15) := Null;
     vsgOrgao            VARCHAR2(15) := Null;
     vsgModulo           CHAR(3)      := 'PAG';
-    vsgConceito         VARCHAR2(20) := 'VALOR REFERENCIA';
+    vsgConceito         VARCHAR2(20) := 'VALORREFERENCIA';
+    vdtExportacao       TIMESTAMP    := LOCALTIMESTAMP;
     vcdIdentificacao    VARCHAR2(20) := Null;
+    vjsConteudo         CLOB         := Null;
     vnuVersao           CHAR(04)     := '1.00';
     vflAnulado          CHAR(01)     := 'N';
+    vdtInclusao         TIMESTAMP    := NULL;
 
     vtpOperacao         VARCHAR2(15) := 'EXPORTACAO';
     vdtOperacao         TIMESTAMP    := LOCALTIMESTAMP;
-    vdtExportacao       TIMESTAMP    := LOCALTIMESTAMP;
     vdtTermino          TIMESTAMP    := LOCALTIMESTAMP;
     vnuTempoExecucao    INTERVAL DAY TO SECOND := NULL;
     vnuRegistros        NUMBER       := 0;
 
     vnuInseridos        NUMBER       := 0;
-    vjsConteudo         CLOB         := Null;
     vResumoEstatisticas CLOB         := Null;
 
     -- Cursor que extrai e transforma os dados JSON de Rubricas e Tipos de Rubricas
@@ -60,7 +61,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarValoresReferencia AS
 	-- Loop principal de processamento
 	LOOP
       FETCH vRefCursor INTO vsgAgrupamento, vsgOrgao, vsgModulo, vsgConceito, vdtExportacao,
-        vcdIdentificacao, vjsConteudo, vnuVersao, vflAnulado;
+        vcdIdentificacao, vjsConteudo, vnuVersao, vflAnulado, vdtInclusao;
       EXIT WHEN vRefCursor%NOTFOUND;
 
       PKGMIG_ConfiguracaoPadrao.PConsoleLog('Exportação do Valor de Referencia ' || vcdIdentificacao);
@@ -73,7 +74,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarValoresReferencia AS
         vcdIdentificacao, vjsConteudo, vnuVersao, vflAnulado
       );
 
-      PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamento, vsgOrgao,
+      vnuInseridos := vnuInseridos + 1;
+      PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao, 
         vsgModulo, vsgConceito, vcdIdentificacao, 1,
         'VALORES REFERENCIA', 'INCLUSAO', 'Documento JSON ValoresReferencia incluidos com sucesso',
         cDEBUG_DESLIGADO, pnuDEBUG);
