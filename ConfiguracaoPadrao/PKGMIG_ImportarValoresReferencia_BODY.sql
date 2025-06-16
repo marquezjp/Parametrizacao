@@ -38,6 +38,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarValoresReferencia AS
     vcdValorReferenciaNova NUMBER       := Null;
     vnuInseridos           NUMBER       := 0;
     vnuAtualizados         NUMBER       := 0;
+    vtxResumo              VARCHAR2(4000) := NULL;
     vResumoEstatisticas    CLOB         := Null;
 
     vdtTermino          TIMESTAMP    := LOCALTIMESTAMP;
@@ -110,8 +111,10 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarValoresReferencia AS
     vnuInseridos := 0;
     vnuAtualizados := 0;
 
-    PKGMIG_ConfiguracaoPadrao.PConsoleLog('Inicio da Importação das Configurações do Agrupamento ' || psgAgrupamentoOrigem ||
-      ' para o Agrupamento ' || psgAgrupamentoDestino || ', Data da Operação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI'),
+    PKGMIG_ConfiguracaoPadrao.PConsoleLog('Inicio da Importação das Parametrizações dos ' ||
+      'Valores de Referencia do Agrupamento ' || psgAgrupamentoOrigem || ' ' ||
+      'para o Agrupamento ' || psgAgrupamentoDestino || ', ' || CHR(13) || CHR(10) ||
+      'Data da Operação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
       cDEBUG_DESLIGADO, pnuDEBUG);
 
     IF cDEBUG_DESLIGADO != pnuDEBUG THEN
@@ -178,29 +181,40 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarValoresReferencia AS
       pImportarVersoes(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
         vsgModulo, vsgConceito, vcdIdentificacao, vcdValorReferenciaNova, r.Versoes, pnuDEBUG);
 
+      COMMIT;
+
     END LOOP;
 
     -- Atualizar a SEQUENCE das Tabela Envolvidas na importação das Rubricas
     --PAtuializarSequence(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
     --  vsgModulo, vsgConceito);
 
-    -- Gerar as Estatísticas da Importação das Rubricas
+    -- Gerar as Estatísticas da Importação dos Valores de Referencia
     vdtTermino := LOCALTIMESTAMP;
     vnuTempoExecucao := vdtTermino - vdtOperacao;
+    vtxResumo := 
+      'Agrupamento ' || psgAgrupamentoOrigem || ' para o ' ||
+      'Agrupamento ' || psgAgrupamentoDestino || ', ' || CHR(13) || CHR(10) ||
+      'Data e Hora da Inicio da Operação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS')  || ', ' || CHR(13) || CHR(10) ||
+      'Data e Hora da Termino da Operação ' || TO_CHAR(vdtTermino, 'DD/MM/YYYY HH24:MI:SS')  || ', ' || CHR(13) || CHR(10) ||
+	  'Tempo de Execução ' ||
+	    LPAD(EXTRACT(HOUR FROM vnuTempoExecucao), 2, '0') || ':' ||
+	    LPAD(EXTRACT(MINUTE FROM vnuTempoExecucao), 2, '0') || ':' ||
+	    LPAD(TRUNC(EXTRACT(SECOND FROM vnuTempoExecucao)), 2, '0') || ', ' || CHR(13) || CHR(10) ||
+	  'Total de Parametrizações dos Valores de Referencia Incluidas: ' || vnuInseridos ||
+      ' e Alteradas: ' || vnuAtualizados;
 
     --pImportarResumo(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
     --  vsgModulo, vsgConceito, vdtTermino, vnuTempoExecucao);
 
-    PKGMIG_ConfiguracaoPadrao.PConsoleLog('Termino da Importação das Configurações do ' ||
-      'Agrupamento ' || psgAgrupamentoOrigem || ' para o ' ||
-      'Agrupamento ' || psgAgrupamentoDestino || ', ' ||
-      'Data e Hora da Inicio da Operação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS')  || ', ' ||
-      'Data e Hora da Termino da Operação ' || TO_CHAR(vdtTermino, 'DD/MM/YYYY HH24:MI:SS')  || ', ' ||
-	  'Tempo de Execução ' ||
-	    LPAD(EXTRACT(HOUR FROM vnuTempoExecucao), 2, '0') || ':' ||
-	    LPAD(EXTRACT(MINUTE FROM vnuTempoExecucao), 2, '0') || ':' ||
-	    LPAD(EXTRACT(SECOND FROM vnuTempoExecucao), 2, '0') || '.'
-    );
+    -- Registro de Resumo da Exportação dos Valores de Referencia
+    PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
+      vsgModulo, vsgConceito, NULL, NULL,
+      'VALORES REFERENCIA', 'RESUMO', 'Importação das Parametrizações dos Valores de Referencia do ' || vtxResumo, 
+      cDEBUG_DESLIGADO, pnuDEBUG);
+
+    PKGMIG_ConfiguracaoPadrao.PConsoleLog('Termino da Importação das Parametrizações dos Valores de Referencia do ' ||
+      vtxResumo, cDEBUG_DESLIGADO, pnuDEBUG);
 
   EXCEPTION
     WHEN OTHERS THEN
@@ -262,7 +276,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarValoresReferencia AS
     vcdIdentificacao := pcdIdentificacao;
 
     PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação do Valor de Referencia - ' ||
-      'Excluir Verões e Vigencias ' || vcdIdentificacao, cDEBUG_NIVEL_2, pnuDEBUG);
+      'Excluir Versões e Vigencias ' || vcdIdentificacao, cDEBUG_NIVEL_2, pnuDEBUG);
 
     -- Excluir as Vigências do Valor de Referencia
 	SELECT COUNT(*) INTO vnuRegistros FROM epagHistValorReferencia Vigencias
@@ -278,10 +292,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarValoresReferencia AS
 
       PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
-        'VALOR REFERENCIA VIGENCIA', 'EXCLUSAO', 'Vigências do Valore de Referencia excluidos com sucesso' ||
-        ' cDEBUG_DESLIGADO: ' || cDEBUG_DESLIGADO || ' pnuDEBUG: ' || pnuDEBUG,
-        1, 1);
---        cDEBUG_DESLIGADO, pnuDEBUG);
+        'VALOR REFERENCIA VIGENCIA', 'EXCLUSAO', 'Vigências do Valore de Referencia excluidos com sucesso',
+        cDEBUG_NIVEL_2, pnuDEBUG);
 	END IF;
 
     -- Excluir as Versões do Valore Referencia
@@ -294,10 +306,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarValoresReferencia AS
 
       PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
-        'VALOR REFERENCIA VERCAO', 'EXCLUSAO', 'Versões do Valore de Referencia excluidos com sucesso' ||
-        ' cDEBUG_DESLIGADO: ' || cDEBUG_DESLIGADO || ' pnuDEBUG: ' || pnuDEBUG,
-        1, 1);
---        cDEBUG_DESLIGADO, pnuDEBUG);
+        'VALOR REFERENCIA VERCAO', 'EXCLUSAO', 'Versões do Valore de Referencia excluidos com sucesso',
+        cDEBUG_NIVEL_2, pnuDEBUG);
 	END IF;
 
   EXCEPTION
@@ -372,7 +382,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarValoresReferencia AS
     vcdIdentificacao := pcdIdentificacao;
 
     PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação do Valor de Referencia - Versões ' ||
-      vcdIdentificacao, cDEBUG_DESLIGADO, pnuDEBUG);
+      vcdIdentificacao, cDEBUG_NIVEL_1, pnuDEBUG);
 
     -- Loop principal de processamento para Incluir as Versões do Valor de Referencia
     FOR r IN cDados LOOP
@@ -380,7 +390,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarValoresReferencia AS
 	  vcdIdentificacao := pcdIdentificacao || ' ' || r.nuVersao;
 
       PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação do Valor de Referencia - Versões ' || vcdIdentificacao,
-        cDEBUG_NIVEL_1, pnuDEBUG);
+        cDEBUG_NIVEL_2, pnuDEBUG);
 
 	  -- Inserir na tabela epagBaseCalculoVersao
 	  SELECT NVL(MAX(cdValorReferenciaVersao), 0) + 1 INTO vcdValorReferenciaVersaoNova FROM epagValorReferenciaVersao;
@@ -393,10 +403,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarValoresReferencia AS
 
       PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'VALOR REFERENCIA VERCAO', 'INCLUSAO', 'Versão do Valor de Referencia incluido com sucesso' ||
-        ' cDEBUG_DESLIGADO: ' || cDEBUG_DESLIGADO || ' pnuDEBUG: ' || pnuDEBUG,
-        1, 1);
---        cDEBUG_DESLIGADO, pnuDEBUG);
+        'VALOR REFERENCIA VERCAO', 'INCLUSAO', 'Versão do Valor de Referencia incluido com sucesso',
+        cDEBUG_NIVEL_2, pnuDEBUG);
 
       -- Importar Vigências da Formula de Cálculo
       pImportarVigencias(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
@@ -531,7 +539,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarValoresReferencia AS
     vcdIdentificacao := pcdIdentificacao;
 
     PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação do Valor de Referencia - ' || 'Vigências ' || vcdIdentificacao,
-      cDEBUG_DESLIGADO, pnuDEBUG);
+      cDEBUG_NIVEL_1, pnuDEBUG);
 
     -- Loop principal de processamento
     FOR r IN cDados LOOP
@@ -539,7 +547,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarValoresReferencia AS
        vcdIdentificacao := pcdIdentificacao || ' ' || lpad(r.nuAnoInicioVigencia,4,0) || lpad(r.nuMesInicioVigencia,2,0);
 
       PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação do Valor de Referencia - Vigências ' || vcdIdentificacao,
-        cDEBUG_NIVEL_1, pnuDEBUG);
+        cDEBUG_NIVEL_2, pnuDEBUG);
 
       -- Verificar se existe a Tabela Geral de Salarios dos Cargos Efetivos no Agrupamento Destino
       IF r.cdValorGeralCEFAgrup IS NULL AND r.sgValorGeralCEFAgrup IS NOT NULL THEN
@@ -559,7 +567,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarValoresReferencia AS
       -- Verificar se vlReferncia é Numerico e formatar para número.
       IF NOT REGEXP_LIKE(TO_CHAR(r.vlReferencia), '^[-+]?\d+(\.\d+)?$') THEN
         PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação do Valor de Referencia - Vigências ' || vcdIdentificacao ||
-          ' Valor da Referencia é não numerico ou nulo (' || TO_CHAR(r.vlReferencia) || ')',
+          'Valor da Referencia é não numerico ou nulo (' || TO_CHAR(r.vlReferencia) || ')',
           cDEBUG_DESLIGADO, pnuDEBUG);
 
         PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
@@ -570,12 +578,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarValoresReferencia AS
           
           vvlReferencia := 0;
       ELSE
-        PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
-          psgModulo, psgConceito, vcdIdentificacao, 1,
-          'VALOR REFERENCIA VIGENCIA', 'INCONSISTENCIA',
-          ' Valor da Referencia é numerico (' || TO_CHAR(r.vlReferencia) || ')',
-          cDEBUG_DESLIGADO, pnuDEBUG);
-
           vvlReferencia := TO_NUMBER(r.vlReferencia, '9999999990D99', 'NLS_NUMERIC_CHARACTERS=''.,''');
       END IF;
 
@@ -598,7 +600,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarValoresReferencia AS
 
       PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'VALOR REFERENCIA VIGENCIA', 'INCLUSAO', 'Vigência do Valor de Referencia incluidos com sucesso');
+        'VALOR REFERENCIA VIGENCIA', 'INCLUSAO', 'Vigência do Valor de Referencia incluidos com sucesso',
+        cDEBUG_NIVEL_1, pnuDEBUG);
 
     END LOOP;
 
