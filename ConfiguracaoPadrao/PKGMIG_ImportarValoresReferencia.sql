@@ -3,7 +3,7 @@ CREATE OR REPLACE PACKAGE PKGMIG_ImportarValoresReferencia AS
   -- ###########################################################################
   -- PACOTE: PKGMIG_ImportarValoresReferencia
   --   Importar dados dos Valors de Referencia a partir da Configuração Padrão JSON
-  --   contida na tabela emigConfiguracaoPadrao, realizando:
+  --   contida na tabela emigConfiguracaoPadrao.
   -- 
   -- ValorReferencia => epagValorReferencia
   --  └── Versões => epagValorReferenciaVersao

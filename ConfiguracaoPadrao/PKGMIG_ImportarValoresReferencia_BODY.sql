@@ -1,4 +1,4 @@
--- Corpo do Pacote de Importação das Parametrizações de Rubricas
+-- Corpo do Pacote de Importação das Parametrizações dos Valores de Referencia
 CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarValoresReferencia AS
 
   PROCEDURE pImportar(
@@ -145,7 +145,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarValoresReferencia AS
           r.dtUltAlteracao
         );
 
-		vnuInseridos := vnuInseridos + 1;
+        vnuInseridos := vnuInseridos + 1;
         PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
           vsgModulo, vsgConceito, vcdIdentificacao, 1,
           'VALOR REFERENCIA', 'INCLUSAO', 'Valor de Referencia incluido com sucesso',
@@ -292,7 +292,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarValoresReferencia AS
 
       PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
-        'VALOR REFERENCIA VIGENCIA', 'EXCLUSAO', 'Vigências do Valore de Referencia excluidos com sucesso',
+        'VIGENCIA', 'EXCLUSAO', 'Vigências do Valore de Referencia excluidos com sucesso',
         cDEBUG_NIVEL_2, pnuDEBUG);
 	END IF;
 
@@ -306,7 +306,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarValoresReferencia AS
 
       PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
-        'VALOR REFERENCIA VERCAO', 'EXCLUSAO', 'Versões do Valore de Referencia excluidos com sucesso',
+        'VERCAO', 'EXCLUSAO', 'Versões do Valore de Referencia excluidos com sucesso',
         cDEBUG_NIVEL_2, pnuDEBUG);
 	END IF;
 
@@ -389,8 +389,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarValoresReferencia AS
 
 	  vcdIdentificacao := pcdIdentificacao || ' ' || r.nuVersao;
 
-      PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação do Valor de Referencia - Versões ' || vcdIdentificacao,
-        cDEBUG_NIVEL_2, pnuDEBUG);
+    PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação do Valor de Referencia - Versões ' || vcdIdentificacao,
+      cDEBUG_NIVEL_2, pnuDEBUG);
 
 	  -- Inserir na tabela epagBaseCalculoVersao
 	  SELECT NVL(MAX(cdValorReferenciaVersao), 0) + 1 INTO vcdValorReferenciaVersaoNova FROM epagValorReferenciaVersao;
@@ -403,7 +403,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarValoresReferencia AS
 
       PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'VALOR REFERENCIA VERCAO', 'INCLUSAO', 'Versão do Valor de Referencia incluido com sucesso',
+        'VERCAO', 'INCLUSAO', 'Versão do Valor de Referencia incluido com sucesso',
         cDEBUG_NIVEL_2, pnuDEBUG);
 
       -- Importar Vigências da Formula de Cálculo
@@ -415,11 +415,11 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarValoresReferencia AS
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação das Versão do Valor de Referencia ' ||
-        vcdIdentificacao, cDEBUG_DESLIGADO, pnuDEBUG);
+      PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação do Valor de Referencia ' || vcdIdentificacao ||
+        ' VERCAO Erro: ' || SQLERRM, cDEBUG_DESLIGADO, pnuDEBUG);
       PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'VALOR REFERENCIA VERCAO', 'ERRO', 'Erro: ' || SQLERRM, cDEBUG_DESLIGADO, pnuDEBUG);
+        'VERCAO', 'ERRO', 'Erro: ' || SQLERRM, cDEBUG_DESLIGADO, pnuDEBUG);
     ROLLBACK;
     RAISE;
   END pImportarVersoes;
@@ -544,7 +544,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarValoresReferencia AS
     -- Loop principal de processamento
     FOR r IN cDados LOOP
 
-       vcdIdentificacao := pcdIdentificacao || ' ' || lpad(r.nuAnoInicioVigencia,4,0) || lpad(r.nuMesInicioVigencia,2,0);
+      vcdIdentificacao := pcdIdentificacao || ' ' || lpad(r.nuAnoInicioVigencia,4,0) || lpad(r.nuMesInicioVigencia,2,0);
 
       PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação do Valor de Referencia - Vigências ' || vcdIdentificacao,
         cDEBUG_NIVEL_2, pnuDEBUG);
@@ -558,7 +558,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarValoresReferencia AS
 
         PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
           psgModulo, psgConceito, vcdIdentificacao, 1,
-          'VALOR REFERENCIA VIGENCIA', 'INCONSISTENCIA',
+          'VIGENCIA', 'INCONSISTENCIA',
           'Sigla da Tabela Geral CEF' || ' (' || r.sgValorGeralCEFAgrup || ') ' ||
           'da Vigência do Valor de Referencia não encontrada no Agrupamento',
           cDEBUG_DESLIGADO, pnuDEBUG);
@@ -572,7 +572,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarValoresReferencia AS
 
         PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
           psgModulo, psgConceito, vcdIdentificacao, 1,
-          'VALOR REFERENCIA VIGENCIA', 'INCONSISTENCIA',
+          'VIGENCIA', 'INCONSISTENCIA',
           ' Valor da Referencia é não numerico ou nulo (' || TO_CHAR(r.vlReferencia) || ')',
           cDEBUG_DESLIGADO, pnuDEBUG);
           
@@ -600,7 +600,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarValoresReferencia AS
 
       PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'VALOR REFERENCIA VIGENCIA', 'INCLUSAO', 'Vigência do Valor de Referencia incluidos com sucesso',
+        'VIGENCIA', 'INCLUSAO', 'Vigência do Valor de Referencia incluidos com sucesso',
         cDEBUG_NIVEL_1, pnuDEBUG);
 
     END LOOP;
@@ -608,11 +608,11 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarValoresReferencia AS
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação das Vigência do Valor de Referencia ' ||
-      vcdIdentificacao || ' VALOR REFERENCIA Erro: ' || SQLERRM, cDEBUG_DESLIGADO, pnuDEBUG);
+      PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação do Valor de Referencia ' || vcdIdentificacao ||
+        ' VIGENCIA Erro: ' || SQLERRM, cDEBUG_DESLIGADO, pnuDEBUG);
       PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'VALOR REFERENCIA VIGENCIA', 'ERRO', 'Erro: ' || SQLERRM, cDEBUG_DESLIGADO, pnuDEBUG);
+        'VIGENCIA', 'ERRO', 'Erro: ' || SQLERRM, cDEBUG_DESLIGADO, pnuDEBUG);
     ROLLBACK;
     RAISE;
   END pImportarVigencias;

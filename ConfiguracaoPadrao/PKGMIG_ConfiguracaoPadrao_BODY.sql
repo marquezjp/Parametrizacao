@@ -21,8 +21,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
         PKGMIG_ExportarValoresReferencia.pExportar(psgAgrupamento, vnuDEBUG);
       WHEN 'BASE' THEN
         PKGMIG_ExportarBasesCalculo.pExportar(psgAgrupamento, vnuDEBUG);
---      WHEN 'RUBRICA' THEN
---        PKGMIG_ExportarRubricas.pExportar(psgAgrupamento, vnuDEBUG);
+      WHEN 'RUBRICA' THEN
+        PKGMIG_ExportarRubricas.pExportar(psgAgrupamento, vnuDEBUG);
       ELSE
         RAISE_APPLICATION_ERROR(-20001, 'Conceito não suportado: ' || psgConceito);
     END CASE;
