@@ -1,8 +1,8 @@
---- Pacote de Exportação e Importação das Configurações Padrão
+--- Pacote de Exportação das Parametrizações de Bases de Calculo
 CREATE OR REPLACE PACKAGE PKGMIG_ExportarBasesCalculo AS
   -- ###########################################################################
   -- PACOTE: PKGMIG_ExportarBasesCalculo
-  --   Importar dados das Formulas de Calculo a partir da Configuração Padrão JSON
+  --   Exportar dados de Bases de Calculo para Configuração Padrão JSON
   -- 
   -- Bases => epagBaseCalculo
   --  └── Versões => epagBaseCalculoVersao
@@ -23,7 +23,9 @@ CREATE OR REPLACE PACKAGE PKGMIG_ExportarBasesCalculo AS
   cDEBUG_NIVEL_2   CONSTANT PLS_INTEGER := 3;
   cDEBUG_NIVEL_3   CONSTANT PLS_INTEGER := 4;
 
-  PROCEDURE PExportar(psgAgrupamento IN VARCHAR2);
-  FUNCTION fnCursorBases(psgAgrupamento IN VARCHAR2) RETURN SYS_REFCURSOR;
+  PROCEDURE PExportar(psgAgrupamento IN VARCHAR2, pnuDEBUG IN NUMBER DEFAULT NULL);
+  FUNCTION fnCursorBases(psgAgrupamento IN VARCHAR2, psgOrgao IN VARCHAR2,
+    psgModulo IN CHAR, psgConceito IN VARCHAR2, pdtExportacao IN TIMESTAMP,
+    pnuVersao IN CHAR, pflAnulado IN CHAR) RETURN SYS_REFCURSOR;
 END PKGMIG_ExportarBasesCalculo;
 /
