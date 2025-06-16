@@ -1,4 +1,4 @@
--- Corpo do Pacote de Importação das Parametrizações de Valores de Referencia
+-- Corpo do Pacote de Exportação das Parametrizações de Valores de Referencia
 CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarValoresReferencia AS
   PROCEDURE pExportar(
   -- ###########################################################################
@@ -22,7 +22,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarValoresReferencia AS
   --
   -- ###########################################################################
     psgAgrupamento        IN VARCHAR2,
-	pnuDEBUG              IN NUMBER DEFAULT NULL
+    pnuDEBUG              IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
     vsgAgrupamento      VARCHAR2(15) := Null;
@@ -41,30 +41,35 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarValoresReferencia AS
     vdtTermino          TIMESTAMP    := LOCALTIMESTAMP;
     vnuTempoExecucao    INTERVAL DAY TO SECOND := NULL;
     vnuRegistros        NUMBER       := 0;
+    vtxResumo           VARCHAR2(4000) := NULL;
 
     vnuInseridos        NUMBER       := 0;
     vResumoEstatisticas CLOB         := Null;
 
-    -- Cursor que extrai e transforma os dados JSON de Rubricas e Tipos de Rubricas
+    -- Cursor que extrai e transforma os dados JSON de Valores de Referencia
     vRefCursor SYS_REFCURSOR;
 
   BEGIN
   
     vdtOperacao := LOCALTIMESTAMP;
 
-    PKGMIG_ConfiguracaoPadrao.PConsoleLog('Inicio da Exportações Valores de Referencia do Agrupamento ' || psgAgrupamento);
+    PKGMIG_ConfiguracaoPadrao.PConsoleLog('Inicio da Exportações das Parametrizações dos ' ||
+      'Valores de Referencia do Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
+	    'Data da Exportação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
+      cDEBUG_DESLIGADO, pnuDEBUG);
 
-	-- Defini o Cursos com a Query que Gera o Documento JSON ValoresReferencia
-	vRefCursor := fnCursorValoresReferencia(psgAgrupamento, vsgOrgao, vsgModulo, vsgConceito,
+	  -- Defini o Cursos com a Query que Gera o Documento JSON ValoresReferencia
+	  vRefCursor := fnCursorValoresReferencia(psgAgrupamento, vsgOrgao, vsgModulo, vsgConceito,
       vdtOperacao, vnuVersao, vflAnulado);
     
-	-- Loop principal de processamento
-	LOOP
+	  -- Loop principal de processamento
+	  LOOP
       FETCH vRefCursor INTO vsgAgrupamento, vsgOrgao, vsgModulo, vsgConceito, vdtExportacao,
         vcdIdentificacao, vjsConteudo, vnuVersao, vflAnulado, vdtInclusao;
       EXIT WHEN vRefCursor%NOTFOUND;
 
-      PKGMIG_ConfiguracaoPadrao.PConsoleLog('Exportação do Valor de Referencia ' || vcdIdentificacao);
+      PKGMIG_ConfiguracaoPadrao.PConsoleLog('Exportação do Valor de Referencia ' || vcdIdentificacao,
+        cDEBUG_DESLIGADO, pnuDEBUG);
 
       INSERT INTO emigConfiguracaoPadrao (
         sgAgrupamento, sgOrgao, sgModulo, sgConceito, dtExportacao,
@@ -77,33 +82,43 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarValoresReferencia AS
       vnuInseridos := vnuInseridos + 1;
       PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao, 
         vsgModulo, vsgConceito, vcdIdentificacao, 1,
-        'VALORES REFERENCIA', 'INCLUSAO', 'Documento JSON ValoresReferencia incluidos com sucesso',
+        'VALORES REFERENCIA', 'INCLUSAO', 'Documento JSON ValoresReferencia incluído com sucesso',
         cDEBUG_DESLIGADO, pnuDEBUG);
 
     END LOOP;
     CLOSE vRefCursor;
 
-
-    PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao, 
-      vsgModulo, vsgConceito, NULL, 1,
-      'VALORES REFERENCIA', 'RESUMO', 'Valores de Referencia incluidos: ' || vnuInseridos,
-      cDEBUG_DESLIGADO, pnuDEBUG);
-
     COMMIT;
 
-    PKGMIG_ConfiguracaoPadrao.PConsoleLog('Resumo da Exportações Valores de Referencia do Agrupamento: ' ||
-	  'Valores de Referencia incluidos: ' || vnuInseridos);
-	
-	PKGMIG_ConfiguracaoPadrao.PConsoleLog('Termino da Exportações Valores de Referencia do Agrupamento ' || psgAgrupamento);
+    -- Gerar as Estatísticas da Exportação dos Valores de Referencia
+    vdtTermino := LOCALTIMESTAMP;
+    vnuTempoExecucao := vdtTermino - vdtExportacao;
+    vtxResumo := 'Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
+      'Data e Hora da Inicio da Exportação ' || TO_CHAR(vdtExportacao, 'DD/MM/YYYY HH24:MI:SS')  || ', ' || CHR(13) || CHR(10) ||
+      'Data e Hora da Termino da Exportação ' || TO_CHAR(vdtTermino, 'DD/MM/YYYY HH24:MI:SS')  || ', ' || CHR(13) || CHR(10) ||
+	    'Tempo de Execução ' ||
+	    LPAD(EXTRACT(HOUR FROM vnuTempoExecucao), 2, '0') || ':' ||
+	    LPAD(EXTRACT(MINUTE FROM vnuTempoExecucao), 2, '0') || ':' ||
+	    LPAD(TRUNC(EXTRACT(SECOND FROM vnuTempoExecucao)), 2, '0') || ', ' || CHR(13) || CHR(10) ||
+	    'Total de Parametrizações dos Valores de Referencia Exportadas: ' || vnuInseridos;
+
+    -- Registro de Resumo da Exportação dos Valores de Referencia
+    PKGMIG_ConfiguracaoPadrao.pRegistrarLog(vsgAgrupamento, vsgOrgao, vtpOperacao, vdtExportacao,
+      vsgModulo, vsgConceito, NULL, NULL,
+      'VALORE REFERENCIA', 'RESUMO', 'Exportação das Parametrizações dos Valores de Referencia do ' || vtxResumo, 
+      cDEBUG_DESLIGADO, pnuDEBUG);
+
+    PKGMIG_ConfiguracaoPadrao.PConsoleLog('Termino da Exportação das Parametrizações dos Valores de Referencia do ' ||
+      vtxResumo, cDEBUG_DESLIGADO, pnuDEBUG);
 
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_ConfiguracaoPadrao.PConsoleLog('Exportação de Valores de Referencia ' || vcdIdentificacao || ' VALORES REFERENCIA Erro: ' || SQLERRM);
+      PKGMIG_ConfiguracaoPadrao.PConsoleLog('Exportação de Valores de Referencia ' || vcdIdentificacao ||
+      ' VALORES REFERENCIA Erro: ' || SQLERRM, cDEBUG_DESLIGADO, pnuDEBUG);
       PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,  
         vsgModulo, vsgConceito, vcdIdentificacao, 1,
-        'VALORES REFERENCIA', 'ERRO', 'Erro: ' || SQLERRM,
-        cDEBUG_DESLIGADO, pnuDEBUG);
+        'VALORES REFERENCIA', 'ERRO', 'Erro: ' || SQLERRM, cDEBUG_DESLIGADO, pnuDEBUG);
     ROLLBACK;
     RAISE;
   END pExportar;
@@ -132,7 +147,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarValoresReferencia AS
             'vlReferencia'          VALUE vigencia.vlReferencia,
             'qtValorReferencia'     VALUE vigencia.qtValorReferencia,
             'nuPercentual'          VALUE vigencia.nuPercentual,
-            'inTipoReferencia'      VALUE DECODE(vigencia.inTipoReferencia, 'V', 'Valor', 'I', 'Índice', NULL)
+            'inTipoReferencia'      VALUE DECODE(vigencia.inTipoReferencia,
+                                            'V', 'Valor', 'I', 'Índice', 
+                                            vigencia.inTipoReferencia)
           ABSENT ON NULL) END,
           'TabelaGeral'             VALUE
             CASE WHEN vigencia.cdValorGeralCEFAgrup IS NULL AND vigencia.nuNivel IS NULL AND vigencia.nuReferencia IS NULL
@@ -187,9 +204,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarValoresReferencia AS
       FROM epagValorReferencia vlref
       INNER JOIN ecadAgrupamento a ON a.cdAgrupamento = vlref.cdAgrupamento
       LEFT JOIN VersaoValorReferencia versao ON versao.cdValorReferencia = vlref.cdValorreferencia
-	  WHERE a.sgAgrupamento = psgAgrupamento
+	    WHERE a.sgAgrupamento = psgAgrupamento
       )
-      SELECT 
+      SELECT
         sgAgrupamento,
         psgOrgao AS sgOrgao,
         psgModulo AS sgModulo,
@@ -197,9 +214,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarValoresReferencia AS
         pdtExportacao AS dtExportacao,
         sgValorReferencia AS cdIdentificacao,
         ValorReferencia AS jsConteudo,
-		pnuVersao AS nuVersao,
-		pflAnulado AS flAnulado,
-		SYSTIMESTAMP AS dtInclusao
+		    pnuVersao AS nuVersao,
+		    pflAnulado AS flAnulado,
+		    SYSTIMESTAMP AS dtInclusao
       FROM ValorReferencia
       ORDER BY sgagrupamento, sgorgao, sgModulo, sgConceito, cdIdentificacao;
 

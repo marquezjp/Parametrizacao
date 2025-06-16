@@ -1,8 +1,8 @@
---- Pacote de Exportação e Importação das Configurações Padrão
+--- Pacote de Exportação das Parametrizações de Valores de Referencia
 CREATE OR REPLACE PACKAGE PKGMIG_ExportarValoresReferencia AS
   -- ###########################################################################
-  -- PACOTE: PKGMIG_ExportarBasesCalculo
-  --   Importar dados das Formulas de Calculo a partir da Configuração Padrão JSON
+  -- PACOTE: PKGMIG_ExportarValoresReferencia
+  --   Exportar dados de Valores de Referencia para Configuração Padrão JSON
   -- 
   -- ValorReferencia => epagValorReferencia
   --  └── Versões => epagValorReferenciaVersao
