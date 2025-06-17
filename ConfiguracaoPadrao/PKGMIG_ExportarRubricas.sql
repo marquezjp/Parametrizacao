@@ -1,16 +1,36 @@
---- Pacote de Exportação e Importação das Configurações Padrão
+--- Pacote de Exportação das Parametrizações de Rubricas
 CREATE OR REPLACE PACKAGE PKGMIG_ExportarRubricas AS
   -- ###########################################################################
   -- PACOTE: PKGMIG_ExportarRubricas
-  --   Importar dados das Formulas de Calculo a partir da Configuração Padrão JSON
+  --   Exportar dados das Rubricas, Eventos e Formulas de Calculo
+  --     para Configuração Padrão JSON
   -- 
   -- Rubrica => epagRubrica
   --  └── TiposRubricas => epagRubrica
+  --      └── TipoRubrica => epagRubrica
+  --          └── TipoRubrica.GruposRubrica => epagGrupoRubricaPagamento
+  --          └── TipoRubricaVigencia => epagHistRubrica
+  --          │
   --          └── RubricaAgrupamento => epagRubricaAgrupamento
-  --               └── Evento => epagEventoPagAgrup
-  --                    └── VigenciaEvento => epagHistEventoPagAgrup
-  --                         └── GrupoCarreiraEvento => epagHistEventoPagAgrupCarreira
-  --                         └── GrupoOrgaoEvento => epagEventoPagAgrupOrgao
+  --               ├── RubricaAgrupamentoVigencia => epagHistRubricaAgrupamento
+  --               │    ├── RubricaAgrupamentoVigencia.Abrangencias.NaturezaVinculo => epagHistRubricaAgrupNatVinc
+  --               │    ├── RubricaAgrupamentoVigencia.Abrangencias.RegimePrevidenciario => epagHistRubricaAgrupRegPrev
+  --               │    ├── RubricaAgrupamentoVigencia.Abrangencias.RegimeTrabalho => epagHistRubricaAgrupRegTrab
+  --               │    ├── RubricaAgrupamentoVigencia.Abrangencias.RelacaoTrabalho => epagHistRubricaAgrupRelTrab
+  --               │    └── RubricaAgrupamentoVigencia.Abrangencias.SituacaoPrevidenciaria => epagHistRubricaAgrupSitPrev
+  --               │
+  --               ├── Evento => epagEventoPagAgrup
+  --               │    └── VigenciaEvento => epagHistEventoPagAgrup
+  --               │        ├── GrupoOrgaoEvento => epagEventoPagAgrupOrgao
+  --               │        └── GrupoCarreiraEvento => epagHistEventoPagAgrupCarreira
+  --               │
+  --               └── Formula => epagFormulaCalculo
+  --                    └── VersoesFormula => epagFormulaVersao
+  --                         └── VigenciasFormula => epagHistFormulaCalculo
+  --                              └── ExpressaoFormula => epagExpressaoFormCalc
+  --                                   └── BlocosFormula => epagFormulaCalculoBloco
+  --                                        └── BlocoExpressao => epagFormulaCalcBlocoExpressao
+  --                                             └── BlocoExpressaoRubricas= > epagFormCalcBlocoExpRubAgrup
   --
   -- PROCEDURE:
   --   PExportar
@@ -24,7 +44,9 @@ CREATE OR REPLACE PACKAGE PKGMIG_ExportarRubricas AS
   cDEBUG_NIVEL_2   CONSTANT PLS_INTEGER := 3;
   cDEBUG_NIVEL_3   CONSTANT PLS_INTEGER := 4;
 
-  PROCEDURE PExportar(psgAgrupamento IN VARCHAR2);
-  FUNCTION fnCursorRubricas(psgAgrupamento IN VARCHAR2) RETURN SYS_REFCURSOR;
+  PROCEDURE PExportar(psgAgrupamento IN VARCHAR2, pnuDEBUG IN NUMBER DEFAULT NULL);
+  FUNCTION fnCursorRubricas(psgAgrupamento IN VARCHAR2, psgOrgao IN VARCHAR2,
+    psgModulo IN CHAR, psgConceito IN VARCHAR2, pdtExportacao IN TIMESTAMP,
+    pnuVersao IN CHAR, pflAnulado IN CHAR) RETURN SYS_REFCURSOR;
 END PKGMIG_ExportarRubricas;
 /
