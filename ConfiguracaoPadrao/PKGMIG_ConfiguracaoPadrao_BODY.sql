@@ -7,6 +7,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
     WHEN 'DEBUG NIVEL 0' THEN RETURN cDEBUG_NIVEL_0;
     WHEN 'DEBUG NIVEL 1' THEN RETURN cDEBUG_NIVEL_1;
     WHEN 'DEBUG NIVEL 2' THEN RETURN cDEBUG_NIVEL_2;
+    WHEN 'DEBUG NIVEL 3' THEN RETURN cDEBUG_NIVEL_3;
     WHEN 'DESLIGADO'     THEN RETURN cDEBUG_DESLIGADO;
     ELSE RETURN cDEBUG_DESLIGADO;
   END CASE;
@@ -18,9 +19,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
   BEGIN
     CASE UPPER(psgConceito)
       WHEN 'VALORREFERENCIA' THEN
-        PKGMIG_ExportarValoresReferencia.pExportar(psgAgrupamento, vnuDEBUG);
+        PKGMIG_ParemetrizacaoValoresReferencia.pExportar(psgAgrupamento, vnuDEBUG);
       WHEN 'BASE' THEN
-        PKGMIG_ExportarBasesCalculo.pExportar(psgAgrupamento, vnuDEBUG);
+        PKGMIG_ParametrizacaoBasesCalculo.pExportar(psgAgrupamento, vnuDEBUG);
       WHEN 'RUBRICA' THEN
         PKGMIG_ExportarRubricas.pExportar(psgAgrupamento, vnuDEBUG);
       ELSE
@@ -34,9 +35,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
   BEGIN
     CASE UPPER(psgConceito)
       WHEN 'VALORREFERENCIA' THEN
-        PKGMIG_ImportarValoresReferencia.pImportar(psgAgrupamentoOrigem, psgAgrupamentoDestino, vnuDEBUG);
---      WHEN 'BASE' THEN
---        PKGMIG_ImportarBasesCalculo.pImportar(psgAgrupamentoOrigem, psgAgrupamentoDestino, vnuDEBUG);
+        PKGMIG_ParemetrizacaoValoresReferencia.pImportar(psgAgrupamentoOrigem, psgAgrupamentoDestino, vnuDEBUG);
+      WHEN 'BASE' THEN
+        PKGMIG_ParametrizacaoBasesCalculo.pImportar(psgAgrupamentoOrigem, psgAgrupamentoDestino, vnuDEBUG);
 --      WHEN 'RUBRICA' THEN
 --        PKGMIG_ImportarRubricas.pImportar(psgAgrupamentoOrigem, psgAgrupamentoDestino, vnuDEBUG);
       ELSE
@@ -131,7 +132,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
       END IF;
   END pRegistrarLog;
 
-  PROCEDURE PAtualizarSequence(
+  PROCEDURE pAtualizarSequence(
   -- ###########################################################################
   -- PROCEDURE: PAtuializarSequence
   -- Objetivo:
@@ -154,8 +155,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
     pdtOperacao           IN TIMESTAMP,
     psgModulo             IN CHAR,
     psgConceito           IN VARCHAR2,
---    pListaTabelas         IN tpLista,
-	pnuDEBUG              IN NUMBER DEFAULT NULL
+    pListaTabelas         IN CLOB,
+    pnuDEBUG              IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
       vtxSQL VARCHAR2(1000);
@@ -167,26 +168,22 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
       FROM user_tables tab
       LEFT JOIN user_sequences seq ON SUBSTR(seq.sequence_name,2) = SUBSTR(tab.table_name,2)
       LEFT JOIN all_tab_columns col ON col.table_name = tab.table_name AND col.column_id = 1
-      WHERE seq.sequence_name IS NOT NULL;
---         AND tab.table_name MEMBER OF pListaTabelas;
---       AND tab.table_name in (
---        'EPAGRUBRICA', 'EPAGGRUPORUBRICAPAGAMENTO', 'EPAGHISTRUBRICA',
---        'EPAGRUBRICAAGRUPAMENTO', 'EPAGHISTRUBRICAAGRUPAMENTO', 'EPAGHISTRUBRICAAGRUPNATVINC',
---        'EPAGHISTRUBRICAAGRUPREGPREV', 'EPAGHISTRUBRICAAGRUPREGTRAB', 'EPAGHISTRUBRICAAGRUPRELTRAB', 'EPAGHISTRUBRICAAGRUPSITPREV',
---        'EPAGEVENTOPAGAGRUP', 'EPAGHISTEVENTOPAGAGRUP', 'EPAGEVENTOPAGAGRUPORGAO', 'EPAGHISTEVENTOPAGAGRUPCARREIRA',
---        'EPAGFORMULACALCULO', 'EPAGFORMULAVERSAO', 'EPAGHISTFORMULACALCULO', 'EPAGEXPRESSAOFORMCALC',
---        'EPAGFORMULACALCULOBLOCO', 'EPAGFORMULACALCBLOCOEXPRESSAO', 'EPAGFORMCALCBLOCOEXPRUBAGRUP'
---      );
+      WHERE seq.sequence_name IS NOT NULL
+        AND tab.table_name IN (SELECT table_name FROM JSON_TABLE(pListaTabelas, '$[*]' COLUMNS (table_name PATH '$')));
 
     BEGIN
+
+      PConsoleLog('Atualizar as SEQUENCE após Importação das Parametrização ' || psgConceito);
+
       FOR item IN cDados
         LOOP
           -- Obtendo o Maior Número da Chave Primaria da Tabela
           vtxSQL := 'SELECT NVL(MAX(' || item.column_name || '), 0) + 1 FROM ' || item.table_name;
           EXECUTE IMMEDIATE vtxSQL INTO vnuRegistros;
 
-          PConsoleLog('Atualizar a SEQUENCE ' || item.sequence_name || ' da Tabela ' || item.table_name ||
-            ' reiniciar com ' || vnuRegistros );
+          PConsoleLog('SEQUENCE ' || item.sequence_name || ' da Tabela ' || item.table_name ||
+            ' reiniciada em: ' || vnuRegistros,
+            cDEBUG_DESLIGADO, pnuDEBUG);
 
           -- Atualizar a SEQUENCE com o Maior Número da Chave Primaria da Tabela
           execute immediate 'alter sequence ' || item.sequence_name || ' restart start with ' || case when vnuRegistros = 0 then 1 else vnuRegistros end;
@@ -194,15 +191,15 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
 
           pRegistrarLog(psgAgrupamento, psgOrgao, ptpOperacao, pdtOperacao,  
             psgModulo, psgConceito, NULL, NULL, 'SEQUENCE', NULL,
-            'Atualizar a SEQUENCE ' || item.sequence_name || ' da Tabela ' || item.table_name ||
-            ' para reiniciar em: ' || vnuRegistros,
+            'RESUMO' || item.sequence_name || ' da Tabela ' || item.table_name ||
+            ' reiniciada em: ' || vnuRegistros,
             cDEBUG_DESLIGADO, pnuDEBUG);
       END LOOP;
 
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PConsoleLog('Atualizar as SEQUENCE da Importação das Rubrica RUBRICA SEQUENCE Erro: ' || SQLERRM);
+      PConsoleLog('Atualizar as SEQUENCE após Importação das Parametrizações SEQUENCE Erro: ' || SQLERRM);
       pRegistrarLog(psgAgrupamento, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, NULL, NULL,
         'SEQUENCE', 'ERRO', 'Erro: ' || SQLERRM,
@@ -251,22 +248,22 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
       WITH
       LOG AS (
       SELECT sgAgrupamento, sgOrgao, sgModulo, sgConceito, tpOperacao, dtOperacao, nmEntidade, nmEvento, 1 as nuRegistros,
-        CASE nmEvento WHEN 'INCLUSAO' THEN 1 WHEN 'ATUALIZACAO' THEN 2 WHEN 'EXCLUSAO' THEN 3 ELSE 9 END AS cdEvento,
-        CASE WHEN nmEvento != 'EXCLUSAO' THEN dtInclusao ELSE TO_TIMESTAMP('99991231 235959', 'YYYYMMDD HH24MISS')
-          END AS dtInclusaoAjustada
+      CASE nmEvento WHEN 'INCLUSAO' THEN 1 WHEN 'ATUALIZACAO' THEN 2 WHEN 'EXCLUSAO' THEN 3 WHEN 'INCONSISTENTE' THEN 4 ELSE 9 END AS cdEvento,
+      CASE WHEN nmEvento != 'EXCLUSAO' THEN dtInclusao ELSE TO_TIMESTAMP('99991231 235959', 'YYYYMMDD HH24MISS')
+        END AS dtInclusaoAjustada
       FROM emigConfiguracaoPadraolog
       WHERE sgModulo = psgModulo AND sgConceito = psgConceito AND nmEvento != 'RESUMO'
-        AND tpOperacao = ptpOperacao AND dtOperacao = pdtOperacao
-        AND sgAgrupamento = psgAgrupamento
+      AND tpOperacao = ptpOperacao AND dtOperacao = pdtOperacao
+      AND sgAgrupamento = psgAgrupamento
       ),
       OrdemEntidade AS (
       SELECT nmEntidade, RANK() OVER(ORDER BY dtInclusaoAjustada) AS cdEntidade FROM (
-        SELECT nmEntidade, MIN(dtInclusaoAjustada) as dtInclusaoAjustada FROM Log GROUP BY nmEntidade
+      SELECT nmEntidade, MIN(dtInclusaoAjustada) as dtInclusaoAjustada FROM Log GROUP BY nmEntidade
       ) ORDER BY dtInclusaoAjustada
       ),
       Estatisticas AS (
       SELECT log.sgAgrupamento, log.sgOrgao, log.sgModulo, log.sgConceito, log.tpOperacao,
-        log.dtOperacao, ordem.cdEntidade, log.nmEntidade, log.cdEvento, SUM(nuRegistros) AS nuRegistros
+      log.dtOperacao, ordem.cdEntidade, log.nmEntidade, log.cdEvento, SUM(nuRegistros) AS nuRegistros
       FROM LOG log
       INNER JOIN OrdemEntidade ordem ON ordem.nmEntidade = log.nmEntidade
       GROUP BY log.sgAgrupamento, log.sgOrgao, log.sgModulo, log.sgConceito,
@@ -274,37 +271,37 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
       ),
       Resumo AS (
       SELECT sgAgrupamento, sgOrgao, sgModulo, sgConceito, tpOperacao, dtOperacao,
-      cdEntidade, nmEntidade, Incluidos, Atualizados, Excluidos, Outros
+      cdEntidade, nmEntidade, Incluidos, Atualizados, Excluidos, Inconsistentes, Outros
       FROM Estatisticas
-      PIVOT (SUM(nuRegistros) FOR cdEvento IN (1 AS Incluidos, 2 As Atualizados, 3 AS Excluidos, 9 AS Outros))
+      PIVOT (SUM(nuRegistros) FOR cdEvento IN (1 AS Incluidos, 2 As Atualizados, 3 AS Excluidos, 4 AS Inconsistentes, 9 AS Outros))
       ORDER BY sgAgrupamento, sgOrgao, sgModulo, sgConceito, nmEntidade
       )
       SELECT JSON_SERIALIZE (TO_CLOB(JSON_OBJECT(
-        sgModulo VALUE JSON_OBJECT(
-          sgConceito VALUE JSON_OBJECT(
-            tpOperacao,
-            sgAgrupamento,
-            'sgOrgao' value NVL(sgOrgao,'TODOS'),
-            'dtOperacaoInicio' VALUE TO_CHAR(dtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
-            'dtOperacaoTermino' VALUE TO_CHAR(pdtTermino, 'DD/MM/YYYY HH24:MI:SS'),
-            'TempoExceusao' VALUE
-			  LPAD(EXTRACT(HOUR FROM pnuTempoExcusao), 2, '0') || ':' ||
-			  LPAD(EXTRACT(MINUTE FROM pnuTempoExcusao), 2, '0') || ':' ||
-			  LPAD(EXTRACT(SECOND FROM pnuTempoExcusao), 2, '0'),
-            'Registros' VALUE JSON_ARRAYAGG(JSON_OBJECT(
-              nmEntidade VALUE JSON_OBJECT(
-                'Excluídos' VALUE Excluidos,
-                'Atualizados' VALUE Atualizados,
-                'Incluídos' VALUE Incluidos,
-                'Outros' VALUE Outros
-              ABSENT ON NULL)
-            ) ORDER By cdEntidade)
-          RETURNING CLOB)
+      sgModulo VALUE JSON_OBJECT(
+        sgConceito VALUE JSON_OBJECT(
+          tpOperacao,
+          sgAgrupamento,
+          'sgOrgao' value NVL(sgOrgao,'TODOS'),
+          'dtOperacaoInicio' VALUE TO_CHAR(dtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
+          'dtOperacaoTermino' VALUE TO_CHAR(pdtTermino, 'DD/MM/YYYY HH24:MI:SS'),
+          'TempoExceusao' VALUE
+            LPAD(EXTRACT(HOUR FROM pnuTempoExcusao), 2, '0') || ':' ||
+            LPAD(EXTRACT(MINUTE FROM pnuTempoExcusao), 2, '0') || ':' ||
+            LPAD(TRUNC(EXTRACT(SECOND FROM pnuTempoExcusao)), 2, '0'),
+          'Registros' VALUE JSON_ARRAYAGG(JSON_OBJECT(
+            nmEntidade VALUE JSON_OBJECT(
+              'Inconsistentes' VALUE Inconsistentes,
+              'Excluídos'      VALUE Excluidos,
+              'Atualizados'    VALUE Atualizados,
+              'Incluídos'      VALUE Incluidos,
+              'Outros'         VALUE Outros
+            ABSENT ON NULL)
+          ) ORDER By cdEntidade)
         RETURNING CLOB)
+      RETURNING CLOB)
       RETURNING CLOB)) RETURNING CLOB PRETTY) AS ResumoEstatisticas
       FROM Resumo
       GROUP BY sgAgrupamento, sgOrgao, dtOperacao, tpOperacao, sgModulo, sgConceito;
-
   BEGIN
 
     -- Consolida as Informações de Estatísticas da Importação das Rubricas
@@ -318,7 +315,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
       'RESUMO', 'RESUMO', vResumoEstatisticas,
       cDEBUG_DESLIGADO, pnuDEBUG);
 
-    PConsoleLog('Resumo da Importação das Configurações do Agrupamento ' || psgAgrupamento);
+    PConsoleLog('Resumo da Importação das Parametrizações do Agrupamento ' || psgAgrupamento);
 
     PConsoleLog('Estatísticas: ' || vResumoEstatisticas);
 

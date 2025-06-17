@@ -30,11 +30,10 @@ CREATE OR REPLACE PACKAGE PKGMIG_ConfiguracaoPadrao AS
     pnuNivelLog IN NUMBER DEFAULT NULL, pnuDEBUG IN NUMBER DEFAULT NULL
   );
 
-  PROCEDURE PAtualizarSequence(psgAgrupamento IN VARCHAR2, psgOrgao IN VARCHAR2,
+  PROCEDURE pAtualizarSequence(psgAgrupamento IN VARCHAR2, psgOrgao IN VARCHAR2,
     ptpOperacao IN VARCHAR2, pdtOperacao IN TIMESTAMP,
     psgModulo IN CHAR, psgConceito IN VARCHAR2,
---    pListaTabelas IN tpLista,
-    pnuDEBUG IN NUMBER DEFAULT NULL
+    pListaTabelas IN CLOB, pnuDEBUG IN NUMBER DEFAULT NULL
   );
 
   PROCEDURE pGerarResumo(psgAgrupamento IN VARCHAR2, psgOrgao IN VARCHAR2,
