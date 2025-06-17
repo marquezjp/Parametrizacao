@@ -63,7 +63,15 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarValoresReferencia AS
       cDEBUG_DESLIGADO, pnuDEBUG);
 
     IF cDEBUG_DESLIGADO != pnuDEBUG THEN
-      PKGMIG_ConfiguracaoPadrao.PConsoleLog('Nível de Debug Habilitado ' || pnuDEBUG, cDEBUG_DESLIGADO, pnuDEBUG);
+        PKGMIG_ConfiguracaoPadrao.PConsoleLog('Nível de Debug Habilitado ' ||
+          CASE pnuDEBUG
+            WHEN cDEBUG_NIVEL_0    THEN 'DEBUG NIVEL 0'
+            WHEN cDEBUG_NIVEL_1    THEN 'DEBUG NIVEL 1'
+            WHEN cDEBUG_NIVEL_2    THEN 'DEBUG NIVEL 2'
+            WHEN cDEBUG_NIVEL_3    THEN 'DEBUG NIVEL 3'
+            WHEN cDEBUG_DESLIGADO  THEN 'DESLIGADO'
+            ELSE 'DESLIGADO'
+          END, cDEBUG_DESLIGADO, pnuDEBUG);
     END IF;
 
 	  -- Defini o Cursos com a Query que Gera o Documento JSON ValoresReferencia
