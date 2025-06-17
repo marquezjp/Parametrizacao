@@ -60,7 +60,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
 
     PKGMIG_ConfiguracaoPadrao.PConsoleLog('Inicio da Exportação das Parametrizações das ' ||
       'Bases de Cálculo do Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
-	  'Data da Exportação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'));
+	    'Data da Exportação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
+      cDEBUG_DESLIGADO, pnuDEBUG);
 
     IF cDEBUG_DESLIGADO != pnuDEBUG THEN
         PKGMIG_ConfiguracaoPadrao.PConsoleLog('Nível de Debug Habilitado ' ||
@@ -1557,8 +1558,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
         sgBaseCalculo AS cdIdentificacao,
         Base AS jsConteudo,
         pnuVersao AS nuVersao,
-    	pflAnulado AS flAnulado,
-    	SYSTIMESTAMP AS dtInclusao
+        pflAnulado AS flAnulado,
+        SYSTIMESTAMP AS dtInclusao
       FROM Bases
       ORDER BY sgagrupamento, sgorgao, sgModulo, sgConceito, cdIdentificacao;
     
