@@ -1,15 +1,16 @@
+-- Corpo do Pacote de Exportação das Parametrizações de Bases de Cálculo
 CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarBasesCalculo AS
   PROCEDURE PExportar(
   -- ###########################################################################
   -- PROCEDURE: PExportar
   -- Objetivo:
-  --   Exportar dados das Bases para a Configuração Padrão JSON
+  --   Exportar as Parametrizações das Bases Cálculo para a Configuração Padrão JSON
   --   realizando:
   --     - Inclusão do Documento JSON Base na tabela emigConfigracaoPadrao
   --     - Registro de Logs de Auditoria por evento
   --
   -- Parâmetros:
-  --   psgAgrupamento   IN VARCHAR2: Sigla do agrupamento de origem da configuração
+  --   psgAgrupamento        IN VARCHAR2: Sigla do agrupamento de origem da configuração
   --   pnuDEBUG              IN NUMBER DEFAULT NULL: Defini o nível das mensagens
   --                         para acompanhar a execução, sendo:
   --                         - Não informado assume 'Desligado' nível mínimo de mensagens;
@@ -24,28 +25,32 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarBasesCalculo AS
     pnuDEBUG              IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
-    vsgAgrupamento      VARCHAR2(15) := Null;
     vsgOrgao            VARCHAR2(15) := Null;
     vsgModulo           CHAR(3)      := 'PAG';
     vsgConceito         VARCHAR2(20) := 'BASE';
-    vdtExportacao       TIMESTAMP    := LOCALTIMESTAMP;
-    vcdIdentificacao    VARCHAR2(20) := Null;
-    vjsConteudo         CLOB         := Null;
-    vnuVersao           CHAR(04)     := '1.00';
-    vflAnulado          CHAR(01)     := 'N';
-    vdtInclusao         TIMESTAMP    := NULL;
-
     vtpOperacao         VARCHAR2(15) := 'EXPORTACAO';
     vdtOperacao         TIMESTAMP    := LOCALTIMESTAMP;
+    vcdIdentificacao    VARCHAR2(20) := Null;
+    vnuVersao           CHAR(04)     := '1.00';
+    vflAnulado          CHAR(01)     := 'N';
+
+    rsgAgrupamento      VARCHAR2(15) := NULL;
+    rsgOrgao            VARCHAR2(15) := NULL;
+    rsgModulo           CHAR(3)      := NULL;
+    rsgConceito         VARCHAR2(20) := NULL;
+    rdtExportacao       TIMESTAMP    := NULL;
+    rcdIdentificacao    VARCHAR2(20) := NULL;
+    rjsConteudo         CLOB         := NULL;
+	rnuVersao           CHAR(04)     := NULL;
+	rflAnulado          CHAR(01)     := NULL;
+    rdtInclusao         TIMESTAMP(6) := NULL;
+
     vdtTermino          TIMESTAMP    := LOCALTIMESTAMP;
     vnuTempoExecucao    INTERVAL DAY TO SECOND := NULL;
     vnuRegistros        NUMBER       := 0;
     vtxResumo           VARCHAR2(4000) := NULL;
 
-    vnuInseridos        NUMBER       := 0;
-    vResumoEstatisticas CLOB         := Null;
-
-    -- Cursor que extrai e transforma os dados JSON de Bases de Calculo
+    -- Cursor que extrai e transforma os dados JSON de Bases de Cálculo
     vRefCursor SYS_REFCURSOR;
 
   BEGIN
@@ -53,68 +58,81 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarBasesCalculo AS
     vdtOperacao := LOCALTIMESTAMP;
 
     PKGMIG_ConfiguracaoPadrao.PConsoleLog('Inicio da Exportação das Parametrizações das ' ||
-      'Bases de Calculo do Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
+      'Bases de Cálculo do Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
 	  'Data da Exportação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'));
+
+    IF cDEBUG_DESLIGADO != pnuDEBUG THEN
+        PKGMIG_ConfiguracaoPadrao.PConsoleLog('Nível de Debug Habilitado ' ||
+          CASE pnuDEBUG
+            WHEN cDEBUG_NIVEL_0    THEN 'DEBUG NIVEL 0'
+            WHEN cDEBUG_NIVEL_1    THEN 'DEBUG NIVEL 1'
+            WHEN cDEBUG_NIVEL_2    THEN 'DEBUG NIVEL 2'
+            WHEN cDEBUG_NIVEL_3    THEN 'DEBUG NIVEL 3'
+            WHEN cDEBUG_DESLIGADO  THEN 'DESLIGADO'
+            ELSE 'DESLIGADO'
+          END, cDEBUG_DESLIGADO, pnuDEBUG);
+    END IF;
 
     -- Defini o Cursos com a Query que Gera o Documento JSON ValoresReferencia
     vRefCursor := fnCursorBases(psgAgrupamento, vsgOrgao, vsgModulo, vsgConceito,
       vdtOperacao, vnuVersao, vflAnulado);
     
-    vnuInseridos := 0;
+    vnuRegistros := 0;
     
     -- Loop principal de processamento
     LOOP
-      FETCH vRefCursor INTO vsgAgrupamento, vsgOrgao, vsgModulo, vsgConceito, vdtExportacao,
-        vcdIdentificacao, vjsConteudo, vnuVersao, vflAnulado, vdtInclusao;
+      FETCH vRefCursor INTO rsgAgrupamento, rsgOrgao, rsgModulo, rsgConceito, rdtExportacao,
+	      rcdIdentificacao, rjsConteudo, rnuVersao, rflAnulado, rdtInclusao;
       EXIT WHEN vRefCursor%NOTFOUND;
 
-      PKGMIG_ConfiguracaoPadrao.PConsoleLog('Exportação da Base ' || vcdIdentificacao,
+      PKGMIG_ConfiguracaoPadrao.PConsoleLog('Exportação da Base ' || rcdIdentificacao,
         cDEBUG_DESLIGADO, pnuDEBUG);
 
       INSERT INTO emigConfiguracaoPadrao (
         sgAgrupamento, sgOrgao, sgModulo, sgConceito, dtExportacao,
         cdIdentificacao, jsConteudo, nuVersao, flAnulado
       ) VALUES (
-        vsgAgrupamento, vsgOrgao, vsgModulo, vsgConceito, vdtExportacao,
-        vcdIdentificacao, vjsConteudo, vnuVersao, vflAnulado
+        rsgAgrupamento, rsgOrgao, rsgModulo, rsgConceito, rdtExportacao,
+		    rcdIdentificacao, rjsConteudo, rnuVersao, rflAnulado
       );
 
-      vnuInseridos := vnuInseridos + 1;
+      vnuRegistros := vnuRegistros + 1;
       PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,
-        vsgModulo, vsgConceito, vcdIdentificacao, 1,
+        vsgModulo, vsgConceito, rcdIdentificacao, 1,
         'BASE', 'INCLUSAO', 'Documento JSON Bases incluído com sucesso',
 		    cDEBUG_DESLIGADO, pnuDEBUG);
 
     END LOOP;
+
     CLOSE vRefCursor;
 
     COMMIT;
 
-    -- Gerar as Estatísticas da Exportação das Bases de Calculo
+    -- Gerar as Estatísticas da Exportação das Bases de Cálculo
     vdtTermino := LOCALTIMESTAMP;
     vnuTempoExecucao := vdtTermino - vdtOperacao;
     vtxResumo := 'Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
-      'Data e Hora da Inicio da Exportação ' || TO_CHAR(vdtExportacao, 'DD/MM/YYYY HH24:MI:SS')  || ', ' || CHR(13) || CHR(10) ||
+      'Data e Hora da Inicio da Exportação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS')  || ', ' || CHR(13) || CHR(10) ||
       'Data e Hora da Termino da Exportação ' || TO_CHAR(vdtTermino, 'DD/MM/YYYY HH24:MI:SS')  || ', ' || CHR(13) || CHR(10) ||
 	    'Tempo de Execução ' ||
 	    LPAD(EXTRACT(HOUR FROM vnuTempoExecucao), 2, '0') || ':' ||
 	    LPAD(EXTRACT(MINUTE FROM vnuTempoExecucao), 2, '0') || ':' ||
 	    LPAD(TRUNC(EXTRACT(SECOND FROM vnuTempoExecucao)), 2, '0') || ', ' || CHR(13) || CHR(10) ||
-	    'Total de Parametrizações de Bases de Calculo Exportadas: ' || vnuInseridos;
+	    'Total de Parametrizações de Bases de Cálculo Exportadas: ' || vnuRegistros;
 
-    -- Registro de Resumo da Exportação das Bases de Calculo
-    PKGMIG_ConfiguracaoPadrao.pRegistrarLog(vsgAgrupamento, vsgOrgao, vtpOperacao, vdtExportacao,
+    -- Registro de Resumo da Exportação das Bases de Cálculo
+    PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,
       vsgModulo, vsgConceito, NULL, NULL,
-      'BASE', 'RESUMO', 'Exportação das Parametrizações das Bases de Calculo do ' || vtxResumo, 
+      'BASE', 'RESUMO', 'Exportação das Parametrizações das Bases de Cálculo do ' || vtxResumo, 
       cDEBUG_DESLIGADO, pnuDEBUG);
 
-    PKGMIG_ConfiguracaoPadrao.PConsoleLog('Termino da Exportação das Parametrizações Bases de Calculo do ' ||
+    PKGMIG_ConfiguracaoPadrao.PConsoleLog('Termino da Exportação das Parametrizações Bases de Cálculo do ' ||
       vtxResumo, cDEBUG_DESLIGADO, pnuDEBUG);
 
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_ConfiguracaoPadrao.PConsoleLog('Exportação de Bases de Calculo ' || vcdIdentificacao ||
+      PKGMIG_ConfiguracaoPadrao.PConsoleLog('Exportação de Bases de Cálculo ' || vcdIdentificacao ||
       ' BASE Erro: ' || SQLERRM, cDEBUG_DESLIGADO, pnuDEBUG);
       PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,  
         vsgModulo, vsgConceito, vcdIdentificacao, 1,
@@ -123,6 +141,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarBasesCalculo AS
     RAISE;
   END PExportar;
 
+  -- Função que cria o Cursor que Estrutura o Documento JSON com as Parametrizações das Bases de Cálculo
   FUNCTION fnCursorBases(psgAgrupamento IN VARCHAR2, psgOrgao IN VARCHAR2,
     psgModulo IN CHAR, psgConceito IN VARCHAR2, pdtExportacao IN TIMESTAMP,
     pnuVersao IN CHAR, pflAnulado IN CHAR
@@ -152,16 +171,59 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarBasesCalculo AS
       LEFT JOIN ecadItemCarreira item3 ON item3.cdAgrupamento = e.cdAgrupamento AND item3.cdItemCarreira = nivel3.cdItemCarreira
       LEFT JOIN ecadItemCarreira item4 ON item4.cdAgrupamento = e.cdAgrupamento AND item4.cdItemCarreira = nivel4.cdItemCarreira
       ),
+      -- RubricaLista: lista Rubricas
+      RubricaLista AS (
+      SELECT rubagrp.cdAgrupamento, rubagrp.cdRubricaAgrupamento, rub.cdRubrica,
+        LPAD(tprub.nuTipoRubrica,2,0) || '-' || LPAD(rub.nuRubrica,4,0) AS nuRubrica,
+        CASE WHEN tprub.nuTipoRubrica IN (1, 5, 9) THEN NULL ELSE tprub.deTipoRubrica || ' ' END ||
+          NVL2(UltVigenciaAgrupamento.cdRubricaAgrupamento,UltVigenciaAgrupamento.deRubrica,
+            NVL2(UltVigenciaRub.nuRubrica,UltVigenciaRub.deRubrica,NULL)) as deRubrica,
+        NVL2(UltVigenciaAgrupamento.cdRubricaAgrupamento,UltVigenciaAgrupamento.nuAnoMesInicioVigencia,
+          NVL2(UltVigenciaRub.nuRubrica,UltVigenciaRub.nuAnoMesInicioVigencia,NULL)) as nuAnoMesInicioVigencia,
+        NVL2(UltVigenciaAgrupamento.cdRubricaAgrupamento,UltVigenciaAgrupamento.nuAnoMesFimVigencia,
+          NVL2(UltVigenciaRub.nuRubrica,UltVigenciaRub.nuAnoMesFimVigencia,NULL)) as nuAnoMesFimVigencia
+      FROM epagRubrica rub
+      INNER JOIN epagTipoRubrica tprub ON tprub.cdtiporubrica = rub.cdtiporubrica
+      INNER JOIN epagRubricaAgrupamento rubagrp ON rubagrp.cdrubrica = rub.cdrubrica
+      LEFT JOIN (SELECT cdRubricaAgrupamento, deRubrica, nuAnoMesInicioVigencia, nuAnoMesFimVigencia FROM (
+        SELECT cdRubricaAgrupamento, deRubricaAgrupamento as deRubrica,
+          LPAD(nuAnoInicioVigencia,4,0) || LPAD(nuMesInicioVigencia,2,0) AS nuAnoMesInicioVigencia,
+          CASE WHEN nuAnoFimVigencia IS NULL OR nuMesFimVigencia IS NULL THEN NULL
+          ELSE LPAD(nuAnoFimVigencia,4,0) || LPAD(nuMesFimVigencia,2,0) END AS nuAnoMesFimVigencia,
+          RANK() OVER (PARTITION BY cdRubricaAgrupamento
+            ORDER BY LPAD(nuAnoInicioVigencia,4,0) || LPAD(nuMesInicioVigencia,2,0) DESC,
+              CASE WHEN nuAnoFimVigencia IS NULL OR nuMesFimVigencia IS NULL THEN NULL
+              ELSE LPAD(nuAnoFimVigencia,4,0) || LPAD(nuMesFimVigencia,2,0)
+              END DESC nulls FIRST) AS nuOrder
+        FROM epagHistRubricaAgrupamento) WHERE nuOrder = 1
+      ) UltVigenciaAgrupamento ON UltVigenciaAgrupamento.cdRubricaAgrupamento = rubagrp.cdRubricaAgrupamento
+      LEFT JOIN (SELECT nuRubrica, deRubrica, nuAnoMesInicioVigencia, nuAnoMesFimVigencia FROM (
+        SELECT rub.cdRubrica, vigenciarub.deRubrica,
+          LPAD(tprub.nuTipoRubrica,2,0) || '-' || LPAD(rub.nuRubrica,4,0) as nuRubrica,
+          NVL(LPAD(vigenciarub.nuAnoInicioVigencia,4,0) || LPAD(vigenciarub.nuMesInicioVigencia,2,0), '190101') AS nuAnoMesInicioVigencia,
+          CASE WHEN vigenciarub.nuAnoFimVigencia IS NULL OR vigenciarub.nuMesFimVigencia IS NULL THEN NULL
+          ELSE LPAD(vigenciarub.nuAnoFimVigencia,4,0) || LPAD(vigenciarub.nuMesFimVigencia,2,0) END AS nuAnoMesFimVigencia,
+          RANK() OVER (PARTITION BY rub.cdRubrica
+            ORDER BY NVL(LPAD(vigenciarub.nuAnoInicioVigencia,4,0) || LPAD(vigenciarub.nuMesInicioVigencia,2,0),'190101') DESC,
+              CASE WHEN vigenciarub.nuAnoFimVigencia IS NULL OR vigenciarub.nuMesFimVigencia IS NULL THEN NULL
+              ELSE LPAD(vigenciarub.nuAnoFimVigencia,4,0) || LPAD(vigenciarub.nuMesFimVigencia,2,0)
+              END DESC nulls FIRST) AS nuOrder
+        FROM epagRubrica rub
+        INNER JOIN epagTipoRubrica tprub on tprub.cdTipoRubrica = rub.cdTipoRubrica
+        LEFT JOIN epagHistRubrica vigenciarub on vigenciarub.cdRubrica = rub.cdRubrica
+        WHERE tprub.nuTipoRubrica IN (1, 5, 9)) WHERE nuOrder = 1
+      ) UltVigenciaRub ON UltVigenciaRub.nuRubrica =
+          CASE WHEN tprub.nuTipoRubrica IN (1, 2, 3, 8, 10, 12) THEN '01'
+               WHEN tprub.nuTipoRubrica IN (5, 6, 7, 4, 11, 13) THEN '05'
+               WHEN tprub.nuTipoRubrica = 9 THEN '09'
+          END || '-' || LPAD(rub.nuRubrica,4,0)
+      ),
       BlocoExpressaoRubricas AS (
       SELECT rubrica.cdBaseCalculoBlocoExpressao,
-        JSON_ARRAYAGG(
-          LPAD(tprub.nuTipoRubrica,2,0) || '-' || LPAD(rub.nuRubrica,4,0)
-      ORDER BY LPAD(tprub.nuTipoRubrica,2,0) || '-' || LPAD(rub.nuRubrica,4,0)
-        RETURNING CLOB) AS GrupoRubricas
+        JSON_ARRAYAGG(rub.nuRubrica || ' ' || rub.deRubrica
+        ORDER BY rub.nuRubrica RETURNING CLOB) AS GrupoRubricas
       FROM epagBaseCalcBlocoExprRubAgrup rubrica
-      INNER JOIN epagRubricaAgrupamento rubagrup ON rubagrup.cdRubricaAgrupamento = rubrica.cdRubricaAgrupamento
-      INNER JOIN epagRubrica rub ON rub.cdRubrica = rubagrup.cdRubrica
-      INNER JOIN epagTipoRubrica tprub ON tprub.cdTiporubrica = rub.cdTipoRubrica
+      LEFT JOIN RubricaLista rub ON rub.cdRubricaAgrupamento = rubrica.cdRubricaAgrupamento
       GROUP BY rubrica.cdBaseCalculoBlocoExpressao
       ),
       BlocoExpressao AS (
@@ -188,7 +250,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarBasesCalculo AS
           'inValorHoraMinuto'     VALUE blexp.inValorHoraMinuto,
           'nuRubrica'             VALUE
             CASE WHEN rub.nuRubrica IS NULL THEN NULL
-            ELSE LPAD(tprub.nuTipoRubrica,2,0) || '-' || LPAD(rub.nuRubrica,4,0) END,
+            ELSE rub.nuRubrica || ' ' || rub.deRubrica END,
           'nuMesRubrica'          VALUE blexp.nuMesRubrica,
           'nuAnoRubrica'          VALUE blexp.nuAnoRubrica,
           'nmValorReferencia'     VALUE vlref.nmValorReferencia,
@@ -215,9 +277,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarBasesCalculo AS
       LEFT JOIN epagBaseCalculo baseexp ON baseexp.cdAgrupamento = base.cdAgrupamento AND baseexp.cdBaseCalculo = blexp.cdBaseCalculo
       LEFT JOIN epagValorGeralCEFAgrup tabgeral ON tabgeral.cdAgrupamento = base.cdAgrupamento AND tabgeral.cdValorGeralCEFAgrup = blexp.cdValorGeralCEFAgrup
       LEFT JOIN EstruturaCarreira ON EstruturaCarreira.cdAgrupamento = base.cdAgrupamento AND EstruturaCarreira.cdEstruturaCarreira = blexp.cdEstruturaCarreira
-      LEFT JOIN epagRubricaAgrupamento rubagrup ON rubagrup.cdRubricaAgrupamento = blexp.cdRubricaAgrupamento
-      LEFT JOIN epagRubrica rub ON rub.cdRubrica = rubagrup.cdRubrica
-      LEFT JOIN epagTipoRubrica tprub ON tprub.cdTipoRubrica = rub.cdTipoRubrica
+      LEFT JOIN RubricaLista rub ON rub.cdRubricaAgrupamento = blexp.cdRubricaAgrupamento
       ),
       Blocos AS (
       SELECT bl.cdHistBaseCalculo,
