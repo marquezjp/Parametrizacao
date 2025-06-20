@@ -153,7 +153,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarRubricas AS
     OPEN vRefCursor FOR
       --- Extrair os Conceito de Rubricas de Eventos de Pagamento com Os Eventos e as suas formulas de Cálculo de um Agrupamento
       WITH
-      --- Informações referente as lista de Órgãos, Rubricas e Carreiras e Cargos
+      --- Informações referente as lista de Órgãos, Rubricas, Carreiras, Cargos Comissionados, Motivos
       -- OrgaoLista: lista dos Agrupamentos e Órgãos
       OrgaoLista AS (
       SELECT g.sgGrupoAgrupamento, UPPER(p.nmPoder) AS nmPoder, a.sgAgrupamento, vgcorg.sgOrgao,
@@ -247,6 +247,33 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarRubricas AS
       LEFT JOIN ecadItemCarreira item3 ON item3.cdAgrupamento = e.cdAgrupamento AND item3.cdItemCarreira = nivel3.cdItemCarreira
       LEFT JOIN ecadItemCarreira item4 ON item4.cdAgrupamento = e.cdAgrupamento AND item4.cdItemCarreira = nivel4.cdItemCarreira
       ),
+      -- CargoComissionadoLista: lista da Estrutura de Cargos Comissionados
+      CargoComissionadoLista as (
+      SELECT gp.cdAgrupamento, gp.cdGrupoOcupacional, cco.cdCargoComissionado, 
+        a.sgAgrupamento, gp.nmGrupoOcupacional, vigencia.deCargoComissionado
+      FROM ecadCargoComissionado cco
+      INNER JOIN ecadGrupoOcupacional gp on gp.cdGrupoOcupacional = cco.cdGrupoOcupacional
+      INNER JOIN ecadEvolucaoCargoComissionado vigencia on vigencia.cdCargoComissionado = cco.cdCargoComissionado
+      INNER JOIN ecadAgrupamento a on a.cdAgrupamento = gp.cdAgrupamento
+      UNION ALL
+      SELECT gp.cdAgrupamento, gp.cdGrupoOcupacional, NULL AS cdCargoComissionado, 
+      a.sgAgrupamento, gp.nmGrupoOcupacional, NULL AS deCargoComissionado
+      FROM ecadGrupoOcupacional gp
+      INNER JOIN ecadAgrupamento a ON a.cdAgrupamento = gp.cdAgrupamento
+      ORDER BY cdAgrupamento, cdGrupoOcupacional, cdCargoComissionado NULLS FIRST
+      ),
+      MotivoAfastamentoLista AS (
+      SELECT cdMotivoAfastTemporario,
+      deMotivoAfastTemporario, nmGrupoMotivoAfastamento, DECODE(flRemunerado, 'S', 'REMUNERADO', 'NAO REMUNERADO') AS flRemunerado
+      FROM (
+        SELECT grupo.nmGrupoMotivoAfastamento, vigencia.deMotivoAfastTemporario, vigencia.flremunerado,
+          afamot.cdMotivoAfastTemporario, vigencia.dtInicioVigencia,
+          RANK () OVER(PARTITION By vigencia.cdMotivoAfastTemporario ORDER BY vigencia.dtInicioVigencia DESC) AS ordem
+        FROM eafaHistMotivoAfastTemp vigencia
+        LEFT JOIN eafaMotivoAfastTemporario afamot ON afamot.cdMotivoAfastTemporario = vigencia.cdMotivoAfastTemporario
+        LEFT JOIN eafaGrupoMotivoAfastamento grupo ON grupo.cdGrupoMotivoAfastamento = vigencia.cdGrupoMotivoAfastamento
+      ) WHERE ordem = 1
+      ),
 
       --- Informações referente as Formulas de Calculo
       -- Referente as seguintes Tabelas:
@@ -278,12 +305,12 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarRubricas AS
                                               'R', 'VALOR REAL',
                                              NULL),
             'inRelacaoRubrica'        VALUE DECODE(blexp.inRelacaoRubrica,
-                                              'R', 'RELAÇÃO DE TRABALHO',
-                                              'S', 'SOMATÓRIO',
+                                              'R', 'RELACAO DE TRABALHO',
+                                              'S', 'SOMATORIO',
                                             NULL),
             'inMes'                   VALUE DECODE(blexp.inMes,
-                                              'AT', 'VALOR REFERENTE AO MÊS ATUAL',
-                                              'AN', 'VALOR REFERENTE AO MÊS ANTERIOR',
+                                              'AT', 'VALOR REFERENTE AO MES ATUAL',
+                                              'AN', 'VALOR REFERENTE AO MES ANTERIOR',
                                             NULL),
             'nuMeses'                 VALUE blexp.nuMeses,
             'nuValor'                 VALUE blexp.nuValor,
@@ -480,10 +507,16 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarRubricas AS
                 'Orgaos'                    VALUE orgao.Orgaos
               ABSENT ON NULL) END,
             'Carreiras'                     VALUE
-      		CASE WHEN vigencia.inAcaoCarreira IS NULL AND carreira.Carreiras IS NULL
+      		CASE WHEN DECODE(vigencia.inAcaoCarreira, '3', NULL, vigencia.inAcaoCarreira) IS NULL
+                  AND carreira.cdHistEventoPagAgrup IS NULL
       		      THEN NULL
               ELSE JSON_OBJECT(
-                'inAcaoCarreira'            VALUE vigencia.inAcaoCarreira,
+                'inAcaoCarreira'            VALUE DECODE(vigencia.inAcaoCarreira,
+                                                    '1', 'ALGUMAS IMPEDEM',
+                                                    '2', 'ALGUMAS EXIGEM',
+                                                    '3', NULL, --'TODAS PERMITEM',
+                                                    '4', 'NENHUMA PERMITE',
+                                                  NULL),
                 'Carreiras'                 VALUE carreira.Carreiras
               ABSENT ON NULL) END,
             'FormulaCalculo'                VALUE
@@ -493,7 +526,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarRubricas AS
                 'flUtilizaFormulaCalculo'   VALUE NULLIF(vigencia.flUtilizaFormulaCalculo, 'N'),
                 'nuFormulaEspecifica'       VALUE vigencia.nuFormulaEspecifica
               ABSENT ON NULL) END,
-            'ConquistaPerAquis'             VALUE
+            'ConquistaPeriodoAquisitivo'             VALUE
       		CASE WHEN vigencia.dtInicioConquistaPerAquis IS NULL AND vigencia.dtFimConquistaPerAquis IS NULL
       		      THEN NULL
               ELSE JSON_OBJECT(
@@ -523,13 +556,12 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarRubricas AS
         LEFT JOIN GrupoOrgaoEvento orgao ON orgao.cdHistEventoPagAgrup = vigencia.cdHistEventoPagAgrup
         LEFT JOIN RubricaLista rub ON rub.cdRubricaAgrupamento = vigencia.cdRubricaAgrupamento
         LEFT JOIN ecadRelacaoTrabalho relTrab ON relTrab.cdRelacaoTrabalho = vigencia.cdRelacaoTrabalho
-
         GROUP BY vigencia.cdEventoPagAgrup, vigencia.cdRubricaAgrupamento
       ),
       -- Evento: eventos de pagamento vinculados à rubrica
       Evento AS (
         SELECT evento.cdAgrupamento, evento.cdRubricaAgrupamento,
-          JSON_OBJECT(
+          JSON_ARRAYAGG(JSON_OBJECT(
             'nmTipoEventoPagamento'         VALUE UPPER(tpEvento.nmTipoEventoPagamento),
             'deEvento'                      VALUE evento.deEvento,
             'nuRubrica'                     VALUE TRIM(rub.nuRubrica || ' ' || rub.deRubrica),
@@ -537,7 +569,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarRubricas AS
             'nuRubricaAgrupAlternativa2'    VALUE TRIM(rubAlt2.nuRubrica || ' ' || rubAlt2.deRubrica),
             'nuRubricaAgrupAlternativa3'    VALUE TRIM(rubAlt3.nuRubrica || ' ' || rubAlt3.deRubrica),
             'Vigencias'                     VALUE vigencia.Vigencias
-          ABSENT ON NULL RETURNING CLOB) AS Evento
+          ABSENT ON NULL RETURNING CLOB)
+          ORDER BY UPPER(tpEvento.nmTipoEventoPagamento), evento.deEvento RETURNING CLOB) AS Eventos
         FROM epagEventoPagAgrup evento
         INNER JOIN epagTipoEventoPagamento tpEvento ON tpEvento.cdTipoEventoPagamento = evento.cdTipoEventoPagamento
         LEFT JOIN VigenciaEvento vigencia ON vigencia.cdEventoPagAgrup = evento.cdEventoPagAgrup
@@ -545,6 +578,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarRubricas AS
         LEFT JOIN RubricaLista rubCCO ON rubCCO.cdRubricaAgrupamento = evento.cdRubAgrupOpRecebCCO
         LEFT JOIN RubricaLista rubAlt2 ON rubAlt2.cdRubricaAgrupamento = evento.cdRubricaAgrupAlternativa2
         LEFT JOIN RubricaLista rubAlt3 ON rubAlt3.cdRubricaAgrupamento = evento.cdRubricaAgrupAlternativa3
+        GROUP BY evento.cdAgrupamento, evento.cdRubricaAgrupamento
       ),
 
       --- Informações referente AS Rubricas e Rubricas no Agrupamento
@@ -568,9 +602,15 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarRubricas AS
           JSON_ARRAYAGG(JSON_OBJECT(
             'nuAnoMesInicioVigencia'        VALUE vigencia.nuAnoInicioVigencia || LPAD(vigencia.nuMesInicioVigencia, 2, 0),
             'nuAnoMesFimVigencia'           VALUE vigencia.nuAnoFimVigencia || LPAD(vigencia.nuMesFimVigencia, 2, 0),
-            'Inventario' VALUE JSON_OBJECT(
+            'DadosRubrica' VALUE JSON_OBJECT(
               'deRubricaAgrupamento'        VALUE vigencia.deRubricaAgrupamento,
               'deRubricaAgrupResumida'      VALUE vigencia.deRubricaAgrupResumida,
+              'mnRelacaoTrabalho'           VALUE relTrabVigencia.nmRelacaoTrabalho, -- cdRelacaoTrabalho
+              'flCargaHorariaPadrao'        VALUE NULLIF(vigencia.flCargaHorariaPadrao, 'N'),
+              'nuCargaHorariaSemanal'       VALUE vigencia.nuCargaHorariaSemanal,
+              'nuOutraRubrica'              VALUE rubOutra.nuRubrica                 -- cdOutraRubrica
+            ABSENT ON NULL),
+            'Inventario' VALUE JSON_OBJECT(
               'deRubricaAgrupDetalhada'     VALUE vigencia.deRubricaAgrupDetalhada,
               'deFormula'                   VALUE vigencia.deFormula,
               'deModulo'                    VALUE vigencia.deModulo,
@@ -578,52 +618,44 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarRubricas AS
               'deVantagensNaoAcumulaveis'   VALUE vigencia.deVantagensNaoAcumulaveis,
               'deObservacao'                VALUE vigencia.deObservacao
             ABSENT ON NULL),
-            'ParametrosVigencia' VALUE JSON_OBJECT(
-              'nmRelacaoTrabalho'           VALUE UPPER(relTrab.nmRelacaoTrabalho),
-              'nmRubProporcionalidadeCHO'   VALUE DECODE(vigencia.cdRubProporcionalidadeCHO,
-                                                    '1', NULL, --'NÃO APLICAR',
-                                                    '2', 'APLICAR',
-                                                    '3', 'APLICAR MÉDIA',
-                                                  NULL),  
-              'cdOutraRubrica'              VALUE vigencia.cdOutraRubrica,
-              'nuCargaHorariaSemanal'       VALUE vigencia.nuCargaHorariaSemanal,
-              'nuMesesApuracao'             VALUE vigencia.nuMesesApuracao,
+            'LancamentoFinanceiro' VALUE JSON_OBJECT(
               'inSePossuirValorInformado'   VALUE DECODE(vigencia.inPossuiValorInformado,
-                                                    '1', 'RELAÇÃO VÍNCULO PRINCIPAL',
+                                                    '1', NULL, -- 'RELACAO VINCULO PRINCIPAL',
                                                     '2', 'PARA CARGO COMISSIONADO',
-                                                    '3', 'PARA SUBSTITUIÇÃO DE CARGO COMISSIONADO',
+                                                    '3', 'PARA SUBSTITUICAO DE CARGO COMISSIONADO',
                                                     '4', 'PARA ESPECIALIDADE COMO TITULAR',
-                                                    '5', 'PARA SUBSTITUIÇÃO DE ESPECIALIDADE',
+                                                    '5', 'PARA SUBSTITUICAO DE ESPECIALIDADE',
                                                     '6', 'PARA APOSENTADORIA',
                                                     '7', 'PARA CARGO EFETIVO',
                                                   NULL),
-              'flPropMesComercial'          VALUE NULLIF(vigencia.flPropMesComercial, 'N'),
-              'flPropAposParidade'          VALUE NULLIF(vigencia.flPropAposParidade, 'N'),
-              'flPropServRelVinc'           VALUE NULLIF(vigencia.flPropServRelVinc, 'N'),
-              'flPermiteAfastAcidente'      VALUE NULLIF(vigencia.flPermiteAfastAcidente, 'N'),
+              'inLancPropRelVinc'           VALUE DECODE(vigencia.inLancPropRelVinc,
+                                                    '1', 'PARA PRINCIPAL',
+                                                    '2', NULL, --'PARA TODAS',
+                                                    '3', 'APENAS CARGO COMISSIONADO',
+                                                    '4', 'APENAS FUNCAO DE CHEFIA',
+                                                    '5', 'APENAS APOSENTADORIA',
+                                                  NULL),
               'flBloqLancFinanc'            VALUE NULLIF(vigencia.flBloqLancFinanc, 'N'),
-              'flCargaHorariaPadrao'        VALUE NULLIF(vigencia.flCargaHorariaPadrao, 'N'),
-              'flAplicaRubricaOrgaos'       VALUE NULLIF(vigencia.flAplicaRubricaOrgaos, 'N'),
-              'flGestaoSobreRubrica'        VALUE NULLIF(vigencia.flGestaoSobreRubrica, 'N'),
-              'flGeraRubricaEscala'         VALUE NULLIF(vigencia.flGeraRubricaEscala, 'N'),
-              'flGeraRubricaHoraExtra'      VALUE NULLIF(vigencia.flGeraRubricaHoraExtra, 'N'),
-              'flGeraRubricaServCCO'        VALUE NULLIF(vigencia.flGeraRubricaServCCO, 'N'),
-              'flLaudoAcompanhamento'       VALUE NULLIF(vigencia.flLaudoAcompanhamento, 'N'),
-              'flPermiteFGFTG'              VALUE NULLIF(vigencia.flPermiteFGFTG, 'N'),
-              'flPermiteApoOriginadoCCO'    VALUE NULLIF(vigencia.flPermiteApoOriginadoCCO, 'N'),
-              'flPagaSubstituicao'          VALUE NULLIF(vigencia.flPagaSubstituicao, 'N'),
-              'flPagaRespondendo'           VALUE NULLIF(vigencia.flPagaRespondendo, 'N'),
+              'flSuspensa'                  VALUE NULLIF(vigencia.flSuspensa, 'N'),
+              'flSuspensaRetroativoErario'  VALUE NULLIF(vigencia.flSuspensaRetroativoErario, 'N'),
               'flConsolidaRubrica'          VALUE NULLIF(vigencia.flConsolidaRubrica, 'N'),
-              'flPropAfastTempNaoRemun'     VALUE NULLIF(vigencia.flPropAfastTempNaoRemun, 'N'),
-              'flPropAfAFGFTG'              VALUE NULLIF(vigencia.flPropAfAFGFTG, 'N'),
-              'flCargaHorariaLimitada'      VALUE NULLIF(vigencia.flCargaHorariaLimitada, 'N'),
-              'flIncidParcialContrPrev'     VALUE NULLIF(vigencia.flIncidParcialContrPrev, 'N'),
-              'flPropAfaComissionado'        VALUE NULLIF(vigencia.flPropAfaComissionado, 'N'),
-              'flPropAfaComOpcPercCEF'       VALUE NULLIF(vigencia.flPropAfaComOpcPercCEF, 'N'),
-              'flPreservaValorIntegral'     VALUE NULLIF(vigencia.flPreservaValorIntegral, 'N')
+              'flPermiteAfastAcidente'      VALUE NULLIF(vigencia.flPermiteAfastAcidente, 'N'),
+              'flValidaSufixoPrecedenciaLF' VALUE NULLIF(vigencia.flValidaSufixoPrecedenciaLF, 'N')
             ABSENT ON NULL),
-            'GeracaoRubrica' VALUE JSON_OBJECT(
+            'GerarRubrica' VALUE JSON_OBJECT(
+              'inGeraRubricaUO'             VALUE DECODE(vigencia.inGeraRubricaUO,
+                                                    '1', 'ALGUMAS IMPEDEM',
+                                                    '2', 'ALGUMAS EXIGEM',
+                                                    '3', NULL, --TODAS PERMITEM',
+                                                    '4', 'NENHUMA PERMITE',
+                                                  NULL),
               'inGeraRubricaCarreira'       VALUE DECODE(vigencia.inGeraRubricaCarreira,
+                                                    '1', 'ALGUMAS IMPEDEM',
+                                                    '2', 'ALGUMAS EXIGEM',
+                                                    '3', NULL, --'TODAS PERMITEM',
+                                                    '4', 'NENHUMA PERMITE',
+                                                  NULL),
+              'inGeraRubricaNivel'          VALUE DECODE(vigencia.inGeraRubricaNivel,
                                                     '1', 'ALGUMAS IMPEDEM',
                                                     '2', 'ALGUMAS EXIGEM',
                                                     '3', NULL, --'TODAS PERMITEM',
@@ -641,45 +673,139 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarRubricas AS
                                                     '3', NULL, --'TODAS PERMITEM',
                                                     '4', 'NENHUMA PERMITE',
                                                   NULL),
-              'inGeraRubricaNivel'          VALUE DECODE(vigencia.inGeraRubricaNivel,
+              'inGeraRubricaPrograma'       VALUE DECODE(vigencia.inGeraRubricaPrograma,
                                                     '1', 'ALGUMAS IMPEDEM',
                                                     '2', 'ALGUMAS EXIGEM',
                                                     '3', NULL, --'TODAS PERMITEM',
                                                     '4', 'NENHUMA PERMITE',
                                                   NULL),
-              'inGeraRubricaUO'             VALUE DECODE(vigencia.inGeraRubricaUO,
-                                                    '1', 'ALGUMAS IMPEDEM',
-                                                    '2', 'ALGUMAS EXIGEM',
-                                                    '3', NULL, --TODAS PERMITEM',
-                                                    '4', 'NENHUMA PERMITE',
-                                                  NULL),
               'inAposentadoriaServidor'     VALUE DECODE(vigencia.inAposentadoriaServidor,
                                                     '1', 'DEVE ESTAR APOSENTADO',
-                                                    '2', 'DEVE TER O DIREITO À APOSENTADORIA',
-                                                  NULL),
-              'inLancPropRelVinc'           VALUE DECODE(vigencia.inLancPropRelVinc,
-                                                    '1', 'PARA PRINCIPAL',
-                                                    '2', NULL, --'PARA TODAS',
-                                                    '3', 'APENAS CARGO COMISSIONADO',
-                                                    '4', 'APENAS FUNÇÃO DE CHEFIA',
-                                                    '5', 'APENAS APOSENTADORIA',
+                                                    '2', NULL, --'DEVE TER O DIREITO A APOSENTADORIA',
                                                   NULL),
               'inGeraRubricaAfastTemp'      VALUE DECODE(vigencia.inGeraRubricaAfastTemp,
                                                     '1', 'MOTIVOS IMPEDEM',
-                                                    '2', 'MOTIVOS NÃO IMPEDEM',
+                                                    '2', 'MOTIVOS NAO IMPEDEM',
+                                                    '3', NULL, -- 'NENHUM IMPEDE'
                                                   NULL),
+              'inGeraRubricaMotMovi'        VALUE DECODE(vigencia.inGeraRubricaMotMovi,
+                                                    '1', 'MOTIVOS IMPEDEM',
+                                                    '2', 'MOTIVOS NAO IMPEDEM',
+                                                    '3', NULL, -- 'NENHUM IMPEDE'
+                                                  NULL),
+              'flPagaEfetivoOrgao'          VALUE NULLIF(vigencia.flPagaEfetivoOrgao, 'N'),
+              'flPagAposentadoria'          VALUE NULLIF(vigencia.flPagAposentadoria, 'N'),
+              'flLaudoAcompanhamento'       VALUE NULLIF(vigencia.flLaudoAcompanhamento, 'N'),
+              'flGeraRubricaCarreiraIncideApo' VALUE NULLIF(vigencia.flGeraRubricaCarreiraIncideApo, 'N'),
+              'flGeraRubricaCarreiraIncideCCO' VALUE NULLIF(vigencia.flGeraRubricaCarreiraIncideCCO, 'N'),
+              'flGeraRubricaCCOIncideCEF'   VALUE NULLIF(vigencia.flGeraRubricaCCOIncideCEF, 'N'),
+              'flGeraRubricaFUCIncideCEF'   VALUE NULLIF(vigencia.flGeraRubricaFUCIncideCEF, 'N'),
+              'flGeraRubricaHoraExtra'      VALUE NULLIF(vigencia.flGeraRubricaHoraExtra, 'N'),
+              'flGeraRubricaEscala'         VALUE NULLIF(vigencia.flGeraRubricaEscala, 'N'),
+              'flGeraRubricaServCCO'        VALUE NULLIF(vigencia.flGeraRubricaServCCO, 'N'),
+              'ListaEstruturaCarreira'      VALUE (
+                SELECT JSON_ARRAYAGG(carreira.nmEstruturaCarreira
+                ORDER BY UPPER(carreira.nmEstruturaCarreira) ABSENT ON NULL RETURNING CLOB) AS ListaEstruturaCarreira
+                FROM epagHistRubricaAgrupCarreira carreiraPermitidas
+                INNER JOIN EstruturaCarreiraLista carreira ON carreira.cdEstruturaCarreira = carreiraPermitidas.cdEstruturaCarreira
+                WHERE carreiraPermitidas.cdHistRubricaAgrupamento = vigencia.cdHistRubricaAgrupamento),
+              'ListaFuncaoChefia'           VALUE NULL, --(ListaFuncaoChefia ABSENT ON NULL RETURNING CLOB),
+              'ListaCargoComissionado'      VALUE (
+                SELECT JSON_ARRAYAGG(JSON_OBJECT(
+                  'nmGrupoOcupacional'    VALUE cco.nmGrupoOcupacional,
+                  'deCargoComissionado'   VALUE cco.deCargoComissionado
+                  ABSENT ON NULL) ORDER BY cco.nmGrupoOcupacional, cco.deCargoComissionado
+                ABSENT ON NULL RETURNING CLOB) AS ListaCargoComissionado
+                FROM epagHistRubricaAgrupCCO ccoPermitidos
+                LEFT JOIN CargoComissionadoLista cco ON cco.cdGrupoOcupacional = ccoPermitidos.cdGrupoOcupacional
+                                                    AND NVL(cco.cdCargoComissionado,0) = NVL(ccoPermitidos.cdCargoComissionado,0)
+                WHERE ccoPermitidos.cdHistRubricaAgrupamento = vigencia.cdHistRubricaAgrupamento),
+              'ListaModeloAposentadoria'    VALUE NULL, -- (ListaModeloAposentadoria ABSENT ON NULL RETURNING CLOB),
+              'ListaMotivoConvocacao'       VALUE NULL, -- (ListaMotivoConvocacao ABSENT ON NULL RETURNING CLOB),
+              'ListaMotivoMovimentacao'     VALUE NULL, -- (ListaMotivoMovimentacao ABSENT ON NULL RETURNING CLOB),
+              'ListaPrograma'               VALUE NULL, -- (ListaPrograma ABSENT ON NULL RETURNING CLOB),
+              'ListaUnidadeOrganizacional'  VALUE NULL, -- (ListaUnidadeOrganizacional ABSENT ON NULL RETURNING CLOB),
+              'ListaNivelReferencia'        VALUE (
+                SELECT JSON_ARRAYAGG(JSON_OBJECT(
+                  'nuNivel'                 VALUE nivref.nuNivel,
+                  'nuReferencia'            VALUE nivref.nuReferencia
+                ABSENT ON NULL) ORDER BY nivref.nuNivel, nivref.nuReferencia
+                ABSENT ON NULL RETURNING CLOB) AS ListaNivelReferencia
+                FROM epagHistRubricaAgrupNivelRef nivref
+                WHERE nivref.cdHistRubricaAgrupamento = vigencia.cdHistRubricaAgrupamento)
+            ABSENT ON NULL),
+            'Proporcionalidade' VALUE JSON_OBJECT(
+              'deTipoIndice'                VALUE tpIndice.deTipoIndice,       -- cdTipoIndice
+              'cdRubProporcionalidadeCHO'   VALUE DECODE(vigencia.cdRubProporcionalidadeCHO,
+                                                    '1', NULL, --'NAO APLICAR',
+                                                    '2', 'APLICAR',
+                                                    '3', 'APLICAR MEDIA',
+                                                  NULL),
+              'nuMesesApuracao'             VALUE NULLIF(vigencia.flSuspensa, 'N'),
+              'flPropMesComercial'          VALUE NULLIF(vigencia.flSuspensa, 'N'),
+              'flCargaHorariaLimitada'      VALUE NULLIF(vigencia.flSuspensa, 'N'),
+              'flIgnoraAfastCEFAgPolitico'  VALUE NULLIF(vigencia.flSuspensa, 'N'),
+              'flIncidParcialContrPrev'     VALUE NULLIF(vigencia.flSuspensa, 'N'),
+              'flPagaMaiorRV'               VALUE NULLIF(vigencia.flSuspensa, 'N'),
+              'flPercentLimitado100'        VALUE NULLIF(vigencia.flSuspensa, 'N'),
+              'flPercentReducaoAfastRemun'  VALUE NULLIF(vigencia.flSuspensa, 'N'),
+              'flPropServRelVinc'           VALUE NULLIF(vigencia.flSuspensa, 'N'),
+              'flPropAfaComissionado'       VALUE NULLIF(vigencia.flSuspensa, 'N'),
+              'flPropAfaCCOSubst'           VALUE NULLIF(vigencia.flSuspensa, 'N'),
+              'flPropAfaComOpcPercCEF'      VALUE NULLIF(vigencia.flSuspensa, 'N'),
+              'flPropAfaFGFTG'              VALUE NULLIF(vigencia.flSuspensa, 'N'),
+              'flPropAfastTempNaoRemun'     VALUE NULLIF(vigencia.flSuspensa, 'N'),
+              'flPropAposParidade'          VALUE NULLIF(vigencia.flSuspensa, 'N'),
+              'ListaCargasHorarias'         VALUE NULL, -- (ListaCargasHorarias ABSENT ON NULL RETURNING CLOB),
+              'ListaMotivosAfastamentoQueImpedem' VALUE (
+                SELECT JSON_ARRAYAGG(motivoTemp.deMotivoAfastTemporario ORDER BY motivoTemp.deMotivoAfastTemporario
+                RETURNING CLOB) AS ListaMotivosAfastamentoQueImpedem
+                FROM epagRubAgrupMotAfastTempImp afamottemp
+                LEFT JOIN MotivoAfastamentoLista motivoTemp ON motivoTemp.cdMotivoAfastTemporario = afamottemp.cdMotivoAfastTemporario
+                WHERE afamottemp.cdHistRubricaAgrupamento = vigencia.cdHistRubricaAgrupamento),
+              'ListaMotivoAfastamentoExigidos' VALUE NULL -- (ListaMotivoAfastamentoExigidos ABSENT ON NULL RETURNING CLOB)
+            ABSENT ON NULL),
+            'PermissoesRubrica' VALUE JSON_OBJECT(
               'inImpedimentoRubrica'        VALUE DECODE(vigencia.inImpedimentoRubrica,
-                                                    '1', 'POSSUA TODAS IMPEDIRÁ',
-                                                    '2', 'POSSUA AO MENOS UMA IMPEDIRÁ',
-                                                    '3', NULL, --'NÃO SE APLICA',
+                                                    '1', 'POSSUA TODAS IMPEDIRA',
+                                                    '2', 'POSSUA AO MENOS UMA IMPEDIRA',
+                                                    '3', NULL, --'NAO SE APLICA',
                                                   NULL),
               'inRubricasExigidas'          VALUE DECODE(vigencia.inRubricasExigidas,
-                                                    '1', 'POSSUA TODAS PERMITIRÁ',
-                                                    '2', 'POSSUA AO MENOS UMA PERMITIRÁ',
-                                                    '3', NULL, --'NÃO SE APLICA',
-                                                  NULL)
-            ABSENT ON NULL),
-            'Abrangencias' VALUE JSON_OBJECT(
+                                                    '1', 'POSSUA TODAS PERMITIRA',
+                                                    '2', 'POSSUA AO MENOS UMA PERMITIRA',
+                                                    '3', NULL, --'NAO SE APLICA',
+                                                  NULL),
+              'flAplicaRubricaOrgaos'       VALUE NULLIF(vigencia.flAplicaRubricaOrgaos, 'N'),
+              'flGestaoSobreRubrica'        VALUE NULLIF(vigencia.flGestaoSobreRubrica, 'N'),
+              'flImpedeIdadeCompulsoria'    VALUE NULLIF(vigencia.flImpedeIdadeCompulsoria, 'N'),
+              'flPagaAposEmParidade'        VALUE NULLIF(vigencia.flPagaAposEmParidade, 'N'),
+              'flPagaRespondendo'           VALUE NULLIF(vigencia.flPagaRespondendo, 'N'),
+              'flPagaSubstituicao'          VALUE NULLIF(vigencia.flPagaSubstituicao, 'N'),
+              'flPermiteApoOriginadoCCO'    VALUE NULLIF(vigencia.flPermiteApoOriginadoCCO, 'N'),
+              'flPermiteFGFTG'              VALUE NULLIF(vigencia.flPermiteFGFTG, 'N'),
+              'flPreservaValorIntegral'     VALUE NULLIF(vigencia.flPreservaValorIntegral, 'N'),
+              'ListaOrgaoPermitidos'        VALUE (
+                SELECT JSON_ARRAYAGG(JSON_OBJECT(
+                  'sgOrgao'                 VALUE o.sgOrgao,
+                  'flGestaoRubrica'         VALUE NULLIF(orgPermitidos.flGestaoRubrica, 'N'),
+                  'inLotadoExercicio'       VALUE DECODE(orgPermitidos.inLotadoExercicio, '1', NULL, '2', 'EM EXERCICIO', NULL)
+                ABSENT ON NULL)  ORDER BY UPPER(o.sgOrgao) ABSENT ON NULL RETURNING CLOB) AS ListaOrgaoPermitidos
+                FROM epagHistRubricaAgrupOrgao orgPermitidos
+                INNER JOIN OrgaoLista o ON o.cdOrgao = orgPermitidos.cdOrgao
+                WHERE orgpermitidos.cdHistRubricaAgrupamento = vigencia.cdHistRubricaAgrupamento),
+              'ListaRubricaQueImpedem'      VALUE (
+                SELECT JSON_ARRAYAGG(
+                  TRIM(rub.nuRubrica || ' ' || rub.deRubrica) ORDER BY UPPER(rub.nuRubrica)) AS ListaRubricaQueImpedem
+                FROM epagHistRubricaAgrupImpeditiva rubimp
+                INNER JOIN RubricaLista rub ON rub.cdRubricaAgrupamento = rubimp.cdRubricaAgrupamento
+                WHERE rubimp.cdHistRubricaAgrupamento = vigencia.cdHistRubricaAgrupamento),
+              'ListaRubricaExigidas'        VALUE (
+                SELECT JSON_ARRAYAGG(
+                  TRIM(rub.nuRubrica || ' ' || rub.deRubrica) ORDER BY UPPER(rub.nuRubrica)) AS ListaRubricaExigidas
+                FROM epagHistRubricaAgrupExigida rubexig
+                INNER JOIN RubricaLista rub ON rub.cdRubricaAgrupamento = rubexig.cdRubricaAgrupamento
+                WHERE rubexig.cdHistRubricaAgrupamento = vigencia.cdHistRubricaAgrupamento),
               'NaturezaVinculo' VALUE (
                 SELECT JSON_ARRAYAGG(UPPER(natVinc.nmNaturezaVinculo) ORDER BY UPPER(natVinc.nmNaturezaVinculo)) AS NaturezaVinculo
                 FROM epagHistRubricaAgrupNatVinc vigNatVinc
@@ -709,7 +835,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarRubricas AS
       	ORDER BY vigencia.nuAnoInicioVigencia || LPAD(vigencia.nuMesInicioVigencia, 2, 0) DESC RETURNING CLOB
       	) AS VigenciasAgrupamento
         FROM epagHistRubricaAgrupamento vigencia
-        LEFT JOIN ecadRelacaoTrabalho relTrab ON relTrab.cdRelacaoTrabalho = vigencia.cdRelacaoTrabalho
+        LEFT JOIN ecadRelacaoTrabalho relTrabVigencia ON relTrabVigencia.cdRelacaoTrabalho = vigencia.cdRelacaoTrabalho
+        LEFT JOIN RubricaLista rubOutra ON rubOutra.cdRubricaAgrupamento = vigencia.cdOutraRubrica
+        LEFT JOIN epagTipoIndice tpIndice ON tpIndice.cdTipoIndice = vigencia.cdTipoIndice
         GROUP BY vigencia.cdRubricaAgrupamento
       ),
       -- RubricaAgrupamento: estrutura completa da Rubrica no Agrupamento
@@ -723,7 +851,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarRubricas AS
       	    AND rubagrup.flAdiant13Pensao != 'S'     AND rubagrup.fl13SalPensao != 'S'
       			AND rubagrup.flConsignacao != 'S'        AND rubagrup.flTributacao != 'S'
       			AND rubagrup.flSalarioFamilia != 'S'     AND rubagrup.flSalarioMaternidade != 'S'
-      			AND rubagrup.flDevTributacaoIprev != 'S' AND rubagrup.flDevCorrecaoMonetaria != 'S'
+      			AND rubagrup.flDevTributacaoIPREV != 'S' AND rubagrup.flDevCorrecaoMonetaria != 'S'
       			AND rubagrup.flAbonoPermanencia != 'S'   AND rubagrup.flApostilamento != 'S'
       			AND rubagrup.flContribuicaoSindical != 'S'
       			THEN NULL
@@ -736,7 +864,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarRubricas AS
             'flTributacao'                  VALUE NULLIF(rubagrup.flTributacao, 'N'),
             'flSalarioFamilia'              VALUE NULLIF(rubagrup.flSalarioFamilia, 'N'),
             'flSalarioMaternidade'          VALUE NULLIF(rubagrup.flSalarioMaternidade, 'N'),
-            'flDevTributacaoIprev'          VALUE NULLIF(rubagrup.flDevTributacaoIprev, 'N'),
+            'flDevTributacaoIPREV'          VALUE NULLIF(rubagrup.flDevTributacaoIPREV, 'N'),
             'flDevCorrecaoMonetaria'        VALUE NULLIF(rubagrup.flDevCorrecaoMonetaria, 'N'),
             'flAbonoPermanencia'            VALUE NULLIF(rubagrup.flAbonoPermanencia, 'N'),
             'flApostilamento'               VALUE NULLIF(rubagrup.flApostilamento, 'N'),
@@ -745,19 +873,19 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarRubricas AS
           'ParametrosAgrupamento'           VALUE JSON_OBJECT(
             'nmModalidadeRubrica'           VALUE modrub.nmModalidadeRubrica,
             'sgBaseCalculo'                 VALUE basecalc.sgBaseCalculo,
-            'flVisivelServidor'             VALUE NULLIF(rubagrup.flVisivelServidor, 'N'),
-            'flGeraSuplementar'             VALUE NULLIF(rubagrup.flGeraSuplementar, 'N'),
-            'flConsAd'                      VALUE NULLIF(rubagrup.flConsAd, 'N'),
+            'flVisivelServidor'             VALUE NULLIF(rubagrup.flVisivelServidor, 'S'),
+            'flGeraSuplementar'             VALUE NULLIF(rubagrup.flGeraSuplementar, 'S'),
+            'flConsad'                      VALUE NULLIF(rubagrup.flConsad, 'N'),
             'flCompoe13'                    VALUE NULLIF(rubagrup.flCompoe13, 'N'),
             'flPropria13'                   VALUE NULLIF(rubagrup.flPropria13, 'N'),
             'flEmpenhadaFilial'             VALUE NULLIF(rubagrup.flEmpenhadaFilial, 'N'),
             'nuElemDespesaAtivo'            VALUE rubagrup.nuElemDespesaAtivo,
             'nuElemDespesaInativo'          VALUE rubagrup.nuElemDespesaInativo,
-            'nuElemDespesaAtivoClt'         VALUE rubagrup.nuElemDespesaAtivoClt,
-            'nuOrdemConsAd'                 VALUE rubagrup.nuOrdemConsAd
+            'nuElemDespesaAtivoCLT'         VALUE rubagrup.nuElemDespesaAtivoCLT,
+            'nuOrdemConsad'                 VALUE rubagrup.nuOrdemConsad
           ABSENT ON NULL),
           'VigenciasAgrupamento'            VALUE vigencia.VigenciasAgrupamento,
-          'Evento'                          VALUE evento.Evento,
+          'Eventos'                         VALUE evento.Eventos,
           'Formula'                         VALUE formula.Formula
         ABSENT ON NULL RETURNING CLOB) AS Agrupamento
       FROM epagRubricaAgrupamento rubagrup

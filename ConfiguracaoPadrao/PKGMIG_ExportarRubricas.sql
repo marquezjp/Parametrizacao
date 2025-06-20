@@ -13,11 +13,28 @@ CREATE OR REPLACE PACKAGE PKGMIG_ExportarRubricas AS
   --          │
   --          └── RubricaAgrupamento => epagRubricaAgrupamento
   --               ├── RubricaAgrupamentoVigencia => epagHistRubricaAgrupamento
-  --               │    ├── RubricaAgrupamentoVigencia.Abrangencias.NaturezaVinculo => epagHistRubricaAgrupNatVinc
-  --               │    ├── RubricaAgrupamentoVigencia.Abrangencias.RegimePrevidenciario => epagHistRubricaAgrupRegPrev
-  --               │    ├── RubricaAgrupamentoVigencia.Abrangencias.RegimeTrabalho => epagHistRubricaAgrupRegTrab
-  --               │    ├── RubricaAgrupamentoVigencia.Abrangencias.RelacaoTrabalho => epagHistRubricaAgrupRelTrab
-  --               │    └── RubricaAgrupamentoVigencia.Abrangencias.SituacaoPrevidenciaria => epagHistRubricaAgrupSitPrev
+  --               │    │
+  --               │    ├── GeracaoRubrica.Carreiras => epagHistRubricaAgrupCarreira
+  --               │    ├── GeracaoRubrica.NiveisReferencias => epagHistRubricaAgrupNivelRef
+  --               │    ├── GeracaoRubrica.CargosComissionados => epagHistRubricaAgrupCCO
+  --               │    ├── GeracaoRubrica.FuncoesChefia => epagHistRubricaAgrupFUC
+  --               │    ├── GeracaoRubrica.Programas => epagHistRubricaAgrupPrograma
+  --               │    ├── GeracaoRubrica.ModelosAposentadoria => epagHistRubricaAgrupModeloApo
+  --               │    ├── GeracaoRubrica.CargasHorarias => epagHistRubAgrupLocCHO
+  --               │    │
+  --               │    ├── PermissoesRubrica.Orgaos => epagHistRubricaAgrupOrgao
+  --               │    ├── PermissoesRubrica.UnidadesOrganizacionais => epagHistRubricaAgrupUO
+  --               │    ├── PermissoesRubrica.NaturezasVinculo => epagHistRubricaAgrupNatVinc
+  --               │    ├── PermissoesRubrica.RelacoesTrabalho=> epagHistRubricaAgrupRelTrab
+  --               │    ├── PermissoesRubrica.RegimesTrabalho => epagHistRubricaAgrupRegTrab
+  --               │    ├── PermissoesRubrica.RegimesPrevidenciarios => epagHistRubricaAgrupRegPrev
+  --               │    ├── PermissoesRubrica.SituacoesPrevidenciarias => epagHistRubricaAgrupSitPrev
+  --               │    ├── PermissoesRubrica.MotivosAfastamentoImpedem => epagRubAgrupMotAfastTempImp
+  --               │    ├── PermissoesRubrica.MotivosAfastamentoExigidos => epagRubAgrupMotAfastTempEx
+  --               │    ├── PermissoesRubrica.MotivosMovimentacao => epagHistRubricaAgrupMotMovi
+  --               │    ├── PermissoesRubrica.MotivosConvocacao => epagHistRubricaAgrupMotConv
+  --               │    ├── PermissoesRubrica.RubricasImpedem => epagHistRubricaAgrupImpeditiva
+  --               │    └── PermissoesRubrica.RubricasExigidas => epagHistRubricaAgrupExigida
   --               │
   --               ├── Evento => epagEventoPagAgrup
   --               │    └── VigenciaEvento => epagHistEventoPagAgrup
