@@ -176,7 +176,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
     vsgConceito            VARCHAR2(20) := 'BASE';
 	  vtpOperacao            VARCHAR2(15) := 'IMPORTACAO';
 	  vdtOperacao            TIMESTAMP    := LOCALTIMESTAMP;
-    vcdIdentificacao       VARCHAR2(50) := Null;
+    vcdIdentificacao       VARCHAR2(70) := Null;
     vcdBaseCalculoNova     NUMBER       := Null;
     vnuInseridos           NUMBER       := 0;
     vnuAtualizados         NUMBER       := 0;
@@ -356,7 +356,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
     PKGMIG_ConfiguracaoPadrao.pGerarResumo(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
       vsgModulo, vsgConceito, vdtTermino, vnuTempoExecucao, pnuDEBUG);
 
-    -- Registro de Resumo da Exportação dos Valores de Referencia
+    -- Registro de Resumo da Importação dos Valores de Referencia
     PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
       vsgModulo, vsgConceito, NULL, 1,
       NULL, 'RESUMO', 'Importação das Parametrizações das Bases de Cálculo do ' || vtxResumo, 
@@ -607,7 +607,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
     pnuDEBUG              IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
-    vcdIdentificacao         VARCHAR2(50) := Null;
+    vcdIdentificacao         VARCHAR2(70) := Null;
     vcdVersaoBaseCalculoNova NUMBER := 0;
     vnuRegistros             NUMBER := 0;
 
@@ -694,7 +694,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
   --   pcdIdentificacao      IN VARCHAR2:
   --   pcdVersaoBaseCalculo  IN NUMBER:
   --   pVigencias            IN CLOB:
-  --   pnuDEBUG                 IN NUMBER DEFAULT NULL:
+  --   pnuDEBUG              IN NUMBER DEFAULT NULL:
   --
   -- ###########################################################################
     psgAgrupamentoDestino IN VARCHAR2,
@@ -706,10 +706,10 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
     pcdIdentificacao      IN VARCHAR2,
     pcdVersaoBaseCalculo  IN NUMBER,
     pVigencias            IN CLOB,
-    pnuDEBUG                 IN NUMBER DEFAULT NULL
+    pnuDEBUG              IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
-    vcdIdentificacao           VARCHAR2(50) := Null;
+    vcdIdentificacao           VARCHAR2(70) := Null;
     vcdHistBaseCalculoNova     NUMBER       := Null;
     vcdDocumentoNovo           NUMBER       := Null;
     vnuRegistros               NUMBER       := 0;
@@ -717,7 +717,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
     -- Cursor que extrai as Vigências das Bases do Documento pVigencias JSON
     CURSOR cDados IS
       WITH
-      Orgao AS (
+      -- OrgaoLista: lista dos Agrupamentos e Órgãos
+      OrgaoLista AS (
       SELECT g.sgGrupoAgrupamento, UPPER(p.nmPoder) AS nmPoder, a.sgAgrupamento, vgcorg.sgOrgao,
         vgcorg.dtInicioVigencia, vgcorg.dtFimVigencia,
         UPPER(tporgao.nmTipoOrgao) AS nmTipoOrgao,
@@ -766,7 +767,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
 	  -- eatoDocumento
       js.nuAnoDocumento,
       tpdoc.cdTipoDocumento,
-	  CASE WHEN js.dtDocumento IS NULL THEN NULL
+	    CASE WHEN js.dtDocumento IS NULL THEN NULL
         ELSE TO_DATE(js.dtDocumento, 'YYYY-MM-DD') END AS dtDocumento,
       js.deObservacao,
       js.nuNumeroAtoLegal,
@@ -775,7 +776,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
 
       meiopub.cdMeioPublicacao,
       tppub.cdTipoPublicacao,
-	  CASE WHEN js.dtPublicacao IS NULL THEN NULL
+	    CASE WHEN js.dtPublicacao IS NULL THEN NULL
         ELSE TO_DATE(js.dtPublicacao, 'YYYY-MM-DD') END AS dtPublicacao,
       js.nuPublicacao,
       js.nuPagInicial,
@@ -859,7 +860,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
           psgModulo, psgConceito, vcdIdentificacao, 1,
           'DOCUMENTO', 'INCLUSAO', 'Documentos de Amparo ao Fato da Base de Cálculo incluidas com sucesso',
           cDEBUG_NIVEL_2, pnuDEBUG);
-	  END IF;
+	    END IF;
 
       -- Incluir Nova Vigência da Base
       SELECT NVL(MAX(cdhistbasecalculo), 0) + 1 INTO vcdHistBaseCalculoNova FROM epagHistBaseCalculo;
@@ -940,7 +941,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
     pnuDEBUG                IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
-    vcdIdentificacao        VARCHAR2(50) := Null;
+    vcdIdentificacao        VARCHAR2(70) := Null;
     vcdBaseCalculoBlocoNova NUMBER       := Null;
     vnuRegistros            NUMBER       := 0;
 
@@ -1045,7 +1046,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
     pnuDEBUG                 IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
-    vcdIdentificacao                 VARCHAR2(50) := Null;
+    vcdIdentificacao                 VARCHAR2(70) := Null;
     vcdBaseCalculoBlocoExpressaoNova NUMBER   := Null;
     vnuRegistros                     NUMBER   := 0;
 
@@ -1182,11 +1183,11 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       
       (SELECT JSON_ARRAYAGG(JSON_OBJECT(
          'nuRubrica' VALUE SUBSTR(js.nuRubrica,1,7),
-         'cdRubricaAgrupamento' VALUE RubricaLista.cdRubricaAgrupamento
+         'cdRubricaAgrupamento' VALUE rub.cdRubricaAgrupamento
        RETURNING CLOB) RETURNING CLOB) AS GRP
        FROM JSON_TABLE(js.GrupoRubricas, '$[*]' COLUMNS (nuRubrica PATH '$')) js
-       LEFT JOIN RubricaLista ON RubricaLista.nuRubrica = SUBSTR(js.nuRubrica,1,7)
-                             AND RubricaLista.cdAgrupamento = o.cdAgrupamento
+       LEFT JOIN RubricaLista rub ON rub.nuRubrica = SUBSTR(js.nuRubrica,1,7)
+                                 AND rub.cdAgrupamento = o.cdAgrupamento
       ) As GrupoRubricas
       
       FROM JSON_TABLE(JSON_QUERY(pExpressaoBloco, '$'), '$[*]' COLUMNS (
@@ -1395,6 +1396,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
         ORDER BY rub.nuRubrica RETURNING CLOB) AS GrupoRubricas
       FROM epagBaseCalcBlocoExprRubAgrup rubrica
       LEFT JOIN RubricaLista rub ON rub.cdRubricaAgrupamento = rubrica.cdRubricaAgrupamento
+                                AND rub.cdAgrupamento = o.cdAgrupamento
       GROUP BY rubrica.cdBaseCalculoBlocoExpressao
       ),
       BlocoExpressao AS (
@@ -1449,6 +1451,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       LEFT JOIN epagValorGeralCEFAgrup tabgeral ON tabgeral.cdAgrupamento = base.cdAgrupamento AND tabgeral.cdValorGeralCEFAgrup = blexp.cdValorGeralCEFAgrup
       LEFT JOIN EstruturaCarreira ON EstruturaCarreira.cdAgrupamento = base.cdAgrupamento AND EstruturaCarreira.cdEstruturaCarreira = blexp.cdEstruturaCarreira
       LEFT JOIN RubricaLista rub ON rub.cdRubricaAgrupamento = blexp.cdRubricaAgrupamento
+                                AND rub.cdAgrupamento = base.cdAgrupamento
       ),
       Blocos AS (
       SELECT bl.cdHistBaseCalculo,
