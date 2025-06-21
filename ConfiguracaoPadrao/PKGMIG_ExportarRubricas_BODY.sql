@@ -11,18 +11,18 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarRubricas AS
   --
   -- Parâmetros:
   --   psgAgrupamento        IN VARCHAR2: Sigla do agrupamento de origem da configuração
-  --   pnuDEBUG              IN NUMBER DEFAULT NULL: Defini o nível das mensagens
+  --   pnuNivelAuditoria              IN NUMBER DEFAULT NULL: Defini o nível das mensagens
   --                         para acompanhar a execução, sendo:
   --                         - Não informado assume 'Desligado' nível mínimo de mensagens;
-  --                         - Se informado 'DEBUG NIVEL 0' omite todas as mensagens;
-  --                         - Se informado 'DEBUG NIVEL 1' inclui as mensagens das
+  --                         - Se informado 'SILENCIADO' omite todas as mensagens;
+  --                         - Se informado 'ESSENCIAL' inclui as mensagens das
   --                           principais todas entidades, menos as listas;
-  --                         - Se informado 'DEBUG NIVEL 2' inclui as mensagens de todas 
+  --                         - Se informado 'DETALHADO' inclui as mensagens de todas 
   --                           entidades, incluindo as referente as tabelas das listas;
   --
   -- ###########################################################################
     psgAgrupamento        IN VARCHAR2,
-    pnuDEBUG              IN NUMBER DEFAULT NULL
+    pnuNivelAuditoria              IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
     vsgOrgao            VARCHAR2(15) := NULL;
@@ -58,21 +58,22 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarRubricas AS
 
     vdtOperacao := LOCALTIMESTAMP;
 
-    PKGMIG_ConfiguracaoPadrao.PConsoleLog('Inicio da Exportação das Parametrizações das ' ||
+    PKGMIG_Parametrizacao.pLimparLog;
+
+    PKGMIG_Parametrizacao.PConsoleLog('Inicio da Exportação das Parametrizações das ' ||
       'Rubricas do Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
 	    'Data da Exportação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
-      cDEBUG_DESLIGADO, pnuDEBUG);
+      cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-    IF cDEBUG_DESLIGADO != pnuDEBUG THEN
-        PKGMIG_ConfiguracaoPadrao.PConsoleLog('Nível de Debug Habilitado ' ||
-          CASE pnuDEBUG
-            WHEN cDEBUG_NIVEL_0    THEN 'DEBUG NIVEL 0'
-            WHEN cDEBUG_NIVEL_1    THEN 'DEBUG NIVEL 1'
-            WHEN cDEBUG_NIVEL_2    THEN 'DEBUG NIVEL 2'
-            WHEN cDEBUG_NIVEL_3    THEN 'DEBUG NIVEL 3'
-            WHEN cDEBUG_DESLIGADO  THEN 'DESLIGADO'
-            ELSE 'DESLIGADO'
-          END, cDEBUG_DESLIGADO, pnuDEBUG);
+    IF cAUDITORIA_ESSENCIAL != pnuNivelAuditoria THEN
+        PKGMIG_Parametrizacao.PConsoleLog('Nível de Auditoria Habilitado ' ||
+          CASE pnuNivelAuditoria
+            WHEN cAUDITORIA_SILENCIADO THEN 'SILENCIADO'
+            WHEN cAUDITORIA_ESSENCIAL  THEN 'ESSENCIAL'
+            WHEN cAUDITORIA_DETALHADO  THEN 'DETALHADO'
+            WHEN cAUDITORIA_COMPLETO   THEN 'COMPLETO'
+            ELSE 'ESSENCIAL'
+          END, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
     END IF;
 
 	  -- Defini o Cursos com a Query que Gera o Documento JSON Rubricas
@@ -87,10 +88,10 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarRubricas AS
 	      rcdIdentificacao, rjsConteudo, rnuVersao, rflAnulado, rdtInclusao;
       EXIT WHEN vRefCursor%NOTFOUND;
 
-      PKGMIG_ConfiguracaoPadrao.PConsoleLog('Exportação da Rubrica ' || rcdIdentificacao,
-        cDEBUG_DESLIGADO, pnuDEBUG);
+      PKGMIG_Parametrizacao.PConsoleLog('Exportação da Rubrica ' || rcdIdentificacao,
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-      INSERT INTO emigConfiguracaoPadrao (
+      INSERT INTO emigParametrizacao (
         sgAgrupamento, sgOrgao, sgModulo, sgConceito, dtExportacao,
 		    cdIdentificacao, jsConteudo, dtInclusao, nuVersao, flAnulado
       ) VALUES (
@@ -99,10 +100,10 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarRubricas AS
       );
 
 	    vnuRegistros := vnuRegistros + 1;
-      PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao, 
+      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao, 
         vsgModulo, vsgConceito, rcdIdentificacao, 1,
         'RUBRICA', 'INCLUSAO', 'Documento JSON da Rubrica incluído com sucesso',
-        cDEBUG_DESLIGADO, pnuDEBUG);
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
     END LOOP;
 
@@ -123,23 +124,26 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarRubricas AS
 	    'Total de Parametrizações de Rubricas Exportadas: ' || vnuRegistros;
 
     -- Registro de Resumo da Exportação das Rubricas
-    PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,
+    PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,
       vsgModulo, vsgConceito, NULL, NULL,
       'RUBRICA', 'RESUMO', 'Exportação das Parametrizações das Rubricas do ' || vtxResumo, 
-      cDEBUG_DESLIGADO, pnuDEBUG);
+      cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-    PKGMIG_ConfiguracaoPadrao.PConsoleLog('Termino da Exportação das Parametrizações das Rubricas do ' ||
-      vtxResumo, cDEBUG_DESLIGADO, pnuDEBUG);
+    PKGMIG_Parametrizacao.pPersistirLog;
+
+    PKGMIG_Parametrizacao.PConsoleLog('Termino da Exportação das Parametrizações das Rubricas do ' ||
+      vtxResumo, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_ConfiguracaoPadrao.PConsoleLog('Exportação de Rubrica ' || vcdIdentificacao ||
-      ' RUBRICA Erro: ' || SQLERRM, cDEBUG_DESLIGADO, pnuDEBUG);
-      PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,  
+      PKGMIG_Parametrizacao.PConsoleLog('Exportação de Rubrica ' || vcdIdentificacao ||
+      ' RUBRICA Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,  
         vsgModulo, vsgConceito, vcdIdentificacao, 1,
         'RUBRICA', 'ERRO', 'Erro: ' || SQLERRM,
-        cDEBUG_DESLIGADO, pnuDEBUG);
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      PKGMIG_Parametrizacao.pPersistirLog;
     ROLLBACK;
     RAISE;
   END PExportar;
@@ -468,7 +472,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarRubricas AS
       -- GrupoCarreiraEvento: carreiras associadas a eventos
       GrupoCarreiraEvento AS (
         SELECT grupoCarreira.cdHistEventoPagAgrup,
-          JSON_ARRAYAGG(cef.nmEstruturaCarreira ORDER BY cef.nmEstruturaCarreira RETURNING CLOB) AS Carreiras
+          JSON_ARRAYAGG(cef.nmEstruturaCarreira ORDER BY cef.nmEstruturaCarreira RETURNING CLOB) AS EstruturaCarreira
         FROM epagHistEventoPagAgrupCarreira grupoCarreira
         INNER JOIN EstruturaCarreiraLista cef ON cef.cdEstruturaCarreira = grupoCarreira.cdEstruturaCarreira
         GROUP BY grupoCarreira.cdHistEventoPagAgrup
@@ -508,7 +512,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarRubricas AS
               ABSENT ON NULL) END,
             'Carreiras'                     VALUE
       		CASE WHEN DECODE(vigencia.inAcaoCarreira, '3', NULL, vigencia.inAcaoCarreira) IS NULL
-                  AND carreira.cdHistEventoPagAgrup IS NULL
+                  AND grupoCarreira.cdHistEventoPagAgrup IS NULL
       		      THEN NULL
               ELSE JSON_OBJECT(
                 'inAcaoCarreira'            VALUE DECODE(vigencia.inAcaoCarreira,
@@ -517,7 +521,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarRubricas AS
                                                     '3', NULL, --'TODAS PERMITEM',
                                                     '4', 'NENHUMA PERMITE',
                                                   NULL),
-                'Carreiras'                 VALUE carreira.Carreiras
+                'EstruturaCarreira'         VALUE grupoCarreira.EstruturaCarreira
               ABSENT ON NULL) END,
             'FormulaCalculo'                VALUE
       		CASE WHEN NULLIF(vigencia.flUtilizaFormulaCalculo, 'N') IS NULL AND vigencia.nuFormulaEspecifica IS NULL
@@ -552,7 +556,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarRubricas AS
             ABSENT ON NULL RETURNING CLOB)
           ORDER BY vigencia.nuAnoRefInicial || LPAD(vigencia.nuMesRefInicial, 2, '0') DESC RETURNING CLOB) AS Vigencias
         FROM epagHistEventoPagAgrup vigencia
-        LEFT JOIN GrupoCarreiraEvento carreira ON carreira.cdHistEventoPagAgrup = vigencia.cdHistEventoPagAgrup
+        LEFT JOIN GrupoCarreiraEvento grupoCarreira ON grupoCarreira.cdHistEventoPagAgrup = vigencia.cdHistEventoPagAgrup
         LEFT JOIN GrupoOrgaoEvento orgao ON orgao.cdHistEventoPagAgrup = vigencia.cdHistEventoPagAgrup
         LEFT JOIN RubricaLista rub ON rub.cdRubricaAgrupamento = vigencia.cdRubricaAgrupamento
         LEFT JOIN ecadRelacaoTrabalho relTrab ON relTrab.cdRelacaoTrabalho = vigencia.cdRelacaoTrabalho
@@ -704,10 +708,10 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ExportarRubricas AS
               'flGeraRubricaEscala'         VALUE NULLIF(vigencia.flGeraRubricaEscala, 'N'),
               'flGeraRubricaServCCO'        VALUE NULLIF(vigencia.flGeraRubricaServCCO, 'N'),
               'ListaEstruturaCarreira'      VALUE (
-                SELECT JSON_ARRAYAGG(carreira.nmEstruturaCarreira
-                ORDER BY UPPER(carreira.nmEstruturaCarreira) ABSENT ON NULL RETURNING CLOB) AS ListaEstruturaCarreira
+                SELECT JSON_ARRAYAGG(cef.nmEstruturaCarreira
+                ORDER BY UPPER(cef.nmEstruturaCarreira) ABSENT ON NULL RETURNING CLOB) AS ListaEstruturaCarreira
                 FROM epagHistRubricaAgrupCarreira carreiraPermitidas
-                INNER JOIN EstruturaCarreiraLista carreira ON carreira.cdEstruturaCarreira = carreiraPermitidas.cdEstruturaCarreira
+                INNER JOIN EstruturaCarreiraLista cef ON cef.cdEstruturaCarreira = carreiraPermitidas.cdEstruturaCarreira
                 WHERE carreiraPermitidas.cdHistRubricaAgrupamento = vigencia.cdHistRubricaAgrupamento),
               'ListaFuncaoChefia'           VALUE NULL, --(ListaFuncaoChefia ABSENT ON NULL RETURNING CLOB),
               'ListaCargoComissionado'      VALUE (

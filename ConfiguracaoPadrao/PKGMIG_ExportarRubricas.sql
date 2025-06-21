@@ -54,14 +54,13 @@ CREATE OR REPLACE PACKAGE PKGMIG_ExportarRubricas AS
   --   fnCursorBases
   --
   -- ###########################################################################
-  -- Constantes de nível de debug
-  cDEBUG_NIVEL_0   CONSTANT PLS_INTEGER := 0;
-  cDEBUG_DESLIGADO CONSTANT PLS_INTEGER := 1;
-  cDEBUG_NIVEL_1   CONSTANT PLS_INTEGER := 2;
-  cDEBUG_NIVEL_2   CONSTANT PLS_INTEGER := 3;
-  cDEBUG_NIVEL_3   CONSTANT PLS_INTEGER := 4;
+  -- Constantes de nível de auditoria
+  cAUDITORIA_SILENCIADO CONSTANT PLS_INTEGER := 0;
+  cAUDITORIA_ESSENCIAL  CONSTANT PLS_INTEGER := 1;
+  cAUDITORIA_DETALHADO  CONSTANT PLS_INTEGER := 2;
+  cAUDITORIA_COMPLETO   CONSTANT PLS_INTEGER := 3;
 
-  PROCEDURE PExportar(psgAgrupamento IN VARCHAR2, pnuDEBUG IN NUMBER DEFAULT NULL);
+  PROCEDURE PExportar(psgAgrupamento IN VARCHAR2, pnuNivelAuditoria IN NUMBER DEFAULT NULL);
   FUNCTION fnCursorRubricas(psgAgrupamento IN VARCHAR2, psgOrgao IN VARCHAR2,
     psgModulo IN CHAR, psgConceito IN VARCHAR2, pdtExportacao IN TIMESTAMP,
     pnuVersao IN CHAR, pflAnulado IN CHAR) RETURN SYS_REFCURSOR;
