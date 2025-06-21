@@ -1,45 +1,44 @@
 -- Corpo do pacote
-CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
+CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
 
-  FUNCTION fnObterNivelDebug(pDEBUG IN VARCHAR2) RETURN PLS_INTEGER IS
+  FUNCTION fnObterNivelAuditoria(pNivelAuditoria IN VARCHAR2) RETURN PLS_INTEGER IS
   BEGIN
-  CASE UPPER(TRIM(NVL(pDEBUG, 'DESLIGADO')))
-    WHEN 'DEBUG NIVEL 0' THEN RETURN cDEBUG_NIVEL_0;
-    WHEN 'DEBUG NIVEL 1' THEN RETURN cDEBUG_NIVEL_1;
-    WHEN 'DEBUG NIVEL 2' THEN RETURN cDEBUG_NIVEL_2;
-    WHEN 'DEBUG NIVEL 3' THEN RETURN cDEBUG_NIVEL_3;
-    WHEN 'DESLIGADO'     THEN RETURN cDEBUG_DESLIGADO;
-    ELSE RETURN cDEBUG_DESLIGADO;
+  CASE UPPER(TRIM(NVL(pNivelAuditoria, 'DESLIGADO')))
+    WHEN 'SILENCIADO' THEN RETURN cAUDITORIA_SILENCIADO;
+    WHEN 'ESSENCIAL'  THEN RETURN cAUDITORIA_ESSENCIAL;
+    WHEN 'DETALHADO'  THEN RETURN cAUDITORIA_DETALHADO;
+    WHEN 'COMPLETO'   THEN RETURN cAUDITORIA_COMPLETO;
+    ELSE RETURN cAUDITORIA_ESSENCIAL;
   END CASE;
   END;
 
   PROCEDURE pExportar(pSgAgrupamento IN VARCHAR2,
-    psgConceito IN VARCHAR2, pDEBUG IN VARCHAR2 DEFAULT NULL) IS
-    vnuDEBUG NUMBER := fnObterNivelDebug(pDEBUG);
+    psgConceito IN VARCHAR2, pNivelAuditoria IN VARCHAR2 DEFAULT NULL) IS
+    vnuNivelAuditoria NUMBER := fnObterNivelAuditoria(pNivelAuditoria);
   BEGIN
     CASE UPPER(psgConceito)
       WHEN 'VALORREFERENCIA' THEN
-        PKGMIG_ParemetrizacaoValoresReferencia.pExportar(psgAgrupamento, vnuDEBUG);
+        PKGMIG_ParemetrizacaoValoresReferencia.pExportar(psgAgrupamento, vnuNivelAuditoria);
       WHEN 'BASE' THEN
-        PKGMIG_ParametrizacaoBasesCalculo.pExportar(psgAgrupamento, vnuDEBUG);
+        PKGMIG_ParametrizacaoBasesCalculo.pExportar(psgAgrupamento, vnuNivelAuditoria);
       WHEN 'RUBRICA' THEN
-        PKGMIG_ExportarRubricas.pExportar(psgAgrupamento, vnuDEBUG);
+        PKGMIG_ExportarRubricas.pExportar(psgAgrupamento, vnuNivelAuditoria);
       ELSE
         RAISE_APPLICATION_ERROR(-20001, 'Conceito não suportado: ' || psgConceito);
     END CASE;
   END pExportar;
 
   PROCEDURE pImportar(psgAgrupamentoOrigem IN VARCHAR2, psgAgrupamentoDestino IN VARCHAR2,
-    psgConceito IN VARCHAR2, pDEBUG IN VARCHAR2 DEFAULT NULL) IS
-    vnuDEBUG NUMBER := fnObterNivelDebug(pDEBUG);
+    psgConceito IN VARCHAR2, pNivelAuditoria IN VARCHAR2 DEFAULT NULL) IS
+    vnuNivelAuditoria NUMBER := fnObterNivelAuditoria(pNivelAuditoria);
   BEGIN
     CASE UPPER(psgConceito)
       WHEN 'VALORREFERENCIA' THEN
-        PKGMIG_ParemetrizacaoValoresReferencia.pImportar(psgAgrupamentoOrigem, psgAgrupamentoDestino, vnuDEBUG);
+        PKGMIG_ParemetrizacaoValoresReferencia.pImportar(psgAgrupamentoOrigem, psgAgrupamentoDestino, vnuNivelAuditoria);
       WHEN 'BASE' THEN
-        PKGMIG_ParametrizacaoBasesCalculo.pImportar(psgAgrupamentoOrigem, psgAgrupamentoDestino, vnuDEBUG);
---      WHEN 'RUBRICA' THEN
---        PKGMIG_ImportarRubricas.pImportar(psgAgrupamentoOrigem, psgAgrupamentoDestino, vnuDEBUG);
+        PKGMIG_ParametrizacaoBasesCalculo.pImportar(psgAgrupamentoOrigem, psgAgrupamentoDestino, vnuNivelAuditoria);
+      WHEN 'RUBRICA' THEN
+        PKGMIG_ImportarRubricas.pImportar(psgAgrupamentoOrigem, psgAgrupamentoDestino, vnuNivelAuditoria);
       ELSE
         RAISE_APPLICATION_ERROR(-20002, 'Importação não suportada para o conceito: ' || psgConceito);
     END CASE;
@@ -53,23 +52,23 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
   --
   -- Parâmetros:
   --   pdeMensagem      IN VARCHAR2:  'Mensagem detalhada sobre a operação registrada.'
-  --   pDEBUG           IN VARCHAR2 DEFAULT NULL: Defini o nível das mensagens
+  --   pNivelAuditoria           IN VARCHAR2 DEFAULT NULL: Defini o nível das mensagens
   --                         para acompanhar a execução, sendo:
   --                         - Não informado assume 'Desligado' nível mínimo de mensagens;
-  --                         - Se informado 'DEBUG NIVEL 0' omite todas as mensagens;
-  --                         - Se informado 'DEBUG NIVEL 1' inclui as mensagens das
+  --                         - Se informado 'SILENCIADO' omite todas as mensagens;
+  --                         - Se informado 'ESSENCIAL' inclui as mensagens das
   --                           principais todas entidades, menos as listas;
-  --                         - Se informado 'DEBUG NIVEL 2' inclui as mensagens de todas 
+  --                         - Se informado 'DETALHADO' inclui as mensagens de todas 
   --                           entidades, incluindo as referente as tabelas das listas;
   --
   -- ###########################################################################
     pdeMensagem      IN VARCHAR2,
     pnuNivelLog      IN NUMBER DEFAULT NULL,
-    pnuDEBUG         IN NUMBER DEFAULT NULL
+    pnuNivelAuditoria IN NUMBER DEFAULT NULL
     ) IS
     BEGIN
-      -- Incluir Log de Auditoria da Importação das Configurações Padrão
-      IF NVL(pnuDEBUG, cDEBUG_DESLIGADO) >= NVL(pnuNivelLog, cDEBUG_DESLIGADO) THEN
+      -- Incluir Log de Auditoria da Importação das Parametrizações
+      IF NVL(pnuNivelAuditoria, cAUDITORIA_ESSENCIAL) >= NVL(pnuNivelLog, cAUDITORIA_ESSENCIAL) THEN
 	    DBMS_OUTPUT.PUT_LINE(pdeMensagem);
       END IF;
   END pConsoleLog;
@@ -79,8 +78,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
   -- PROCEDURE: pRegistrarLog
   -- Objetivo:
   --   Registrar eventos de auditoria, controle ou estatística no processo de
-  --   importação de configurações padrão (rubricas, bases, valores, etc.).
-  --   Os registros são inseridos na tabela emigConfiguracaoPadraoLog.
+  --   Exportação e Importação das Parametrizações (rubricas, bases, valores, etc.).
+  --   Os registros são inseridos na tabela emigParametrizacaoLog.
   --
   -- Parâmetros:
   --   psgAgrupamento   IN VARCHAR2:  'Sigla do Agrupamento relacionado ao evento.'
@@ -93,13 +92,13 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
   --   nmEntidade       IN VARCHAR2:  'Entidade dentro do Conceito associado à parametrização, grupo de informações do Conceito.'
   --   pnmEvento        IN VARCHAR2:  'Nome do evento (INCLUSAO, ATUALIZACAO, EXCLUSAO, RESUMO).'
   --   pdeMensagem      IN VARCHAR2:  'Mensagem detalhada sobre a operação registrada.'
-  --   pDEBUG           IN VARCHAR2 DEFAULT NULL: Defini o nível das mensagens
+  --   pNivelAuditoria           IN VARCHAR2 DEFAULT NULL: Defini o nível das mensagens
   --                         para acompanhar a execução, sendo:
   --                         - Não informado assume 'Desligado' nível mínimo de mensagens;
-  --                         - Se informado 'DEBUG NIVEL 0' omite todas as mensagens;
-  --                         - Se informado 'DEBUG NIVEL 1' inclui as mensagens das
+  --                         - Se informado 'SILENCIADO' omite todas as mensagens;
+  --                         - Se informado 'ESSENCIAL' inclui as mensagens das
   --                           principais todas entidades, menos as listas;
-  --                         - Se informado 'DEBUG NIVEL 2' inclui as mensagens de todas 
+  --                         - Se informado 'DETALHADO' inclui as mensagens de todas 
   --                           entidades, incluindo as referente as tabelas das listas;
   --
   -- ###########################################################################
@@ -115,13 +114,14 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
     pnmEvento        IN VARCHAR2,
     pdeMensagem      IN VARCHAR2,
     pnuNivelLog      IN NUMBER DEFAULT NULL,
-    pnuDEBUG         IN NUMBER DEFAULT NULL
+    pnuNivelAuditoria         IN NUMBER DEFAULT NULL
     ) IS
       PRAGMA AUTONOMOUS_TRANSACTION;
     BEGIN
-      -- Incluir Log de Auditoria da Importação das Configurações Padrão
-      IF NVL(pnuDEBUG, cDEBUG_DESLIGADO) >= NVL(pnuNivelLog, cDEBUG_DESLIGADO) THEN
-        INSERT INTO emigConfiguracaoPadraoLog (
+      -- Incluir Log de Auditoria da Importação das Parametrizações na Tabela Temporária
+      IF NVL(pnuNivelAuditoria, cAUDITORIA_ESSENCIAL) >= NVL(pnuNivelLog, cAUDITORIA_ESSENCIAL) THEN
+        --INSERT INTO emigParametrizacaoLog (
+        INSERT INTO emigParametrizacaoLogTemporario (
           sgAgrupamento, sgOrgao, sgModulo, sgConceito, tpOperacao, dtOperacao,
           nmEntidade, cdIdentificacao, nmEvento, nuRegistros, deMensagem
         ) VALUES (
@@ -132,12 +132,32 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
       END IF;
   END pRegistrarLog;
 
+  PROCEDURE pPersistirLog IS
+  BEGIN
+    -- Salvar os Log da Tabela Temporária de Auditoria da Importação das Parametrizações
+    INSERT INTO emigParametrizacaoLog(
+      sgAgrupamento, sgOrgao, sgModulo, sgConceito, tpOperacao, dtOperacao,
+      nmEntidade, cdIdentificacao, nmEvento, nuRegistros, deMensagem
+    )
+    SELECT
+      sgAgrupamento, sgOrgao, sgModulo, sgConceito, tpOperacao, dtOperacao,
+      nmEntidade, cdIdentificacao, nmEvento, nuRegistros, deMensagem
+    FROM emigParametrizacaoLogTemporario;
+    COMMIT;
+  END pPersistirLog;
+
+  PROCEDURE pLimparLog IS
+  BEGIN
+    -- Garantir que a Tabela Temporária de Logs esteja vazia
+    DELETE FROM emigParametrizacaoLogTemporario;
+  END pLimparLog;
+
   PROCEDURE pAtualizarSequence(
   -- ###########################################################################
-  -- PROCEDURE: PAtuializarSequence
+  -- PROCEDURE: pAtualizarSequence
   -- Objetivo:
   --   Atualizar a SEQUENCE com o Maior Número da Chave Primaria
-  --     das tabelas envolvidas na importação das Rubricas do Agrupamento
+  --     das tabelas envolvidas na importação das Parametrizações
   --
   -- Parâmetros:
   --   psgAgrupamento        IN VARCHAR2:
@@ -146,7 +166,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
   --   pdtOperacao           IN TIMESTAMP:
   --   psgModulo             IN CHAR: 
   --   psgConceito           IN VARCHAR2: 
-  --   pnuDEBUG              IN NUMBER DEFAULT NULL:
+  --   pnuNivelAuditoria              IN NUMBER DEFAULT NULL:
   --
   -- ###########################################################################
     psgAgrupamento        IN VARCHAR2,
@@ -156,13 +176,13 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
     psgModulo             IN CHAR,
     psgConceito           IN VARCHAR2,
     pListaTabelas         IN CLOB,
-    pnuDEBUG              IN NUMBER DEFAULT NULL
+    pnuNivelAuditoria              IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
       vtxSQL VARCHAR2(1000);
       vnuRegistros NUMBER;
 
-    -- Cursor que extrai as Vigências da Rubrica do Agrupamento do Documento pVigenciasAgrupamento JSON
+    -- Cursor que lista as SEQUENCE da Tabelas envolvida na Importação das Parametrizações
     CURSOR cDados IS
       SELECT tab.table_name, col.column_name, seq.sequence_name, seq.last_number, tab.num_rows
       FROM user_tables tab
@@ -183,7 +203,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
 
           PConsoleLog('SEQUENCE ' || item.sequence_name || ' da Tabela ' || item.table_name ||
             ' reiniciada em: ' || vnuRegistros,
-            cDEBUG_DESLIGADO, pnuDEBUG);
+            cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
           -- Atualizar a SEQUENCE com o Maior Número da Chave Primaria da Tabela
           execute immediate 'alter sequence ' || item.sequence_name || ' restart start with ' || case when vnuRegistros = 0 then 1 else vnuRegistros end;
@@ -193,7 +213,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
             psgModulo, psgConceito, NULL, NULL, 'SEQUENCE', NULL,
             'RESUMO' || item.sequence_name || ' da Tabela ' || item.table_name ||
             ' reiniciada em: ' || vnuRegistros,
-            cDEBUG_DESLIGADO, pnuDEBUG);
+            cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
       END LOOP;
 
   EXCEPTION
@@ -203,7 +223,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
       pRegistrarLog(psgAgrupamento, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, NULL, NULL,
         'SEQUENCE', 'ERRO', 'Erro: ' || SQLERRM,
-        cDEBUG_DESLIGADO, pnuDEBUG);
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      pPersistirLog;
     ROLLBACK;
     RAISE;
   END PAtualizarSequence;
@@ -213,7 +234,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
   -- PROCEDURE: pGerarResumo
   -- Objetivo:
   --   Apura as informações estatísticas do processo de Importar
-  --   contida na tabela emigConfiguracaoPadraoLog, realizando:
+  --   contida na tabela emigParametrizacaoLog, realizando:
   --     - Consolida e Contabiliza os Registros Excluídos, Atualizados, Incluídos
   --       e Inconsistências encontradas.
   --     - Gerar Registro de Logs com resumo dos evento
@@ -227,7 +248,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
   --   psgConceito           IN VARCHAR2,
   --   pdtTermino            IN TIMESTAMP,
   --   pnuTempoExcusao       IN INTERVAL DAY TO SECOND,
-  --   pnuDEBUG              IN NUMBER DEFAULT NULL:
+  --   pnuNivelAuditoria     IN NUMBER DEFAULT NULL:
   --
   -- ###########################################################################
     psgAgrupamento        IN VARCHAR2,
@@ -238,7 +259,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
     psgConceito           IN VARCHAR2,
     pdtTermino            IN TIMESTAMP,
     pnuTempoExcusao       IN INTERVAL DAY TO SECOND,
-    pnuDEBUG              IN NUMBER DEFAULT NULL
+    pnuNivelAuditoria     IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
     vResumoEstatisticas      CLOB := Null;
@@ -251,7 +272,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
       CASE nmEvento WHEN 'INCLUSAO' THEN 1 WHEN 'ATUALIZACAO' THEN 2 WHEN 'EXCLUSAO' THEN 3 WHEN 'INCONSISTENTE' THEN 4 ELSE 9 END AS cdEvento,
       CASE WHEN nmEvento != 'EXCLUSAO' THEN dtInclusao ELSE TO_TIMESTAMP('99991231 235959', 'YYYYMMDD HH24MISS')
         END AS dtInclusaoAjustada
-      FROM emigConfiguracaoPadraolog
+      FROM emigParametrizacaoLog
       WHERE sgModulo = psgModulo AND sgConceito = psgConceito AND nmEvento != 'RESUMO'
       AND tpOperacao = ptpOperacao AND dtOperacao = pdtOperacao
       AND sgAgrupamento = psgAgrupamento
@@ -301,19 +322,20 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
       RETURNING CLOB)
       RETURNING CLOB)) RETURNING CLOB PRETTY) AS ResumoEstatisticas
       FROM Resumo
-      GROUP BY sgAgrupamento, sgOrgao, dtOperacao, tpOperacao, sgModulo, sgConceito;
+      GROUP BY sgAgrupamento, sgOrgao, dtOperacao, tpOperacao, sgModulo, sgConceito
+      ORDER BY sgAgrupamento, sgModulo, sgConceito, sgOrgao, tpOperacao, dtOperacao DESC;
   BEGIN
 
-    -- Consolida as Informações de Estatísticas da Importação das Rubricas
+    -- Consolida as Informações de Estatísticas da Importação das Parametrizações
     OPEN cLog;
     FETCH cLog INTO vResumoEstatisticas;
     CLOSE cLog;
 
-    -- Registro de Resumo da Importação das Rubricas
+    -- Registro de Resumo da Importação das Parametrizações
     pRegistrarLog(psgAgrupamento, psgOrgao, ptpOperacao, pdtOperacao,
       psgModulo, psgConceito, NULL, NULL,
       'RESUMO', 'RESUMO', vResumoEstatisticas,
-      cDEBUG_DESLIGADO, pnuDEBUG);
+      cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
     PConsoleLog('Resumo da Importação das Parametrizações do Agrupamento ' || psgAgrupamento);
 
@@ -322,28 +344,29 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PConsoleLog('Resumo da Importação das Rubrica RUBRICA RESUMO Erro: ' || SQLERRM);
+      PConsoleLog('Resumo da Importação das Parametrizações PARAMETRIZACOES RESUMO Erro: ' || SQLERRM);
       pRegistrarLog(psgAgrupamento, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, NULL, NULL,
-        'RUBRICA', 'ERRO', 'Erro: ' || SQLERRM,
-        cDEBUG_DESLIGADO, pnuDEBUG);
+        'PARAMETRIZACOES', 'ERRO', 'Erro: ' || SQLERRM,
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      pPersistirLog;
     ROLLBACK;
     RAISE;
   END pGerarResumo;
 
--- Resumo das Operações de Exportação das Configurações
+-- Resumo das Operações de Exportação das Parametrizações
   FUNCTION fnResumo(
     psgAgrupamento   IN VARCHAR2 DEFAULT NULL,
     psgOrgao         IN VARCHAR2 DEFAULT NULL,
     psgModulo        IN CHAR     DEFAULT NULL,
     psgConceito      IN VARCHAR2 DEFAULT NULL,
     pdtExportacao    IN VARCHAR2 DEFAULT NULL
-  ) RETURN tpConfiguracaoResumoTabela PIPELINED
+  ) RETURN tpParametrizacaoResumoTabela PIPELINED
   IS
   BEGIN
     FOR r IN (
       SELECT sgAgrupamento, sgOrgao, sgModulo, sgConceito, TO_CHAR(dtExportacao, 'DD/MM/YYYY HH24:MI:SS') AS dtExportacao, COUNT(*) AS Conteudos
-      FROM emigConfiguracaoPadrao
+      FROM emigParametrizacao
       WHERE (sgAgrupamento LIKE psgAgrupamento OR psgAgrupamento IS NULL)
         AND (sgOrgao LIKE psgOrgao OR psgOrgao IS NULL)
         AND (sgModulo LIKE psgModulo OR psgModulo IS NULL)
@@ -352,134 +375,171 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ConfiguracaoPadrao AS
       GROUP BY sgAgrupamento, sgOrgao, sgModulo, sgConceito, dtExportacao
       ORDER BY sgAgrupamento, sgOrgao, sgModulo, sgConceito, dtExportacao desc)
     LOOP
-      PIPE ROW (tpConfiguracaoResumo(r.sgAgrupamento, r.sgOrgao,
+      PIPE ROW (tpParametrizacaoResumo(r.sgAgrupamento, r.sgOrgao,
         r.sgModulo, r.sgConceito, r.dtExportacao,
         r.Conteudos));
     END LOOP;
     RETURN;
   END fnResumo;
 
--- Listar a Exportação das Configurações
+-- Listar a Exportação das Parametrizações
   FUNCTION fnListar(
     psgAgrupamento   IN VARCHAR2,
     psgOrgao         IN VARCHAR2,
     psgModulo        IN CHAR,
     psgConceito      IN VARCHAR2,
-    pdtExportacao    IN VARCHAR2
-  ) RETURN tpConfiguracaoListarTabela PIPELINED
+    pdtExportacao    IN VARCHAR2 DEFAULT NULL
+  ) RETURN tpParametrizacaoListarTabela PIPELINED
   IS
+    -- Variáveis de controle e contexto
+    vdtExportacao    TIMESTAMP := Null;
+
   BEGIN
+
+    IF pdtExportacao IS NULL THEN
+      SELECT TO_CHAR(MAX(dtExportacao), 'DD/MM/YYYY HH24:MI:SS') INTO vdtExportacao
+      FROM emigParametrizacao
+      WHERE sgModulo = psgModulo AND psgConceito = psgConceito
+        AND sgAgrupamento = psgAgrupamento AND sgOrgao IS NULL;
+    ELSE
+      vdtExportacao := pdtExportacao;
+    END IF;
+
     FOR r IN (
       SELECT sgAgrupamento, sgOrgao, sgModulo, sgConceito, TO_CHAR(dtExportacao, 'DD/MM/YYYY HH24:MI:SS') AS dtExportacao, cdIdentificacao,
         JSON_SERIALIZE(TO_CLOB(jsconteudo) RETURNING CLOB PRETTY) AS jsConteudo
-      FROM emigConfiguracaoPadrao
+      FROM emigParametrizacao
       WHERE (sgAgrupamento = psgAgrupamento)
         AND (NVL(sgOrgao, ' ') = NVL(psgOrgao, ' '))
         AND (sgModulo = psgModulo)
         AND (sgConceito = psgConceito)
-        AND (TO_CHAR(dtExportacao, 'DD/MM/YYYY HH24:MI:SS') LIKE pdtExportacao OR pdtExportacao IS NULL)
-      ORDER BY sgAgrupamento, sgOrgao, sgModulo, sgConceito)
+        AND (TO_CHAR(dtExportacao, 'DD/MM/YYYY HH24:MI:SS') = vdtExportacao)
+      ORDER BY sgAgrupamento, sgModulo, sgConceito, sgOrgao,
+        TO_CHAR(dtExportacao, 'YYYYMMDDHH24MISS') DESC, cdIdentificacao)
     LOOP
-      PIPE ROW (tpConfiguracaoListar(r.sgAgrupamento, r.sgOrgao,
+      PIPE ROW (tpParametrizacaoListar(r.sgAgrupamento, r.sgOrgao,
           r.sgModulo, r.sgConceito, r.dtExportacao,
           r.cdIdentificacao, r.jsConteudo));
     END LOOP;
     RETURN;
   END fnListar;
 
--- Resumo do Log das Operações de Exportação e Importação das Configurações
+-- Resumo do Log das Operações de Exportação e Importação das Parametrizações
   FUNCTION fnResumoLog(
     psgAgrupamento   IN VARCHAR2  DEFAULT NULL,
     psgOrgao         IN VARCHAR2  DEFAULT NULL,
     psgModulo        IN CHAR      DEFAULT NULL,
     psgConceito      IN VARCHAR2  DEFAULT NULL,
     ptpOperacao      IN VARCHAR2  DEFAULT NULL
-  ) RETURN tpConfiguracaoLogResumoTabela PIPELINED
+  ) RETURN tpParametrizacaoLogResumoTabela PIPELINED
   IS
   BEGIN
     FOR r IN (
       SELECT DISTINCT tpOperacao, TO_CHAR(dtOperacao, 'DD/MM/YYYY HH24:MI:SS') AS dtOperacao,
         sgAgrupamento, sgOrgao, sgModulo, sgConceito
-      FROM emigConfiguracaoPadraoLog
+      FROM emigParametrizacaoLog
       WHERE (tpOperacao LIKE ptpOperacao OR ptpOperacao IS NULL)
         AND (sgAgrupamento LIKE psgAgrupamento OR psgAgrupamento IS NULL)
         AND (sgOrgao LIKE psgOrgao OR psgOrgao IS NULL)
         AND (sgModulo LIKE psgModulo OR psgModulo IS NULL)
         AND (sgConceito LIKE psgConceito OR psgConceito IS NULL)
-      ORDER BY tpOperacao, sgAgrupamento, sgOrgao, sgModulo, sgConceito, dtOperacao)
+      ORDER BY tpOperacao, TO_CHAR(dtOperacao, 'YYYYMMDDHH24MISS') DESC,
+        sgAgrupamento, sgModulo, sgConceito, sgOrgao)
     LOOP
-      PIPE ROW (tpConfiguracaoLogResumo(r.tpOperacao, r.dtOperacao,
+      PIPE ROW (tpParametrizacaoLogResumo(r.tpOperacao, r.dtOperacao,
         r.sgAgrupamento, r.sgOrgao, r.sgModulo, r.sgConceito));
     END LOOP;
     RETURN;
   END fnResumoLog;
 
--- Resumo do Log das Operações de Exportação e Importação das Configurações
+-- Resumo do Log das Operações de Exportação e Importação das Parametrizações
   FUNCTION fnResumoLogEntidades(
-    ptpOperacao      IN VARCHAR2,
-    pdtOperacao      IN VARCHAR2
-  ) RETURN tpConfiguracaoLogResumoEntidadesTabela PIPELINED
+    psgAgrupamento   IN VARCHAR2  DEFAULT NULL,
+    psgOrgao         IN VARCHAR2  DEFAULT NULL,
+    psgModulo        IN CHAR      DEFAULT NULL,
+    psgConceito      IN VARCHAR2  DEFAULT NULL,
+    ptpOperacao      IN VARCHAR2  DEFAULT NULL,
+    pdtOperacao      IN VARCHAR2  DEFAULT NULL
+  ) RETURN tpParametrizacaoLogResumoEntidadesTabela PIPELINED
   IS
   BEGIN
     FOR r IN (
       SELECT tpOperacao, TO_CHAR(dtOperacao, 'DD/MM/YYYY HH24:MI:SS') AS dtOperacao,
 	    sgAgrupamento, sgOrgao, sgModulo, sgConceito, nmEntidade, COUNT(*) as nuEventos, SUM(nuRegistros) as nuRegistros
-      FROM emigConfiguracaoPadraoLog
+      FROM emigParametrizacaoLog
       WHERE nmevento != 'RESUMO'
         AND tpOperacao = ptpOperacao
         AND TO_CHAR(dtOperacao, 'YYYYMMDDHH24MISS') = pdtOperacao
       GROUP BY tpOperacao, dtOperacao, sgAgrupamento, sgOrgao, sgModulo, sgConceito, nmEntidade
-      ORDER BY tpOperacao, dtOperacao, sgAgrupamento, sgOrgao, sgModulo, sgConceito, nmEntidade)
+      ORDER BY tpOperacao, TO_CHAR(dtOperacao, 'YYYYMMDDHH24MISS') DESC,
+        sgAgrupamento, sgModulo, sgConceito, sgOrgao, nmEntidade)
     LOOP
-      PIPE ROW (tpConfiguracaoLogResumoEntidades(r.tpOperacao, r.dtOperacao,
+      PIPE ROW (tpParametrizacaoLogResumoEntidades(r.tpOperacao, r.dtOperacao,
 	    r.sgAgrupamento, r.sgOrgao, r.sgModulo, r.sgConceito,
 		r.nmEntidade, r.nuEventos, r.nuRegistros));
     END LOOP;
     RETURN;
   END fnResumoLogEntidades;
 
--- Listar o Log da Operação de Exportação ou Importação das Configurações
+-- Listar o Log da Operação de Exportação ou Importação das Parametrizações
   FUNCTION fnListarLog(
-    ptpOperacao      IN VARCHAR2,
-    pdtOperacao      IN VARCHAR2
-  ) RETURN tpConfiguracaoLogListarTabela PIPELINED
+    psgAgrupamento   IN VARCHAR2 DEFAULT NULL,
+    psgOrgao         IN VARCHAR2 DEFAULT NULL,
+    psgModulo        IN CHAR     DEFAULT NULL,
+    psgConceito      IN VARCHAR2 DEFAULT NULL,
+    ptpOperacao      IN VARCHAR2 DEFAULT NULL,
+    pdtOperacao      IN VARCHAR2 DEFAULT NULL
+  ) RETURN tpParametrizacaoLogListarTabela PIPELINED
   IS
+    -- Variáveis de controle e contexto
+    vdtOperacao    TIMESTAMP := Null;
+
   BEGIN
+
+    IF pdtOperacao IS NULL THEN
+      SELECT TO_CHAR(MAX(vdtOperacao), 'DD/MM/YYYY HH24:MI:SS') INTO vdtOperacao
+      FROM emigParametrizacao
+      WHERE sgModulo = psgModulo AND psgConceito = psgConceito
+        AND sgAgrupamento = psgAgrupamento AND sgOrgao IS NULL;
+    ELSE
+      vdtOperacao := pdtOperacao;
+    END IF;
+
     FOR r IN (
       SELECT tpOperacao, TO_CHAR(dtOperacao, 'DD/MM/YYYY HH24:MI:SS') AS dtOperacao,
         sgAgrupamento, sgOrgao, sgModulo, sgConceito,
         nmEntidade, cdidentificacao, nmEvento, nuRegistros, deMensagem, dtInclusao
-      FROM emigConfiguracaoPadraoLog
+      FROM emigParametrizacaoLog
       WHERE tpOperacao = ptpOperacao
-        AND TO_CHAR(dtOperacao, 'YYYYMMDDHH24MISS') = pdtOperacao
+        AND TO_CHAR(dtOperacao, 'YYYYMMDDHH24MISS') = vdtOperacao
       ORDER BY dtInclusao, tpOperacao, dtOperacao,
         sgAgrupamento, sgOrgao, sgModulo, sgConceito,
         cdIdentificacao NULLS FIRST, nmEvento, deMensagem)
     LOOP
-      PIPE ROW (tpConfiguracaoLogListar(r.tpOperacao, r.dtOperacao,
+      PIPE ROW (tpParametrizacaoLogListar(r.tpOperacao, r.dtOperacao,
         r.sgAgrupamento, r.sgOrgao, r.sgModulo, r.sgConceito,
         r.nmEntidade, r.cdidentificacao, r.nmEvento, r.nuRegistros, r.deMensagem, r.dtInclusao));
     END LOOP;
     RETURN;
   END fnListarLog;
 
--- Excluir o Log da Operação de Exportação ou Importação das Configurações
-  PROCEDURE PExcluirLog(
-    ptpOperacao      IN VARCHAR2,
-    pdtOperacao      IN VARCHAR2,
-    psgAgrupamento   IN VARCHAR2,
-    psgModulo        IN CHAR,
-    psgConceito      IN VARCHAR2
+  PROCEDURE pExcluirLog(
+    psgAgrupamento IN VARCHAR2 DEFAULT NULL,
+    psgOrgao IN VARCHAR2 DEFAULT NULL,
+    psgModulo IN CHAR DEFAULT NULL,
+    psgConceito IN VARCHAR2 DEFAULT NULL,
+    ptpOperacao IN VARCHAR2 DEFAULT NULL,
+    pdtOperacao IN VARCHAR2 DEFAULT NULL
   ) IS
   BEGIN
-    DELETE FROM emigConfiguracaoPadraoLog
+    DELETE FROM emigParametrizacaoLog
       WHERE tpOperacao = ptpOperacao
-        AND TO_CHAR(dtOperacao, 'YYYYMMDDHH24MISS') = pdtOperacao
+        AND TO_CHAR(dtOperacao, 'DD/MM/YYYY HH24:MI:SS') = pdtOperacao
         AND sgAgrupamento = psgAgrupamento
         AND sgModulo = psgModulo AND sgConceito = psgConceito;
     COMMIT;
   END PExcluirLog;
 
-END PKGMIG_ConfiguracaoPadrao;
+END PKGMIG_Parametrizacao;
 /
 
