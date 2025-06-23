@@ -48,17 +48,3 @@ CREATE INDEX idxemigParametrizacaoLogChave ON emigParametrizacaoLog (
   nmEntidade,
   cdIdentificacao
 );
-
-CREATE GLOBAL TEMPORARY TABLE emigParametrizacaoLogTemporario (
-  sgAgrupamento     VARCHAR2(15),
-  sgOrgao           VARCHAR2(15),
-  sgModulo          CHAR(3),
-  sgConceito        VARCHAR2(20),
-  tpOperacao        VARCHAR2(15),
-  dtOperacao        TIMESTAMP,
-  nmEntidade        VARCHAR2(50),
-  cdIdentificacao   VARCHAR2(70),
-  nmEvento          VARCHAR2(30),
-  nuRegistros       NUMBER,
-  deMensagem        VARCHAR2(4000)
-) ON COMMIT PRESERVE ROWS;

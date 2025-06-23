@@ -120,8 +120,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
     BEGIN
       -- Incluir Log de Auditoria da Importação das Parametrizações na Tabela Temporária
       IF NVL(pnuNivelAuditoria, cAUDITORIA_ESSENCIAL) >= NVL(pnuNivelLog, cAUDITORIA_ESSENCIAL) THEN
-        --INSERT INTO emigParametrizacaoLog (
-        INSERT INTO emigParametrizacaoLogTemporario (
+        INSERT INTO emigParametrizacaoLog (
           sgAgrupamento, sgOrgao, sgModulo, sgConceito, tpOperacao, dtOperacao,
           nmEntidade, cdIdentificacao, nmEvento, nuRegistros, deMensagem
         ) VALUES (
@@ -131,26 +130,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
         COMMIT;
       END IF;
   END pRegistrarLog;
-
-  PROCEDURE pPersistirLog IS
-  BEGIN
-    -- Salvar os Log da Tabela Temporária de Auditoria da Importação das Parametrizações
-    INSERT INTO emigParametrizacaoLog(
-      sgAgrupamento, sgOrgao, sgModulo, sgConceito, tpOperacao, dtOperacao,
-      nmEntidade, cdIdentificacao, nmEvento, nuRegistros, deMensagem
-    )
-    SELECT
-      sgAgrupamento, sgOrgao, sgModulo, sgConceito, tpOperacao, dtOperacao,
-      nmEntidade, cdIdentificacao, nmEvento, nuRegistros, deMensagem
-    FROM emigParametrizacaoLogTemporario;
-    COMMIT;
-  END pPersistirLog;
-
-  PROCEDURE pLimparLog IS
-  BEGIN
-    -- Garantir que a Tabela Temporária de Logs esteja vazia
-    DELETE FROM emigParametrizacaoLogTemporario;
-  END pLimparLog;
 
   PROCEDURE pAtualizarSequence(
   -- ###########################################################################
@@ -206,8 +185,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
             cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
           -- Atualizar a SEQUENCE com o Maior Número da Chave Primaria da Tabela
-          execute immediate 'alter sequence ' || item.sequence_name || ' restart start with ' || case when vnuRegistros = 0 then 1 else vnuRegistros end;
-          execute immediate 'analyze table ' || upper(item.table_name) || ' compute statistics';
+          EXECUTE IMMEDIATE 'ALTER SEQUENCE ' || item.sequence_name || ' RESTART START WITH ' || CASE WHEN vnuRegistros = 0 THEN 1 ELSE vnuRegistros END;
+          EXECUTE IMMEDIATE 'ANALYZE TABLE ' || UPPER(item.table_name) || ' COMPUTE STATISTICS';
 
           pRegistrarLog(psgAgrupamento, psgOrgao, ptpOperacao, pdtOperacao,  
             psgModulo, psgConceito, NULL, NULL, 'SEQUENCE', NULL,
@@ -224,7 +203,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
         psgModulo, psgConceito, NULL, NULL,
         'SEQUENCE', 'ERRO', 'Erro: ' || SQLERRM,
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      pPersistirLog;
     ROLLBACK;
     RAISE;
   END PAtualizarSequence;
@@ -268,13 +246,13 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
     CURSOR cLog IS
       WITH
       LOG AS (
-      SELECT sgAgrupamento, sgOrgao, sgModulo, sgConceito, tpOperacao, dtOperacao, nmEntidade, nmEvento, 1 as nuRegistros,
+      SELECT sgAgrupamento, sgOrgao, sgModulo, sgConceito, tpOperacao, dtOperacao, nmEntidade, nmEvento, nuRegistros,
       CASE nmEvento WHEN 'INCLUSAO' THEN 1 WHEN 'ATUALIZACAO' THEN 2 WHEN 'EXCLUSAO' THEN 3 WHEN 'INCONSISTENTE' THEN 4 ELSE 9 END AS cdEvento,
       CASE WHEN nmEvento != 'EXCLUSAO' THEN dtInclusao ELSE TO_TIMESTAMP('99991231 235959', 'YYYYMMDD HH24MISS')
         END AS dtInclusaoAjustada
       FROM emigParametrizacaoLog
       WHERE sgModulo = psgModulo AND sgConceito = psgConceito AND nmEvento != 'RESUMO'
-      AND tpOperacao = ptpOperacao AND dtOperacao = pdtOperacao
+      AND tpOperacao = ptpOperacao --AND dtOperacao = pdtOperacao
       AND sgAgrupamento = psgAgrupamento
       ),
       OrdemEntidade AS (
@@ -337,9 +315,11 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
       'RESUMO', 'RESUMO', vResumoEstatisticas,
       cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-    PConsoleLog('Resumo da Importação das Parametrizações do Agrupamento ' || psgAgrupamento);
+    PConsoleLog('Resumo da Importação das Parametrizações do Agrupamento ' || psgAgrupamento,
+      cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-    PConsoleLog('Estatísticas: ' || vResumoEstatisticas);
+    PConsoleLog('Estatísticas: ' || vResumoEstatisticas,
+      cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
   EXCEPTION
     WHEN OTHERS THEN
@@ -349,7 +329,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
         psgModulo, psgConceito, NULL, NULL,
         'PARAMETRIZACOES', 'ERRO', 'Erro: ' || SQLERRM,
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      pPersistirLog;
     ROLLBACK;
     RAISE;
   END pGerarResumo;

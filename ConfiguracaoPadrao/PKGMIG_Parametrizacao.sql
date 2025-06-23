@@ -30,10 +30,6 @@ CREATE OR REPLACE PACKAGE PKGMIG_Parametrizacao AS
     pnuNivelLog IN NUMBER DEFAULT NULL, pnuNivelAuditoria IN NUMBER DEFAULT NULL
   );
 
-  PROCEDURE pLimparLog;
-
-  PROCEDURE pPersistirLog;
-
   PROCEDURE pAtualizarSequence(psgAgrupamento IN VARCHAR2, psgOrgao IN VARCHAR2,
     ptpOperacao IN VARCHAR2, pdtOperacao IN TIMESTAMP,
     psgModulo IN CHAR, psgConceito IN VARCHAR2,
