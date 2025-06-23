@@ -1,15 +1,15 @@
--- Corpo do Pacote de Importação das Parametrizações de Rubricas
-CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
+-- Corpo do Pacote de Importação das Parametrizações de Formulas de Cálculo
+CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
 
-  PROCEDURE pImportarFormulaCalculo(
+  PROCEDURE pImportar(
   -- ###########################################################################
-  -- PROCEDURE: pImportarFormulaCalculo
+  -- PROCEDURE: pImportar
   -- Objetivo:
-  --   Importar dados das Formulas de Calculo do Documento Versões JSON
-  --     contido na tabela emigConfiguracaoPadrao, realizando:
-  --     - Exclusão da Formula de Calculo e as Entidades Filhas
-  --     - Inclusão da Formula de Calculo tabela epagFormulaCalculo
-  --     - Importação das Vigências da Formula de Calculo
+  --   Importar dados das Formulas de Cálculo do Documento Versões JSON
+  --     contido na tabela emigParametrizacao, realizando:
+  --     - Exclusão da Formula de Cálculo e as Entidades Filhas
+  --     - Inclusão da Formula de Cálculo tabela epagFormulaCalculo
+  --     - Importação das Vigências da Formula de Cálculo
   --     - Registro de Logs de Auditoria por evento
   --
   -- Parâmetros:
@@ -22,13 +22,13 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
   --   pcdIdentificacao      IN VARCHAR2: 
   --   pcdRubricaAgrupamento IN NUMBER: 
   --   pFormulaCalculo       IN CLOB: 
-  --   pnuDEBUG              IN NUMBER DEFAULT NULL: Defini o nível das mensagens
+  --   pnuNivelAuditoria     IN NUMBER DEFAULT NULL: Defini o nível das mensagens
   --                         para acompanhar a execução, sendo:
   --                         - Não informado assume 'Desligado' nível mínimo de mensagens;
-  --                         - Se informado 'DEBUG NIVEL 0' omite todas as mensagens;
-  --                         - Se informado 'DEBUG NIVEL 1' inclui as mensagens das
+  --                         - Se informado 'SILENCIADO' omite todas as mensagens;
+  --                         - Se informado 'ESSENCIAL' inclui as mensagens das
   --                           principais todas entidades, menos as listas;
-  --                         - Se informado 'DEBUG NIVEL 2' inclui as mensagens de todas 
+  --                         - Se informado 'DETALHADO' inclui as mensagens de todas 
   --                           entidades, incluindo as referente as tabelas das listas;
   --
   -- ###########################################################################
@@ -41,17 +41,19 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
     pcdIdentificacao      IN VARCHAR2,
     pcdRubricaAgrupamento IN NUMBER,
     pFormulaCalculo       IN CLOB,
-	pnuDEBUG              IN NUMBER DEFAULT NULL
+	pnuNivelAuditoria     IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
     vcdIdentificacao      VARCHAR2(70) := Null;
     vcdFormulaCalculoNova NUMBER := 0;
     vnuRegistros          NUMBER := 0;
 
-    -- Cursor que extrai as Formula de Calculo do Documento Versões JSON
+    -- Cursor que extrai as Formula de Cálculo do Documento Versões JSON
     CURSOR cDados IS
       WITH
-      Orgao AS (
+      --- Informações referente as lista de Órgãos, Rubricas, Carreiras, Cargos Comissionados, Motivos
+      -- OrgaoLista: lista dos Agrupamentos e Órgãos
+      OrgaoLista AS (
       SELECT g.sgGrupoAgrupamento, UPPER(p.nmPoder) AS nmPoder, a.sgAgrupamento, vgcorg.sgOrgao,
         vgcorg.dtInicioVigencia, vgcorg.dtFimVigencia,
         UPPER(tporgao.nmTipoOrgao) AS nmTipoOrgao,
@@ -89,11 +91,11 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
       
       js.Versoes
       FROM JSON_TABLE(JSON_QUERY(pFormulaCalculo, '$'), '$[*]' COLUMNS (
-          sgformulacalculo  PATH '$.sgformulacalculo',
-          deformulacalculo  PATH '$.deformulacalculo',
+          sgFormulaCalculo  PATH '$.sgFormulaCalculo',
+          deFormulaCalculo  PATH '$.deFormulaCalculo',
           Versoes           CLOB FORMAT JSON PATH '$.Versoes'
       )) js
-      LEFT JOIN Orgao o on o.sgAgrupamento = psgAgrupamentoDestino and nvl(o.sgOrgao,' ') = nvl(psgOrgao,' ')
+      LEFT JOIN OrgaoLista o on o.sgAgrupamento = psgAgrupamentoDestino and nvl(o.sgOrgao,' ') = nvl(psgOrgao,' ')
       )
       SELECT * FROM FormulaCalculo;
 
@@ -101,64 +103,67 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
 
     vcdIdentificacao := pcdIdentificacao;
 
-    PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação da Formula de Cálculo - Formula de Cálculo ' || vcdIdentificacao);
+    PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo - ' ||
+      vcdIdentificacao, cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 	
     -- Excluir a Formula de Cálculo e as Entidades Filhas
     pExcluirFormulaCalculo(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
-      psgModulo, psgConceito, vcdIdentificacao, pcdRubricaAgrupamento, pnuDEBUG);
+      psgModulo, psgConceito, vcdIdentificacao, pcdRubricaAgrupamento, pnuNivelAuditoria);
 
     -- Loop principal de processamento para Incluir as Verões da Base
     FOR r IN cDados LOOP
 
-	  vcdIdentificacao := pcdIdentificacao || ' ' || r.sgFormulaCalculo;
-	  
-	  -- Inserir na tabela epagFormulaCalculo
-	  SELECT NVL(MAX(cdFormulaCalculo), 0) + 1 INTO vcdFormulaCalculoNova FROM epagFormulaCalculo;
+	    vcdIdentificacao := pcdIdentificacao || ' ' || r.sgFormulaCalculo;
+
+	    -- Inserir na tabela epagFormulaCalculo
+	    SELECT NVL(MAX(cdFormulaCalculo), 0) + 1 INTO vcdFormulaCalculoNova FROM epagFormulaCalculo;
 
       INSERT INTO epagFormulaCalculo (
-	    cdFormulaCalculo, cdRubricaAgrupamento, sgFormulaCalculo, deFormulaCalculo, dtUltAlteracao, cdAgrupamento, cdOrgao
+	      cdFormulaCalculo, cdRubricaAgrupamento, sgFormulaCalculo, deFormulaCalculo, dtUltAlteracao, cdAgrupamento, cdOrgao
       ) VALUES (
-		vcdFormulaCalculoNova, pcdRubricaAgrupamento, r.sgFormulaCalculo, r.deFormulaCalculo, r.dtUltAlteracao, r.cdAgrupamento, r.cdOrgao
+		    vcdFormulaCalculoNova, pcdRubricaAgrupamento, r.sgFormulaCalculo, r.deFormulaCalculo, r.dtUltAlteracao, r.cdAgrupamento, r.cdOrgao
       );
 
-      PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'FORMULA CALCULO', 'INCLUSAO', 'Formula de Calculo incluida com sucesso',
-        cDEBUG_DESLIGADO, pnuDEBUG);
+        'FORMULA CÁLCULO', 'INCLUSAO',
+        'Formula de Cálculo incluida com sucesso',
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
       -- Importar Versão da Formula de Cálculo
-      pImportarVersoesFormula(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
-        psgModulo, psgConceito, vcdIdentificacao, vcdFormulaCalculoNova, r.Versoes, pnuDEBUG);
+      pImportarVersoes(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+        psgModulo, psgConceito, vcdIdentificacao, vcdFormulaCalculoNova, r.Versoes, pnuNivelAuditoria);
   
     END LOOP;
 
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação da Formula de Calculo ' || vcdIdentificacao || ' FORMULA CALCULO Erro: ' || SQLERRM);
-      PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+      PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo ' || vcdIdentificacao ||
+        ' FORMULA CÁLCULO Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'FORMULA CALCULO', 'ERRO', 'Erro: ' || SQLERRM,
-        cDEBUG_DESLIGADO, pnuDEBUG);
+        'FORMULA CÁLCULO', 'ERRO', 'Erro: ' || SQLERRM,
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
     ROLLBACK;
     RAISE;
-  END pImportarFormulaCalculo;
+  END pImportar;
 
   PROCEDURE pExcluirFormulaCalculo(
   -- ###########################################################################
   -- PROCEDURE: pExcluirFormulaCalculo
   -- Objetivo:
-  --   Importar dados das Formulas de Calculo do Documento Versões JSON
-  --     contido na tabela emigConfiguracaoPadrao, realizando:
-  --     - Exclusão dos Grupos de Rubricas dos Blocos da Formula de Calculo
+  --   Importar dados das Formulas de Cálculo do Documento Versões JSON
+  --     contido na tabela emigParametrizacao, realizando:
+  --     - Exclusão dos Grupos de Rubricas dos Blocos da Formula de Cálculo
   --       tabela epagFormCalcBlocoExpRubAgrup
   --     - Exclusão das Expressões dos Blocos da Base
   --       tabela epagBaseCalculoBlocoExpressao
-  --     - Exclusão dos Blocos da Formula de Calculo tabela epagFormulaCalculoBloco
-  --     - Exclusão das Expressão da Formula de Calculo tabela epagExpressaoFormCalc
-  --     - Exclusão das Vigências da Formula de Calculo tabela epagHistFormulaCalculo
-  --     - Exclusão das Versões da Formula de Calculo tabela epagFormulaVersao
-  --     - Exclusão da Formula de Calculo tabela epagFormulaCalculo
+  --     - Exclusão dos Blocos da Formula de Cálculo tabela epagFormulaCalculoBloco
+  --     - Exclusão das Expressão da Formula de Cálculo tabela epagExpressaoFormCalc
+  --     - Exclusão das Vigências da Formula de Cálculo tabela epagHistFormulaCalculo
+  --     - Exclusão das Versões da Formula de Cálculo tabela epagFormulaVersao
+  --     - Exclusão da Formula de Cálculo tabela epagFormulaCalculo
   --     - Registro de Logs de Auditoria por evento
   --
   -- Parâmetros:
@@ -170,13 +175,13 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
   --   psgConceito           IN VARCHAR2: 
   --   pcdIdentificacao      IN VARCHAR2: 
   --   pcdRubricaAgrupamento IN NUMBER: 
-  --   pnuDEBUG              IN NUMBER DEFAULT NULL: Defini o nível das mensagens
+  --   pnuNivelAuditoria              IN NUMBER DEFAULT NULL: Defini o nível das mensagens
   --                         para acompanhar a execução, sendo:
   --                         - Não informado assume 'Desligado' nível mínimo de mensagens;
-  --                         - Se informado 'DEBUG NIVEL 0' omite todas as mensagens;
-  --                         - Se informado 'DEBUG NIVEL 1' inclui as mensagens das
+  --                         - Se informado 'SILENCIADO' omite todas as mensagens;
+  --                         - Se informado 'ESSENCIAL' inclui as mensagens das
   --                           principais todas entidades, menos as listas;
-  --                         - Se informado 'DEBUG NIVEL 2' inclui as mensagens de todas 
+  --                         - Se informado 'DETALHADO' inclui as mensagens de todas 
   --                           entidades, incluindo as referente as tabelas das listas;
   --
   -- ###########################################################################
@@ -188,7 +193,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
     psgConceito           IN VARCHAR2,
     pcdIdentificacao      IN VARCHAR2,
     pcdRubricaAgrupamento IN NUMBER,
-	pnuDEBUG              IN NUMBER DEFAULT NULL
+	pnuNivelAuditoria              IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
     vcdIdentificacao      VARCHAR2(70) := Null;
@@ -198,10 +203,11 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
 
     vcdIdentificacao := pcdIdentificacao;
 
-    --PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação da Formula de Cálculo - Excluir Formula de Cálculo ' || vcdIdentificacao);
+    PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo - ' ||
+      'Excluir Formula de Cálculo ' || vcdIdentificacao, cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 
     -- Excluir as Rubricas do Grupo de Rubricas da Formula de Cálculo
-	SELECT COUNT(*) INTO vnuRegistros FROM epagFormCalcBlocoExpRubAgrup GrupoRubricas
+	  SELECT COUNT(*) INTO vnuRegistros FROM epagFormCalcBlocoExpRubAgrup GrupoRubricas
       WHERE GrupoRubricas.cdFormulaCalcBlocoExpressao IN (
         SELECT BlocoExpressao.cdFormulaCalcBlocoExpressao FROM epagFormulaCalcBlocoExpressao BlocoExpressao
         INNER JOIN epagFormulaCalculoBloco Blocos ON Blocos.cdFormulaCalculoBloco = BlocoExpressao.cdFormulaCalculoBloco
@@ -211,7 +217,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
         INNER JOIN epagFormulaCalculo Formula ON Formula.cdFormulaCalculo = Versoes.cdFormulaCalculo
           WHERE Formula.cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-	IF vnuRegistros > 0 THEN
+	  IF vnuRegistros > 0 THEN
       DELETE FROM epagFormCalcBlocoExpRubAgrup GrupoRubricas
         WHERE GrupoRubricas.cdFormulaCalcBlocoExpressao IN (
           SELECT BlocoExpressao.cdFormulaCalcBlocoExpressao FROM epagFormulaCalcBlocoExpressao BlocoExpressao
@@ -222,14 +228,15 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
           INNER JOIN epagFormulaCalculo Formula ON Formula.cdFormulaCalculo = Versoes.cdFormulaCalculo
             WHERE Formula.cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
-        'FORMULA CALCULO GRUPO RUBRICAS', 'EXCLUSAO', 'Grupo de Rubricas do Blocos da Formula de Cálculo excluidas com sucesso',
-        cDEBUG_DESLIGADO, pnuDEBUG);
-	END IF;
+        'FORMULA CÁLCULO GRUPO RUBRICAS', 'EXCLUSAO',
+        'Grupo de Rubricas do Blocos da Formula de Cálculo excluidas com sucesso',
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+	  END IF;
 
     -- Excluir a Expressão do Bloco da Formula de Cálculo
-	SELECT COUNT(*) INTO vnuRegistros FROM epagFormulaCalcBlocoExpressao BlocoExpressao
+	  SELECT COUNT(*) INTO vnuRegistros FROM epagFormulaCalcBlocoExpressao BlocoExpressao
       WHERE BlocoExpressao.cdFormulaCalculoBloco IN (
         SELECT Blocos.cdFormulaCalculoBloco FROM epagFormulaCalculoBloco Blocos
         INNER JOIN epagExpressaoFormCalc Expressao ON Expressao.cdExpressaoFormCalc = Blocos.cdExpressaoFormCalc
@@ -238,7 +245,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
         INNER JOIN epagFormulaCalculo Formula ON Formula.cdFormulaCalculo = Versoes.cdFormulaCalculo
           WHERE Formula.cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-	IF vnuRegistros > 0 THEN
+	  IF vnuRegistros > 0 THEN
       DELETE FROM epagFormulaCalcBlocoExpressao BlocoExpressao
         WHERE BlocoExpressao.cdFormulaCalculoBloco IN (
           SELECT Blocos.cdFormulaCalculoBloco FROM epagFormulaCalculoBloco Blocos
@@ -248,14 +255,15 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
           INNER JOIN epagFormulaCalculo Formula ON Formula.cdFormulaCalculo = Versoes.cdFormulaCalculo
             WHERE Formula.cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
-        'FORMULA CALCULO EXPRESSAO BLOCO', 'EXCLUSAO', 'Expressão do Bloco da Formula de Cálculo excluidos com sucesso',
-        cDEBUG_DESLIGADO, pnuDEBUG);
-	END IF;
+        'FORMULA CÁLCULO EXPRESSAO BLOCO', 'EXCLUSAO',
+        'Expressão do Bloco da Formula de Cálculo excluidos com sucesso',
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+	  END IF;
 
     -- Excluir as Blocos da Formula de Cálculo
-	SELECT COUNT(*) INTO vnuRegistros FROM epagFormulaCalculoBloco Blocos
+	  SELECT COUNT(*) INTO vnuRegistros FROM epagFormulaCalculoBloco Blocos
       WHERE Blocos.cdExpressaoFormCalc IN (
         SELECT Expressao.cdExpressaoFormCalc FROM epagExpressaoFormCalc Expressao
         INNER JOIN epagHistFormulaCalculo Vigencias ON Vigencias.cdHistFormulaCalculo = Expressao.cdHistFormulaCalculo
@@ -263,7 +271,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
         INNER JOIN epagFormulaCalculo Formula ON Formula.cdFormulaCalculo = Versoes.cdFormulaCalculo
           WHERE Formula.cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-	IF vnuRegistros > 0 THEN
+	  IF vnuRegistros > 0 THEN
       DELETE FROM epagFormulaCalculoBloco Blocos
         WHERE Blocos.cdExpressaoFormCalc IN (
           SELECT Expressao.cdExpressaoFormCalc FROM epagExpressaoFormCalc Expressao
@@ -272,21 +280,22 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
           INNER JOIN epagFormulaCalculo Formula ON Formula.cdFormulaCalculo = Versoes.cdFormulaCalculo
             WHERE Formula.cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
-        'FORMULA CALCULO BLOCOS', 'EXCLUSAO', 'Blocos da Formula de Cálculo excluidas com sucesso',
-        cDEBUG_DESLIGADO, pnuDEBUG);
-	END IF;
+        'FORMULA CÁLCULO BLOCOS', 'EXCLUSAO',
+        'Blocos da Formula de Cálculo excluidas com sucesso',
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+	  END IF;
 
     -- Excluir a Expressão da Formula de Cálculo
-	SELECT COUNT(*) INTO vnuRegistros FROM epagExpressaoFormCalc Expressao
+	  SELECT COUNT(*) INTO vnuRegistros FROM epagExpressaoFormCalc Expressao
       WHERE Expressao.cdHistFormulaCalculo IN (
         SELECT Vigencias.cdHistFormulaCalculo FROM epagHistFormulaCalculo Vigencias
         INNER JOIN epagFormulaVersao Versoes ON Versoes.cdFormulaVersao = Vigencias.cdFormulaVersao
         INNER JOIN epagFormulaCalculo Formula ON Formula.cdFormulaCalculo = Versoes.cdFormulaCalculo
           WHERE Formula.cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-	IF vnuRegistros > 0 THEN
+	  IF vnuRegistros > 0 THEN
       DELETE FROM epagExpressaoFormCalc Expressao
         WHERE Expressao.cdHistFormulaCalculo IN (
           SELECT Vigencias.cdHistFormulaCalculo FROM epagHistFormulaCalculo Vigencias
@@ -294,11 +303,12 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
           INNER JOIN epagFormulaCalculo Formula ON Formula.cdFormulaCalculo = Versoes.cdFormulaCalculo
             WHERE Formula.cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
-        'FORMULA CALCULO EXPRESSAO FORMULA', 'EXCLUSAO', 'Expressão da Formula de Cálculo excluidas com sucesso',
-        cDEBUG_DESLIGADO, pnuDEBUG);
-	END IF;
+        'FORMULA CÁLCULO EXPRESSAO FORMULA', 'EXCLUSAO',
+        'Expressão da Formula de Cálculo excluidas com sucesso',
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+	  END IF;
 
     -- Excluir os Documentos das Vigências da Formula de Cálculo
     FOR d IN (
@@ -313,84 +323,89 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
       DELETE FROM eatoDocumento
         WHERE cdDocumento = d.cdDocumento;
 
-      PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'DOCUMENTO', 'EXCLUSAO', 'Documentos de Amparo ao Fato da Formula de Cálculo excluídos com sucesso',
-        cDEBUG_DESLIGADO, pnuDEBUG);
+        'DOCUMENTO', 'EXCLUSAO',
+        'Documentos de Amparo ao Fato da Formula de Cálculo excluídos com sucesso',
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
     END LOOP;      
 
     -- Excluir as Vigências da Formula de Cálculo
-	SELECT COUNT(*) INTO vnuRegistros FROM epagHistFormulaCalculo Vigencias
+	  SELECT COUNT(*) INTO vnuRegistros FROM epagHistFormulaCalculo Vigencias
       WHERE Vigencias.cdFormulaVersao IN (
         SELECT Versoes.cdFormulaVersao FROM epagFormulaVersao Versoes 
         INNER JOIN epagFormulaCalculo Formula ON Formula.cdFormulaCalculo = Versoes.cdFormulaCalculo
           WHERE Formula.cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-	IF vnuRegistros > 0 THEN
+	  IF vnuRegistros > 0 THEN
       DELETE FROM epagHistFormulaCalculo Vigencias
         WHERE Vigencias.cdFormulaVersao IN (
           SELECT Versoes.cdFormulaVersao FROM epagFormulaVersao Versoes 
           INNER JOIN epagFormulaCalculo Formula ON Formula.cdFormulaCalculo = Versoes.cdFormulaCalculo
             WHERE Formula.cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
-        'FORMULA CALCULO VIGENCIA', 'EXCLUSAO', 'Vigências da Formula de Cálculo excluidas com sucesso',
-        cDEBUG_DESLIGADO, pnuDEBUG);
-	END IF;
+        'FORMULA CÁLCULO VIGENCIA', 'EXCLUSAO',
+        'Vigências da Formula de Cálculo excluidas com sucesso',
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+	  END IF;
 
     -- Excluir as Versões da Formula de Cálculo
-	SELECT COUNT(*) INTO vnuRegistros FROM epagFormulaVersao Versoes
+	  SELECT COUNT(*) INTO vnuRegistros FROM epagFormulaVersao Versoes
       WHERE Versoes.cdFormulaCalculo IN (
         SELECT Formula.cdFormulaCalculo FROM epagFormulaCalculo Formula
           WHERE Formula.cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-	IF vnuRegistros > 0 THEN
+	  IF vnuRegistros > 0 THEN
       DELETE FROM epagFormulaVersao Versoes 
         WHERE Versoes.cdFormulaCalculo IN (
           SELECT Formula.cdFormulaCalculo FROM epagFormulaCalculo Formula
             WHERE Formula.cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
-        'FORMULA CALCULO VERCAO', 'EXCLUSAO', 'Versões da Formula de Cálculo excluidas com sucesso',
-        cDEBUG_DESLIGADO, pnuDEBUG);
-	END IF;
+        'FORMULA CÁLCULO VERCAO', 'EXCLUSAO',
+        'Versões da Formula de Cálculo excluidas com sucesso',
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+	  END IF;
 
     -- Excluir a Formula de Cálculo
-	SELECT COUNT(*) INTO vnuRegistros FROM epagFormulaCalculo Formula
+	  SELECT COUNT(*) INTO vnuRegistros FROM epagFormulaCalculo Formula
       WHERE Formula.cdRubricaAgrupamento = pcdRubricaAgrupamento;
 
-	IF vnuRegistros > 0 THEN
+	  IF vnuRegistros > 0 THEN
       DELETE FROM epagFormulaCalculo Formula
         WHERE Formula.cdRubricaAgrupamento = pcdRubricaAgrupamento;
 
-      PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
-        'FORMULA CALCULO', 'EXCLUSAO', 'Formula de Cálculo excluidas com sucesso',
-        cDEBUG_DESLIGADO, pnuDEBUG);
-	END IF;
+        'FORMULA CÁLCULO', 'EXCLUSAO',
+        'Formula de Cálculo excluidas com sucesso',
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+	  END IF;
 
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação da Formula de Calculo ' || vcdIdentificacao || ' EXCLUIR FORMULA CALCULO Erro: ' || SQLERRM);
-      PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+      PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo ' || vcdIdentificacao ||
+        ' EXCLUIR FORMULA CÁLCULO Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'FORMULA CALCULO', 'ERRO', 'Erro: ' || SQLERRM,
-        cDEBUG_DESLIGADO, pnuDEBUG);
+        'FORMULA CÁLCULO', 'ERRO', 'Erro: ' || SQLERRM,
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
     ROLLBACK;
     RAISE;
   END pExcluirFormulaCalculo;
 
-  PROCEDURE pImportarVersoesFormula(
+  PROCEDURE pImportarVersoes(
   -- ###########################################################################
-  -- PROCEDURE: pImportarVersoesFormula
+  -- PROCEDURE: pImportarVersoes
   -- Objetivo:
-  --   Importar dados das Versões da Formula de Calculo do Documento Versões JSON
-  --     contido na tabela emigConfiguracaoPadrao, realizando:
-  --     - Inclusão das Versões da Formula de Calculo tabela epagFormulaVersao
-  --     - Importação das Vigências da Formula de Calculo
+  --   Importar dados das Versões da Formula de Cálculo do Documento Versões JSON
+  --     contido na tabela emigParametrizacao, realizando:
+  --     - Inclusão das Versões da Formula de Cálculo tabela epagFormulaVersao
+  --     - Importação das Vigências da Formula de Cálculo
   --     - Registro de Logs de Auditoria por evento
   --
   -- Parâmetros:
@@ -403,7 +418,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
   --   pcdIdentificacao      IN VARCHAR2: 
   --   pcdFormulaCalculo     IN NUMBER: 
   --   pVersoesFormula       IN CLOB: 
-  --   pnuDEBUG              IN NUMBER DEFAULT NULL:
+  --   pnuNivelAuditoria              IN NUMBER DEFAULT NULL:
   --
   -- ###########################################################################
     psgAgrupamentoDestino IN VARCHAR2,
@@ -415,7 +430,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
     pcdIdentificacao      IN VARCHAR2,
     pcdFormulaCalculo     IN NUMBER,
     pVersoesFormula       IN CLOB,
-	pnuDEBUG              IN NUMBER DEFAULT NULL
+	  pnuNivelAuditoria     IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
     vcdIdentificacao     VARCHAR2(70) := Null;
@@ -433,7 +448,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
       SYSTIMESTAMP AS dtUltAlteracao,
       js.VigenciasFormula
       FROM JSON_TABLE(JSON_QUERY(pVersoesFormula, '$'), '$[*]' COLUMNS (
-        nuFormulaVersao  PATH '$.nuformulaversao',
+        nuFormulaVersao  PATH '$.nuFormulaVersao',
         VigenciasFormula CLOB FORMAT JSON PATH '$.Vigencias'
       )) js
       )
@@ -443,51 +458,54 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
 
     vcdIdentificacao := pcdIdentificacao;
 
-    --PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação das Versões da Formula de Cálculo - Versões ' || vcdIdentificacao);
+    PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo ' ||
+      '- Versões ' || vcdIdentificacao, cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 
     -- Loop principal de processamento para Incluir as Verões da Base
     FOR r IN cDados LOOP
 
-	  vcdIdentificacao := pcdIdentificacao || ' ' || r.nuFormulaVersao;
+	    vcdIdentificacao := pcdIdentificacao || ' ' || r.nuFormulaVersao;
 	  
-	  -- Inserir na tabela epagBaseCalculoVersao
-	  SELECT NVL(MAX(cdFormulaVersao), 0) + 1 INTO vcdFormulaVersaoNova FROM epagFormulaVersao;
+	    -- Inserir na tabela epagBaseCalculoVersao
+	    SELECT NVL(MAX(cdFormulaVersao), 0) + 1 INTO vcdFormulaVersaoNova FROM epagFormulaVersao;
 
       INSERT INTO epagFormulaVersao (
-	    cdFormulaVersao, nuFormulaVersao, cdFormulaCalculo, dtUltAlteracao
+	      cdFormulaVersao, nuFormulaVersao, cdFormulaCalculo, dtUltAlteracao
       ) VALUES (
-		vcdFormulaVersaoNova, r.nuFormulaVersao, pcdFormulaCalculo, r.dtUltAlteracao
+		    vcdFormulaVersaoNova, r.nuFormulaVersao, pcdFormulaCalculo, r.dtUltAlteracao
       );
 
-      PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'FORMULA CALCULO VERCAO', 'INCLUSAO', 'Versão da Formula de Cálculo incluida com sucesso',
-        cDEBUG_DESLIGADO, pnuDEBUG);
+        'FORMULA CÁLCULO VERCAO', 'INCLUSAO',
+        'Versão da Formula de Cálculo incluida com sucesso',
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
       -- Importar Vigências da Formula de Cálculo
-      pImportarVigenciasFormula(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
-        psgModulo, psgConceito, vcdIdentificacao, vcdFormulaVersaoNova, r.VigenciasFormula, pnuDEBUG);
+      pImportarVigencias(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+        psgModulo, psgConceito, vcdIdentificacao, vcdFormulaVersaoNova, r.VigenciasFormula, pnuNivelAuditoria);
   
     END LOOP;
 
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação das Versão da Formula de Cálculo ' || vcdIdentificacao || ' VERCAO Erro: ' || SQLERRM);
-      PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+      PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo ' || vcdIdentificacao ||
+        ' VERCAO Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'FORMULA CALCULO VERCAO', 'ERRO', 'Erro: ' || SQLERRM,
-        cDEBUG_DESLIGADO, pnuDEBUG);
+        'FORMULA CÁLCULO VERCAO', 'ERRO', 'Erro: ' || SQLERRM,
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
     ROLLBACK;
     RAISE;
-  END pImportarVersoesFormula;
+  END pImportarVersoes;
 
-  PROCEDURE pImportarVigenciasFormula(
+  PROCEDURE pImportarVigencias(
   -- ###########################################################################
-  -- PROCEDURE: emigpImportarVigencias
+  -- PROCEDURE: pImportarVigencias
   -- Objetivo:
-  --   Importar dados das Vigências da Formula de Calculo do Documento Vigências JSON
-  --     contido na tabela emigConfiguracaoPadrao, realizando:
+  --   Importar dados das Vigências da Formula de Cálculo do Documento Vigências JSON
+  --     contido na tabela emigParametrizacao, realizando:
   --     - Inclusão das Vigências da Base na tabela epagHistFormulaCalculo
   --     - Importar Blocos da Base
   --     - Registro de Logs de Auditoria por evento
@@ -502,19 +520,19 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
   --   pcdIdentificacao      IN VARCHAR2:
   --   pcdFormulaVersao      IN NUMBER:
   --   pVigenciasFormula     IN CLOB:
-  --   pnuDEBUG              IN NUMBER DEFAULT NULL:
+  --   pnuNivelAuditoria     IN NUMBER DEFAULT NULL:
   --
   -- ###########################################################################
     psgAgrupamentoDestino IN VARCHAR2,
     psgOrgao              IN VARCHAR2,
-	ptpOperacao           IN VARCHAR2,
-	pdtOperacao           IN TIMESTAMP,
+    ptpOperacao           IN VARCHAR2,
+    pdtOperacao           IN TIMESTAMP,
     psgModulo             IN CHAR,
     psgConceito           IN VARCHAR2,
     pcdIdentificacao      IN VARCHAR2,
     pcdFormulaVersao      IN NUMBER,
     pVigenciasFormula     IN CLOB,
-	pnuDEBUG              IN NUMBER DEFAULT NULL
+	pnuNivelAuditoria       IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
     vcdIdentificacao           VARCHAR2(70) := Null;
@@ -562,8 +580,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
       
       js.ExpressaoFormula
       FROM JSON_TABLE(JSON_QUERY(pVigenciasFormula, '$'), '$[*]' COLUMNS (
-        nuAnoMesInicioVigencia      PATH '$.nuanomesiniciovigencia',
-        nuAnoMesFimVigencia         PATH '$.nuanomesfimvigencia',
+        nuAnoMesInicioVigencia      PATH '$.nuAnoMesInicioVigencia',
+        nuAnoMesFimVigencia         PATH '$.nuAnoMesFimVigencia',
       
         nuAnoDocumento              PATH '$.Documento.nuAnoDocumento',
         detipodocumento             PATH '$.Documento.detipodocumento',
@@ -591,7 +609,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
 
     vcdIdentificacao := pcdIdentificacao;
 
-    --PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação da Formula de Cálculo - Vigências ' || vcdIdentificacao);
+    PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo - ' ||
+      'Vigências ' || vcdIdentificacao, cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 
     -- Loop principal de processamento
     FOR r IN cDados LOOP
@@ -616,12 +635,14 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
           r.nmArquivoDocumento, r.deCaminhoArquivoDocumento
         );
 
-        PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+        PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
           psgModulo, psgConceito, vcdIdentificacao, 1,
-          'FORMULA CALCULO DOCUMENTO', 'INCLUSAO', 'Documentos de Amparo ao Fato da Formula de Cálculo incluidas com sucesso');
+          'FORMULA CÁLCULO DOCUMENTO', 'INCLUSAO',
+          'Documentos de Amparo ao Fato da Formula de Cálculo incluidas com sucesso',
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 	  END IF;
 
-      -- Incluir Nova Vigência da Formula de Calculo
+      -- Incluir Nova Vigência da Formula de Cálculo
       SELECT NVL(MAX(cdHistFormulaCalculo), 0) + 1 INTO vcdHistFormulaCalculoNova FROM epagHistFormulaCalculo;
 
       INSERT INTO epagHistFormulaCalculo (
@@ -634,33 +655,37 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
 	    r.cdDocumento, r.cdTipoPublicacao, r.nuPublicacao, r.dtPublicacao, r.nuPagInicial, r.cdMeioPublicacao, r.deObservacao
       );
 
-      PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'FORMULA CALCULO VIGENCIA', 'INCLUSAO', 'Vigência da Formula de Cálculo incluidas com sucesso');
+        'FORMULA CÁLCULO VIGENCIA', 'INCLUSAO',
+        'Vigência da Formula de Cálculo incluidas com sucesso',
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-      -- Importar Blocos da Base de Cálculo
-      pImportarExpressaoFormula(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
-        psgModulo, psgConceito, vcdIdentificacao, vcdHistFormulaCalculoNova, r.ExpressaoFormula, pnuDEBUG);
+      -- Importar Expressão da Formula de Cálculo
+      pImportarExpressao(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+        psgModulo, psgConceito, vcdIdentificacao, vcdHistFormulaCalculoNova, r.ExpressaoFormula, pnuNivelAuditoria);
 
     END LOOP;
 
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação das Vigência da Formula de Cálculo ' || vcdIdentificacao || ' VIGENCIA Erro: ' || SQLERRM);
-      PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+      PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo ' || vcdIdentificacao ||
+        ' VIGENCIA Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'FORMULA CALCULO VIGENCIA', 'ERRO', 'Erro: ' || SQLERRM);
+        'FORMULA CÁLCULO VIGENCIA', 'ERRO', 'Erro: ' || SQLERRM,
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
     ROLLBACK;
     RAISE;
-  END pImportarVigenciasFormula;
+  END pImportarVigencias;
     
-  PROCEDURE pImportarExpressaoFormula(
+  PROCEDURE pImportarExpressao(
   -- ###########################################################################
-  -- PROCEDURE: pImportarExpressaoFormula
+  -- PROCEDURE: pImportarExpressao
   -- Objetivo:
-  --   Importar dados da Expressão da Formula de Calculo do Documento Vigências JSON
-  --     contido na tabela emigConfiguracaoPadrao, realizando:
+  --   Importar dados da Expressão da Formula de Cálculo do Documento Vigências JSON
+  --     contido na tabela emigParametrizacao, realizando:
   --     - Inclusão das Vigências da Base na tabela epagExpressaoFormCalc
   --     - Importar Blocos da Base
   --     - Registro de Logs de Auditoria por evento
@@ -675,19 +700,19 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
   --   pcdIdentificacao      IN VARCHAR2:
   --   pcdHistFormulaCalculo IN NUMBER:
   --   pExpressaoFormula     IN CLOB:
-  --   pnuDEBUG              IN NUMBER DEFAULT NULL:
+  --   pnuNivelAuditoria              IN NUMBER DEFAULT NULL:
   --
   -- ###########################################################################
     psgAgrupamentoDestino IN VARCHAR2,
     psgOrgao              IN VARCHAR2,
-	ptpOperacao           IN VARCHAR2,
-	pdtOperacao           IN TIMESTAMP,
+	  ptpOperacao           IN VARCHAR2,
+	  pdtOperacao           IN TIMESTAMP,
     psgModulo             IN CHAR,
     psgConceito           IN VARCHAR2,
     pcdIdentificacao      IN VARCHAR2,
     pcdHistFormulaCalculo IN NUMBER,
     pExpressaoFormula     IN CLOB,
-	pnuDEBUG              IN NUMBER DEFAULT NULL
+	  pnuNivelAuditoria     IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
     vcdIdentificacao         VARCHAR2(70) := Null;
@@ -695,7 +720,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
     vcdDocumentoNovo         NUMBER := Null;
     vnuRegistros             NUMBER := 0;
 
-    -- Cursor que extrai a Expressão da Formula de Calculo do Documento pExpressaoFormula JSON
+    -- Cursor que extrai a Expressão da Formula de Cálculo do Documento pExpressaoFormula JSON
     CURSOR cDados IS
       WITH
       ExpressaoFormula as (
@@ -739,37 +764,37 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
       
       js.BlocosFormula
       FROM JSON_TABLE(JSON_QUERY(pExpressaoFormula, '$'), '$' COLUMNS (
-        deFormulaExpressao           PATH '$.deformulaexpressao',
-        deExpressao                  PATH '$.deexpressao',
-        deIndiceExpressao            PATH '$.deindiceexpressao',
+        deFormulaExpressao           PATH '$.deFormulaExpressao',
+        deExpressao                  PATH '$.deExpressao',
+        deIndiceExpressao            PATH '$.deiIndiceExpressao',
       
-        flExpGeral                   PATH '$.flexpgeral',
-        flDesprezaPropCHORubrica     PATH '$.fldesprezapropchorubrica',
-        flExigeIndice                PATH '$.flexigeindice',
-        flValorHoraMinuto            PATH '$.flvalorhoraminuto',
+        flExpGeral                   PATH '$.flExpGeral',
+        flDesprezaPropCHORubrica     PATH '$.flDesprezaPropCHORubrica',
+        flExigeIndice                PATH '$.flExigeIndice',
+        flValorHoraMinuto            PATH '$.flValorHoraMinuto',
       
-        cdEstruturaCarreira          PATH '$.cdestruturacarreira',
-        cdUnidadeOrganizacional      PATH '$.cdunidadeorganizacional',
-        cdCargoComissionado          PATH '$.cdcargocomissionado',
+        cdEstruturaCarreira          PATH '$.cdEstruturaCarreira',
+        cdUnidadeOrganizacional      PATH '$.cdUnidadeOrganizacional',
+        cdCargoComissionado          PATH '$.cdCargoComissionado',
       
-        cdFormulaEspecifica          PATH '$.FormulaEspecifica.cdformulaespecifica',
-        deFormulaEspecifica          PATH '$.FormulaEspecifica.deformulaespecifica',
-        nuFormulaEspecifica          PATH '$.FormulaEspecifica.nuformulaespecifica',
+        cdFormulaEspecifica          PATH '$.FormulaEspecifica.cdFormulaEspecifica',
+        deFormulaEspecifica          PATH '$.FormulaEspecifica.deFormulaEspecifica',
+        nuFormulaEspecifica          PATH '$.FormulaEspecifica.nuFormulaEspecifica',
       
-        cdValorRefLimInfParcial      PATH '$.Limites.cdvalorrefliminfparcial',
-        nuQtdeLimInfParcial          PATH '$.Limites.nuqtdeliminfparcial',
-        cdValorRefLimSupParcial      PATH '$.Limites.cdvalorreflimsupparcial',
-        nuQtdeLimiteSupParcial       PATH '$.Limites.nuqtdelimitesupparcial',
+        cdValorRefLimInfParcial      PATH '$.Limites.cdValorRefLimInfParcial',
+        nuQtdeLimInfParcial          PATH '$.Limites.nuQtdeLimInfParcial',
+        cdValorRefLimSupParcial      PATH '$.Limites.cdValorRefLimSupParcial',
+        nuQtdeLimiteSupParcial       PATH '$.Limites.nuQtdeLimiteSupParcial',
       
-        cdValorRefLimInfFinal        PATH '$.Limites.cdvalorrefliminffinal',
-        nuQtdeLimiteInfFinal         PATH '$.Limites.nuqtdelimiteinffinal',
-        cdValorRefLimSupFinal        PATH '$.Limites.cdvalorreflimsupfinal',
-        nuQtdeLimiteSupFinal         PATH '$.Limites.nuqtdelimitesupfinal',
+        cdValorRefLimInfFinal        PATH '$.Limites.cdValorRefLimInfFinal',
+        nuQtdeLimiteInfFinal         PATH '$.Limites.nuQtdeLimiteInfFinal',
+        cdValorRefLimSupFinal        PATH '$.Limites.cdValorRefLimSupFinal',
+        nuQtdeLimiteSupFinal         PATH '$.Limites.nuQtdeLimiteSupFinal',
       
-        vlIndiceLimInferiorMensal    PATH '$.Limites.vlindiceliminferiormensal',
-        vlIndiceLimSuperiorMensal    PATH '$.Limites.vlindicelimsuperiormensal',
-        vlIndiceLimSuperiorSemestral PATH '$.Limites.vlindicelimsuperiorsemestral',
-        vlIndiceLimSuperiorAnual     PATH '$.Limites.vlindicelimsuperioranual',
+        vlIndiceLimInferiorMensal    PATH '$.Limites.vlIndiceLimInferiorMensal',
+        vlIndiceLimSuperiorMensal    PATH '$.Limites.vlIndiceLimSuperiorMensal',
+        vlIndiceLimSuperiorSemestral PATH '$.Limites.vlIndiceLimSuperiorSemestral',
+        vlIndiceLimSuperiorAnual     PATH '$.Limites.vlIndiceLimSuperiorAnual',
       
         BlocosFormula                CLOB FORMAT JSON PATH '$.Blocos'
       )) js
@@ -780,14 +805,16 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
 
     vcdIdentificacao := pcdIdentificacao;
 
-    --PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação da Formula de Cálculo - Expressão da Formula de Calculo ' || vcdIdentificacao);
+    PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo - ' ||
+      'Expressão da Formula de Cálculo ' || vcdIdentificacao,
+      cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 
     -- Loop principal de processamento
     FOR r IN cDados LOOP
 
        vcdIdentificacao := pcdIdentificacao;
        
-      -- Incluir Nova Expressão da Formula de Calculo
+      -- Incluir Nova Expressão da Formula de Cálculo
       SELECT NVL(MAX(cdExpressaoFormCalc), 0) + 1 INTO vcdExpressaoFormCalcNova FROM epagExpressaoFormCalc;
 
       INSERT INTO epagExpressaoFormCalc (
@@ -800,7 +827,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
         flDesprezaPropCHORubrica, flExigeIndice	    
       ) VALUES (
         vcdExpressaoFormCalcNova, pcdHistFormulaCalculo,
-		r.cdEstruturaCarreira, r.cdUnidadeOrganizacional, r.cdCargoComissionado, r.flExpGeral, r.deFormulaExpressao, r.deExpressao, 
+		    r.cdEstruturaCarreira, r.cdUnidadeOrganizacional, r.cdCargoComissionado, r.flExpGeral, r.deFormulaExpressao, r.deExpressao, 
         r.cdValorRefLimInfParcial, r.nuQtdeLimInfParcial, r.cdValorRefLimSupParcial, r.nuQtdeLimiteSupParcial,
         r.cdValorRefLimInfFinal, r.nuQtdeLimiteInfFinal, r.cdValorRefLimSupFinal, r.nuQtdeLimiteSupFinal,
         r.vlIndiceLimInferiorMensal, r.vlIndiceLimSuperiorMensal, r.vlIndiceLimSuperiorSemestral, r.vlIndiceLimSuperiorAnual,
@@ -808,33 +835,37 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
         r.flDesprezaPropCHORubrica, r.flExigeIndice
       );
 
-      PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'FORMULA CALCULO EXPRESSAO FORMULA', 'INCLUSAO', 'Expressão da Formula de Calculo incluidas com sucesso');
+        'FORMULA CÁLCULO EXPRESSAO FORMULA', 'INCLUSAO',
+        'Expressão da Formula de Cálculo incluidas com sucesso',
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-      -- Importar Blocos da Base de Cálculo
-      pImportarBlocosFormula(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
-        psgModulo, psgConceito, vcdIdentificacao, vcdExpressaoFormCalcNova, r.BlocosFormula, pnuDEBUG);
+      -- Importar Blocos da Formula de Cálculo
+      pImportarBlocos(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+        psgModulo, psgConceito, vcdIdentificacao, vcdExpressaoFormCalcNova, r.BlocosFormula, pnuNivelAuditoria);
 
     END LOOP;
 
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação da Expressão da Formula de Calculo ' || vcdIdentificacao || ' EXPRESSAO FORMULA Erro: ' || SQLERRM);
-      PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+      PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo ' || vcdIdentificacao ||
+        ' EXPRESSAO FORMULA Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'FORMULA CALCULO EXPRESSAO FORMULA', 'ERRO', 'Erro: ' || SQLERRM);
+        'FORMULA CÁLCULO EXPRESSAO FORMULA', 'ERRO', 'Erro: ' || SQLERRM,
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
     ROLLBACK;
     RAISE;
-  END pImportarExpressaoFormula;
+  END pImportarExpressao;
     
-  PROCEDURE pImportarBlocosFormula(
+  PROCEDURE pImportarBlocos(
   -- ###########################################################################
-  -- PROCEDURE: pImportarBlocosFormula
+  -- PROCEDURE: pImportarBlocos
   -- Objetivo:
-  --   Importar dados dos Blocos da Formula de Calculo do Documento Vigências JSON
-  --     contido na tabela emigConfiguracaoPadrao, realizando:
+  --   Importar dados dos Blocos da Formula de Cálculo do Documento Vigências JSON
+  --     contido na tabela emigParametrizacao, realizando:
   --     - Inclusão das Vigências da Base na tabela epagFormulaCalculoBloco
   --     - Importar Blocos da Base
   --     - Registro de Logs de Auditoria por evento
@@ -849,26 +880,26 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
   --   pcdIdentificacao      IN VARCHAR2:
   --   pcdExpressaoFormCalc  IN NUMBER:
   --   pBlocosFormula        IN CLOB:
-  --   pnuDEBUG              IN NUMBER DEFAULT NULL:
+  --   pnuNivelAuditoria              IN NUMBER DEFAULT NULL:
   --
   -- ###########################################################################
     psgAgrupamentoDestino IN VARCHAR2,
     psgOrgao              IN VARCHAR2,
-	ptpOperacao           IN VARCHAR2,
-	pdtOperacao           IN TIMESTAMP,
+	  ptpOperacao           IN VARCHAR2,
+	  pdtOperacao           IN TIMESTAMP,
     psgModulo             IN CHAR,
     psgConceito           IN VARCHAR2,
     pcdIdentificacao      IN VARCHAR2,
     pcdExpressaoFormCalc  IN NUMBER,
     pBlocosFormula        IN CLOB,
-	pnuDEBUG              IN NUMBER DEFAULT NULL
+	  pnuNivelAuditoria     IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
     vcdIdentificacao           VARCHAR2(70) := Null;
     vcdFormulaCalculoBlocoNova NUMBER := Null;
     vnuRegistros               NUMBER := 0;
 
-    -- Cursor que extrai os Blocos da Formula de Calculo do Documento pBlocosFormula Agrupamento JSON
+    -- Cursor que extrai os Blocos da Formula de Cálculo do Documento pBlocosFormula Agrupamento JSON
     CURSOR cDados IS
       WITH
       BlocosFormula as (
@@ -881,10 +912,10 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
       
       js.BlocoExpressao
       FROM JSON_TABLE(JSON_QUERY(pBlocosFormula, '$'), '$[*]' COLUMNS (
-        sgBloco         PATH '$.sgbloco',
-        flLimiteParcial PATH '$.fllimiteparcial',
+        sgBloco         PATH '$.sgBloco',
+        flLimiteParcial PATH '$.flLimiteParcial',
       
-        BlocoExpressao  CLOB FORMAT JSON PATH '$.expressao'
+        BlocoExpressao  CLOB FORMAT JSON PATH '$.Expressao'
       )) js
       )
       SELECT * FROM BlocosFormula;
@@ -893,9 +924,10 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
 
     vcdIdentificacao := pcdIdentificacao;
 
-    --PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação da Formula de Calculo - Blocos ' || vcdIdentificacao);
+    PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo - ' ||
+      'Blocos ' || vcdIdentificacao, cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 
-    -- Loop principal de processamento para Incluir os Blocos da Formula de Calculo
+    -- Loop principal de processamento para Incluir os Blocos da Formula de Cálculo
     FOR r IN cDados LOOP
 
       vcdIdentificacao := pcdIdentificacao || ' ' || r.sgBloco;
@@ -903,43 +935,47 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
       SELECT NVL(MAX(cdFormulaCalculoBloco), 0) + 1 INTO vcdFormulaCalculoBlocoNova FROM epagFormulaCalculoBloco;
 
       INSERT INTO epagFormulaCalculoBloco (
-	    cdFormulaCalculoBloco, cdExpressaoFormCalc,
+	      cdFormulaCalculoBloco, cdExpressaoFormCalc,
         sgBloco, dtUltAlteracao, flLimiteParcial
       ) VALUES (
         vcdFormulaCalculoBlocoNova, pcdExpressaoFormCalc, r.sgBloco, r.dtUltAlteracao, r.flLimiteParcial
       );
 
-      PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'FORMULA CALCULO BLOCOS', 'INCLUSAO', 'Inclusão dos Blocos da Formula de Calculo incluidas com sucesso');
+        'FORMULA CÁLCULO BLOCOS', 'INCLUSAO',
+        'Inclusão dos Blocos da Formula de Cálculo incluidas com sucesso',
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-      -- Importar Expressão do Bloco da Formula de Calculo
-      pImportarBlocoExpressao(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
-        psgModulo, psgConceito, vcdIdentificacao, vcdFormulaCalculoBlocoNova, r.BlocoExpressao, pnuDEBUG);
+      -- Importar Expressão do Bloco da Formula de Cálculo
+      pImportarExpressaoBloco(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+        psgModulo, psgConceito, vcdIdentificacao, vcdFormulaCalculoBlocoNova, r.BlocoExpressao, pnuNivelAuditoria);
 
     END LOOP;
 
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação dos Bloco da Formula de Calculo ' || vcdIdentificacao || ' BLOCOS Erro: ' || SQLERRM);
-      PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+      PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo ' || vcdIdentificacao ||
+        ' BLOCOS Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'FORMULA CALCULO BLOCOS', 'ERRO', 'Erro: ' || SQLERRM);
+        'FORMULA CÁLCULO BLOCOS', 'ERRO', 'Erro: ' || SQLERRM,
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
     ROLLBACK;
     RAISE;
-  END pImportarBlocosFormula;
+  END pImportarBlocos;
 
-  PROCEDURE pImportarBlocoExpressao(
+  PROCEDURE pImportarExpressaoBloco(
   -- ###########################################################################
-  -- PROCEDURE: pImportarBlocoExpressao
+  -- PROCEDURE: pImportarExpressaoBloco
   -- Objetivo:
   --   Importar dados a Expressão do Bloco da Formula de Cálculo
-  --     do Documento Vigências JSON contido na tabela emigConfiguracaoPadrao,
+  --     do Documento Vigências JSON contido na tabela emigParametrizacao,
   --       realizando:
   --     - Inclusão da Expressão do Bloco da Formula de Cálculo
   --       na tabela epagFormulaCalcBlocoExpressao
-  --     - Inclusão do Grupo de Rubricas do Bloco da Formula de Calculo
+  --     - Inclusão do Grupo de Rubricas do Bloco da Formula de Cálculo
   --       na tabela epagFormCalcBlocoExpRubAgrup
   --     - Registro de Logs de Auditoria por evento
   --
@@ -953,19 +989,19 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
   --   pcdIdentificacao      IN VARCHAR2:
   --   pcdFFormulaCalculoBloco IN NUMBER:
   --   pBlocoExpressao       IN CLOB:
-  --   pnuDEBUG              IN NUMBER DEFAULT NULL:
+  --   pnuNivelAuditoria              IN NUMBER DEFAULT NULL:
   --
   -- ###########################################################################
     psgAgrupamentoDestino IN VARCHAR2,
     psgOrgao              IN VARCHAR2,
-	ptpOperacao           IN VARCHAR2,
-	pdtOperacao           IN TIMESTAMP,
+	  ptpOperacao           IN VARCHAR2,
+	  pdtOperacao           IN TIMESTAMP,
     psgModulo             IN CHAR,
     psgConceito           IN VARCHAR2,
     pcdIdentificacao      IN VARCHAR2,
     pcdFormulaCalculoBloco IN NUMBER,
     pBlocoExpressao       IN CLOB,
-	pnuDEBUG              IN NUMBER DEFAULT NULL
+	  pnuNivelAuditoria     IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
     vcdIdentificacao                 VARCHAR2(70) := Null;
@@ -976,7 +1012,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
 	-- do Documento pBlocoExpressao JSON
     CURSOR cDados IS
       WITH
-      Orgao AS (
+      --- Informações referente as lista de Órgãos, Rubricas, Carreiras, Cargos Comissionados, Motivos
+      -- OrgaoLista: lista dos Agrupamentos e Órgãos
+      OrgaoLista AS (
       SELECT g.sgGrupoAgrupamento, UPPER(p.nmPoder) AS nmPoder, a.sgAgrupamento, vgcorg.sgOrgao,
         vgcorg.dtInicioVigencia, vgcorg.dtFimVigencia,
         UPPER(tporgao.nmTipoOrgao) AS nmTipoOrgao,
@@ -1002,36 +1040,61 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
       INNER JOIN ecadGrupoAgrupamento g ON g.cdGrupoAgrupamento = a.cdGrupoAgrupamento
       ORDER BY sgGrupoAgrupamento, nmPoder, sgAgrupamento, sgOrgao nulls FIRST, dtInicioVigencia DESC NULLS FIRST
       ),
-      RUB AS (
-      SELECT LPAD(tpr.nuTipoRubrica,2,0) || '-' || LPAD(r.nuRubrica,4,0) AS nuRubrica,
-      tpr.deTipoRubrica || ' ' || vg.deRubricaAgrupResumida as deRubrica,
-      ra.cdAgrupamento, ra.cdRubricaAgrupamento
-      FROM epagRubrica r
-      INNER JOIN epagTipoRubrica tpr ON tpr.cdtiporubrica = r.cdtiporubrica
-      INNER JOIN epagRubricaAgrupamento ra ON ra.cdrubrica = r.cdrubrica
-      INNER JOIN (
-        SELECT deRubricaAgrupResumida, nuAnoMesInicioVigencia, nuAnoMesFimVigencia, cdRubricaAgrupamento, cdHistRubricaAgrupamento
-        FROM (SELECT deRubricaAgrupResumida,
+      -- RubricaLista: lista Rubricas
+      RubricaLista AS (
+      SELECT rubagrp.cdAgrupamento, rubagrp.cdRubricaAgrupamento, rub.cdRubrica,
+        LPAD(tprub.nuTipoRubrica,2,0) || '-' || LPAD(rub.nuRubrica,4,0) AS nuRubrica,
+        CASE WHEN tprub.nuTipoRubrica IN (1, 5, 9) THEN NULL ELSE tprub.deTipoRubrica || ' ' END ||
+          NVL2(UltVigenciaAgrupamento.cdRubricaAgrupamento,UltVigenciaAgrupamento.deRubrica,
+            NVL2(UltVigenciaRub.nuRubrica,UltVigenciaRub.deRubrica,NULL)) as deRubrica,
+        NVL2(UltVigenciaAgrupamento.cdRubricaAgrupamento,UltVigenciaAgrupamento.nuAnoMesInicioVigencia,
+          NVL2(UltVigenciaRub.nuRubrica,UltVigenciaRub.nuAnoMesInicioVigencia,NULL)) as nuAnoMesInicioVigencia,
+        NVL2(UltVigenciaAgrupamento.cdRubricaAgrupamento,UltVigenciaAgrupamento.nuAnoMesFimVigencia,
+          NVL2(UltVigenciaRub.nuRubrica,UltVigenciaRub.nuAnoMesFimVigencia,NULL)) as nuAnoMesFimVigencia
+      FROM epagRubrica rub
+      INNER JOIN epagTipoRubrica tprub ON tprub.cdtiporubrica = rub.cdtiporubrica
+      INNER JOIN epagRubricaAgrupamento rubagrp ON rubagrp.cdrubrica = rub.cdrubrica
+      LEFT JOIN (SELECT cdRubricaAgrupamento, deRubrica, nuAnoMesInicioVigencia, nuAnoMesFimVigencia FROM (
+        SELECT cdRubricaAgrupamento, deRubricaAgrupamento as deRubrica,
           LPAD(nuAnoInicioVigencia,4,0) || LPAD(nuMesInicioVigencia,2,0) AS nuAnoMesInicioVigencia,
           CASE WHEN nuAnoFimVigencia IS NULL OR nuMesFimVigencia IS NULL THEN NULL
           ELSE LPAD(nuAnoFimVigencia,4,0) || LPAD(nuMesFimVigencia,2,0) END AS nuAnoMesFimVigencia,
-          cdRubricaAgrupamento, cdHistRubricaAgrupamento,
           RANK() OVER (PARTITION BY cdRubricaAgrupamento
-                       ORDER BY LPAD(nuAnoInicioVigencia,4,0) || LPAD(nuMesInicioVigencia,2,0) DESC,
-                           CASE WHEN nuAnoFimVigencia IS NULL OR nuMesFimVigencia IS NULL THEN NULL
-                           ELSE LPAD(nuAnoFimVigencia,4,0) || LPAD(nuMesFimVigencia,2,0)
-                           END DESC nulls FIRST) AS nuOrder
-          FROM epagHistRubricaAgrupamento
-        ) WHERE nuOrder = 1
-      ) vg ON vg.cdRubricaAgrupamento = ra.cdRubricaAgrupamento
+            ORDER BY LPAD(nuAnoInicioVigencia,4,0) || LPAD(nuMesInicioVigencia,2,0) DESC,
+              CASE WHEN nuAnoFimVigencia IS NULL OR nuMesFimVigencia IS NULL THEN NULL
+              ELSE LPAD(nuAnoFimVigencia,4,0) || LPAD(nuMesFimVigencia,2,0)
+              END DESC nulls FIRST) AS nuOrder
+        FROM epagHistRubricaAgrupamento) WHERE nuOrder = 1
+      ) UltVigenciaAgrupamento ON UltVigenciaAgrupamento.cdRubricaAgrupamento = rubagrp.cdRubricaAgrupamento
+      LEFT JOIN (SELECT nuRubrica, deRubrica, nuAnoMesInicioVigencia, nuAnoMesFimVigencia FROM (
+        SELECT rub.cdRubrica, vigenciarub.deRubrica,
+          LPAD(tprub.nuTipoRubrica,2,0) || '-' || LPAD(rub.nuRubrica,4,0) as nuRubrica,
+          NVL(LPAD(vigenciarub.nuAnoInicioVigencia,4,0) || LPAD(vigenciarub.nuMesInicioVigencia,2,0), '190101') AS nuAnoMesInicioVigencia,
+          CASE WHEN vigenciarub.nuAnoFimVigencia IS NULL OR vigenciarub.nuMesFimVigencia IS NULL THEN NULL
+          ELSE LPAD(vigenciarub.nuAnoFimVigencia,4,0) || LPAD(vigenciarub.nuMesFimVigencia,2,0) END AS nuAnoMesFimVigencia,
+          RANK() OVER (PARTITION BY rub.cdRubrica
+            ORDER BY NVL(LPAD(vigenciarub.nuAnoInicioVigencia,4,0) || LPAD(vigenciarub.nuMesInicioVigencia,2,0),'190101') DESC,
+              CASE WHEN vigenciarub.nuAnoFimVigencia IS NULL OR vigenciarub.nuMesFimVigencia IS NULL THEN NULL
+              ELSE LPAD(vigenciarub.nuAnoFimVigencia,4,0) || LPAD(vigenciarub.nuMesFimVigencia,2,0)
+              END DESC nulls FIRST) AS nuOrder
+        FROM epagRubrica rub
+        INNER JOIN epagTipoRubrica tprub on tprub.cdTipoRubrica = rub.cdTipoRubrica
+        LEFT JOIN epagHistRubrica vigenciarub on vigenciarub.cdRubrica = rub.cdRubrica
+        WHERE tprub.nuTipoRubrica IN (1, 5, 9)) WHERE nuOrder = 1
+      ) UltVigenciaRub ON UltVigenciaRub.nuRubrica =
+          CASE WHEN tprub.nuTipoRubrica IN (1, 2, 3, 8, 10, 12) THEN '01'
+               WHEN tprub.nuTipoRubrica IN (5, 6, 7, 4, 11, 13) THEN '05'
+               WHEN tprub.nuTipoRubrica = 9 THEN '09'
+          END || '-' || LPAD(rub.nuRubrica,4,0)
       ),
-      EstruturaCarreira AS (
+      -- EstruturaCarreiraLista: lista da Estrutura de Carreira e Cargos
+      EstruturaCarreiraLista AS (
       SELECT e.cdAgrupamento, e.cdEstruturaCarreira,
-        NVL2(nivel4.cdEstruturaCarreira, item4.deItemCarreira || '#', '') ||
-        NVL2(nivel3.cdEstruturaCarreira, item3.deItemCarreira || '#', '') ||
-        NVL2(nivel2.cdEstruturaCarreira, item2.deItemCarreira || '#', '') ||
+        NVL2(nivel4.cdEstruturaCarreira, item4.deItemCarreira || ' / ', '') ||
+        NVL2(nivel3.cdEstruturaCarreira, item3.deItemCarreira || ' / ', '') ||
+        NVL2(nivel2.cdEstruturaCarreira, item2.deItemCarreira || ' / ', '') ||
         NVL2(nivel1.cdEstruturaCarreira, item1.deItemCarreira, item.deItemCarreira) ||
-        CASE WHEN e.cdEstruturaCarreira IS NOT NULL THEN '#' || item.deItemCarreira ELSE '' END CarreiraCargo
+        CASE WHEN e.cdEstruturaCarreira IS NOT NULL THEN ' / ' || item.deItemCarreira ELSE '' END nmEstruturaCarreira
       FROM ecadestruturacarreira e
       LEFT JOIN ecadItemCarreira item ON item.cdAgrupamento = e.cdagrupamento AND item.cdItemCarreira = e.cdItemCarreira
       LEFT JOIN ecadEstruturaCarreira nivel1 ON nivel1.cdAgrupamento = e.cdAgrupamento AND nivel1.cdEstruturaCarreira = e.cdEstruturaCarreiraPai
@@ -1051,24 +1114,20 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
 
       mneu.cdTipoMneumonico, js.sgTipoMneumonico,
       js.deOperacao,
-/*      
+
       DECODE(js.inTipoRubrica,
-        'Valor Integral', 'I', 
-        'Valor Pago', 'P', 
-        'Valor Real', 'R', 
-        js.inTipoRubrica) as inTipoRubrica,
+        'VALOR INTEGRAL', 'I', 
+        'VALOR PAGO', 'P', 
+        'VALOR REAL', 'R', 
+        NULL) as inTipoRubrica,
       DECODE(js.inRelacaoRubrica,
-        'Relação de Trabalho', 'R', 
-        'Somatório', 'S', 
-        js.inRelacaoRubrica) as inRelacaoRubrica,
+        'RELACAO DE TRABALHO', 'R', 
+        'SOMATORIO', 'S', 
+        NULL) as inRelacaoRubrica,
       DECODE(js.inMes,
-        'Valor Referente ao Mês Atual', 'AT', 
-        'Valor Referente ao Mês Anterior', 'AN', 
-        js.inMes) as inMes,
-*/
-      js.inTipoRubrica,
-      js.inRelacaoRubrica,
-      js.inMes,
+        'VALOR REFERENTE AO MES ATUAL', 'AT', 
+        'VALOR REFERENTE AO MES ANTERIOR', 'AN', 
+        NULL) as inMes,
 
       js.nuMeses,
       js.nuValor,
@@ -1081,56 +1140,62 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
       vlref.cdValorReferencia, js.nmValorReferencia,
       baseexp.cdBaseCalculo, js.sgBaseCalculo,
       tabgeral.cdValorGeralCEFAgrup, js.sgTabelaValorGeralCEF,
-      EstruturaCarreira.cdEstruturaCarreira as cdEstruturaCarreira, js.CarreiraCargo,
-      NULL as cdFuncaoChefia,
+      cef.cdEstruturaCarreira as cdEstruturaCarreira, js.nmEstruturaCarreira,
+      NULL as cdFuncaoChefia, js.nmFuncaoChefia,
       js.deNivel,
       js.deReferencia,
       js.deCodigoCCO,
-      NULL as cdTipoAdicionalTempServ,
+      NULL as cdTipoAdicionalTempServ, js.deTipoAdicionalTempServ,
       
-      systimestamp AS dtUltAlteracao,
+      SYSTIMESTAMP AS dtUltAlteracao,
       
-      (SELECT JSON_ARRAYAGG(JSON_OBJECT(SUBSTR(js.nuRubrica,1,7) value rub.cdRubricaAgrupamento) RETURNING CLOB) AS GRP
-      FROM JSON_TABLE(js.GrupoRubricas, '$[*]' COLUMNS (nuRubrica PATH '$')) js
-      LEFT JOIN RUB rub ON rub.nuRubrica = SUBSTR(js.nuRubrica,1,7) AND rub.cdAgrupamento = o.cdAgrupamento) AS GrupoRubricas
-      
+      (SELECT JSON_ARRAYAGG(JSON_OBJECT(
+         'nuRubrica' VALUE SUBSTR(js.nuRubrica,1,7),
+         'cdRubricaAgrupamento' VALUE rub.cdRubricaAgrupamento
+       RETURNING CLOB) RETURNING CLOB) AS GRP
+       FROM JSON_TABLE(js.GrupoRubricas, '$[*]' COLUMNS (nuRubrica PATH '$')) js
+       LEFT JOIN RubricaLista rub ON rub.nuRubrica = SUBSTR(js.nuRubrica,1,7)
+                                 AND rub.cdAgrupamento = o.cdAgrupamento
+      ) As GrupoRubricas
+
       FROM JSON_TABLE(JSON_QUERY(pBlocoExpressao, '$'), '$' COLUMNS (
-        sgTipoMneumonico        PATH '$.sgtipomneumonico',
-        deOperacao              PATH '$.deoperacao',
+        sgTipoMneumonico        PATH '$.sgTipoMneumonico',
+        deOperacao              PATH '$.deOperacao',
       
-        inTipoRubrica           PATH '$.intiporubrica',
-        inRelacaoRubrica        PATH '$.inrelacaorubrica',
-        inMes                   PATH '$.inmes',
-        nuMeses                 PATH '$.numeses',
-        nuValor                 PATH '$.nuvalor',
+        inTipoRubrica           PATH '$.inTipoRubrica',
+        inRelacaoRubrica        PATH '$.inRelacaoRubrica',
+        inMes                   PATH '$.inMes',
+        nuMeses                 PATH '$.nuMeses',
+        nuValor                 PATH '$.nuValor',
         flValorHoraMinuto       PATH '$.flValorHoraMinuto',
       
-        nuRubrica               PATH '$.nurubrica',
-        nuMesRubrica            PATH '$.numesrubrica',
-        nuAnoRubrica            PATH '$.nuanorubrica',
+        nuRubrica               PATH '$.nuRubrica',
+        nuMesRubrica            PATH '$.nuMesRubrica',
+        nuAnoRubrica            PATH '$.nuAnoRubrica',
       
-        nmValorReferencia       PATH '$.nmvalorreferencia',
-        sgBaseCalculo           PATH '$.sgbasecalculo',
-        sgTabelaValorGeralCEF   PATH '$.sgtabelavalorgeralcef',
-        CarreiraCargo           PATH '$.carreiracargo',
-      --  cdFuncaoChefia        PATH '$.cdFuncaoChefia',
-        deNivel                 PATH '$.denivel',
-        deReferencia            PATH '$.dereferencia',
-        deCodigoCCO             PATH '$.decodigocco',
-      --  cdTipoAdicionalTempServ PATH '$.cdtipoadicionaltempserv',
+        nmValorReferencia       PATH '$.nmValorReferencia',
+        sgBaseCalculo           PATH '$.sgBaseCalculo',
+        sgTabelaValorGeralCEF   PATH '$.sgTabelaValorGeralCEF',
+        nmEstruturaCarreira     PATH '$.nmEstruturaCarreira',
+        nmFuncaoChefia          PATH '$.nmFuncaoChefia',
+        deNivel                 PATH '$.deNivel',
+        deReferencia            PATH '$.deReferencia',
+        deCodigoCCO             PATH '$.deCodigoCCO',
+        deTipoAdicionalTempServ PATH '$.deTipoAdicionalTempServ',
       
-        GrupoRubricas  CLOB FORMAT JSON PATH '$.GrupoRubricas'
+        GrupoRubricas           CLOB FORMAT JSON PATH '$.GrupoRubricas'
       )) js
       
-      LEFT JOIN Orgao o on o.sgAgrupamento = psgAgrupamentoDestino and nvl(o.sgOrgao,' ') = nvl(psgOrgao,' ')
+      LEFT JOIN OrgaoLista o on o.sgAgrupamento = psgAgrupamentoDestino and nvl(o.sgOrgao,' ') = nvl(psgOrgao,' ')
       LEFT JOIN epagTipoMneumonico mneu ON mneu.sgTipoMneumonico = js.sgTipoMneumonico
-      LEFT JOIN RUB rub on rub.nuRubrica = js.nuRubrica
+      LEFT JOIN RubricaLista rub on rub.nuRubrica = js.nuRubrica
+                                AND rub.cdAgrupamento = o.cdAgrupamento
       LEFT JOIN epagValorReferencia vlref ON vlref.cdAgrupamento = o.cdAgrupamento AND vlref.nmValorReferencia = js.nmValorReferencia
       LEFT JOIN epagBaseCalculo baseexp ON baseexp.cdAgrupamento = o.cdAgrupamento AND baseexp.sgBaseCalculo = js.sgBaseCalculo
       LEFT JOIN epagValorGeralCEFAgrup tabgeral ON tabgeral.cdAgrupamento = o.cdAgrupamento
                                                AND tabgeral.sgTabelaValorGeralCEF = js.sgTabelaValorGeralCEF
-      LEFT JOIN EstruturaCarreira ON EstruturaCarreira.cdAgrupamento = o.cdAgrupamento
-                                 AND EstruturaCarreira.CarreiraCargo = js.CarreiraCargo
+      LEFT JOIN EstruturaCarreiraLista cef ON cef.cdAgrupamento = o.cdAgrupamento
+                                          AND cef.nmEstruturaCarreira = js.nmEstruturaCarreira
       )
       SELECT * FROM BlocoExpressao;
 
@@ -1138,7 +1203,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
 
     vcdIdentificacao := pcdIdentificacao;
 
-    PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação da Formula de Cálculo - FORMULA CALCULO EXPRESSAO BLOCO pcdIdentificacao: ' || pcdIdentificacao);
+    PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo - ' ||
+      'FORMULA CÁLCULO EXPRESSAO BLOCO ' || pcdIdentificacao,
+      cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 
     -- Loop principal de processamento para Incluir a Expressão do Bloco da Formula de Cálculo
     FOR r IN cDados LOOP
@@ -1149,48 +1216,68 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
 
       INSERT INTO epagFormulaCalcBlocoExpressao (
         cdFormulaCalcBlocoExpressao, cdFormulaCalculoBloco,
-	    cdTipoMneumonico, deOperacao, cdValorReferencia, cdBaseCalculo, inTipoRubrica, inRelacaoRubrica, inMes,
-	    cdTipoAdicionalTempServ, cdValorGeralCEFAgrup, deNivel, deReferencia, deCodigoCCO, cdEstruturaCarreira, cdFuncaoChefia,
-	    nuMeses, nuValor, cdRubricaAgrupamento, dtUltAlteracao, flValorHoraMinuto, nuMesRubrica, nuAnoRubrica
+	      cdTipoMneumonico, deOperacao, cdValorReferencia, cdBaseCalculo, inTipoRubrica, inRelacaoRubrica, inMes,
+	      cdTipoAdicionalTempServ, cdValorGeralCEFAgrup, deNivel, deReferencia, deCodigoCCO, cdEstruturaCarreira, cdFuncaoChefia,
+	      nuMeses, nuValor, cdRubricaAgrupamento, dtUltAlteracao, flValorHoraMinuto, nuMesRubrica, nuAnoRubrica
       ) VALUES (
         vcdFormulaCalcBlocoExpressaoNova, pcdFormulaCalculoBloco,
-		r.cdTipoMneumonico, r.deOperacao, r.cdValorReferencia, r.cdBaseCalculo, r.inTipoRubrica, r.inRelacaoRubrica, r.inMes,
-		r.cdTipoAdicionalTempServ, r.cdValorGeralCEFAgrup, r.deNivel, r.deReferencia, r.deCodigoCCO, r.cdEstruturaCarreira, r.cdFuncaoChefia, 
-		r.nuMeses, r.nuValor, r.cdRubricaAgrupamento, r.dtUltAlteracao, r.flValorHoraMinuto, r.nuMesRubrica, r.nuAnoRubrica
+		    r.cdTipoMneumonico, r.deOperacao, r.cdValorReferencia, r.cdBaseCalculo, r.inTipoRubrica, r.inRelacaoRubrica, r.inMes,
+		    r.cdTipoAdicionalTempServ, r.cdValorGeralCEFAgrup, r.deNivel, r.deReferencia, r.deCodigoCCO, r.cdEstruturaCarreira, r.cdFuncaoChefia, 
+		    r.nuMeses, r.nuValor, r.cdRubricaAgrupamento, r.dtUltAlteracao, r.flValorHoraMinuto, r.nuMesRubrica, r.nuAnoRubrica
       );
 
-      PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'FORMULA CALCULO EXPRESSAO BLOCO', 'INCLUSAO', 'Expressão do Bloco da Formula de Cálculo incluidas com sucesso');
+        'FORMULA CÁLCULO EXPRESSAO BLOCO', 'INCLUSAO',
+        'Expressão do Bloco da Formula de Cálculo incluidas com sucesso',
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-      --PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação da Formula de Cálculo - Grupo de Rubricas ' || vcdIdentificacao);
+      PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo - ' ||
+        'Grupo de Rubricas ' || vcdIdentificacao, cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 
-	  -- Incluir Incluir o Grupo de Rubricas do Bloco da Formula de Cálculo
-      FOR i IN (
-        SELECT js.cdRubricaAgrupamento
-          FROM json_table(r.GrupoRubricas, '$[*]' COLUMNS (cdRubricaAgrupamento PATH '$')) js
-      ) LOOP
+      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+        psgModulo, psgConceito, vcdIdentificacao, 1,
+        'FORMULA CÁLCULO GRUPO RUBRICAS', 'JSON', r.GrupoRubricas,
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
---        PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação da Formula de Cálculo - Grupo de Rubricas - RUBRICA' ||
---          vcdIdentificacao || ' ' || i.cdRubricaAgrupamento);
-
-        IF i.cdRubricaAgrupamento IS NULL THEN
-          PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação da Formula de Cálculo - Grupo de Rubricas Inexistente' ||
-            vcdIdentificacao || ' ' || i.cdRubricaAgrupamento);
-
-          PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
-            psgModulo, psgConceito, vcdIdentificacao || ' ' || i.cdRubricaAgrupamento, 1,
-            'FORMULA CALCULO GRUPO RUBRICAS', 'NAO INCLUSAO', 'Grupo de Rubricas do Bloco da Formula de Cálculo NÃO incluidas',
-            cDEBUG_DESLIGADO, pnuDEBUG);
-		ELSE
-		  INSERT INTO epagFormCalcBlocoExpRubAgrup VALUES (vcdFormulaCalcBlocoExpressaoNova, i.cdRubricaAgrupamento);
-
-          PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
-            psgModulo, psgConceito, vcdIdentificacao || ' ' || i.cdRubricaAgrupamento, 1,
-            'FORMULA CALCULO GRUPO RUBRICAS', 'INCLUSAO', 'Grupo de Rubricas do Bloco da Formula de Cálculo incluidas com sucesso',
-            cDEBUG_DESLIGADO, pnuDEBUG);
-		END IF;
+      -- Incluir Incluir o Grupo de Rubricas do Bloco da Formula de Cálculo
+      vnuRegistros := 0;
+      SELECT COUNT(*) INTO vnuRegistros
+      FROM JSON_TABLE(r.GrupoRubricas, '$[*]' COLUMNS (
+        nuRubrica            PATH '$.nuRubrica',
+        cdRubricaAgrupamento PATH '$.cdRubricaAgrupamento'
+      )) js
+      WHERE js.cdRubricaAgrupamento IS NOT NULL;
       
+      IF vnuRegistros > 0 THEN
+        INSERT INTO epagFormCalcBlocoExpRubAgrup
+        SELECT vcdFormulaCalcBlocoExpressaoNova as cdFormulaCalcBlocoExpressao, js.cdRubricaAgrupamento
+        FROM JSON_TABLE(r.GrupoRubricas, '$[*]' COLUMNS (
+          cdRubricaAgrupamento PATH '$.cdRubricaAgrupamento'
+        )) js
+        WHERE js.cdRubricaAgrupamento IS NOT NULL;
+
+        PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+          psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
+            'FORMULA CÁLCULO GRUPO RUBRICAS', 'INCLUSAO',
+            'Grupo de Rubricas do Bloco da Formula de Cálculo incluidas com sucesso',
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      END IF;
+        
+      FOR i IN (
+        SELECT js.nuRubrica, js.cdRubricaAgrupamento
+        FROM JSON_TABLE(r.GrupoRubricas, '$[*]' COLUMNS (
+          nuRubrica            PATH '$.nuRubrica',
+          cdRubricaAgrupamento PATH '$.cdRubricaAgrupamento'
+        )) js
+        WHERE js.cdRubricaAgrupamento IS NULL
+      )
+      LOOP
+        PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+          psgModulo, psgConceito, vcdIdentificacao || ' ' || i.nuRubrica, 1,
+            'FORMULA CÁLCULO GRUPO RUBRICAS', 'INCONSISTENTE',
+            'Rubricas do Grupo do Bloco da Formula de Cálculo Inexistente no Agrupamento',
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
       END LOOP;
 
     END LOOP;
@@ -1198,14 +1285,15 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ImportarFormulasCalculo AS
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_ConfiguracaoPadrao.PConsoleLog('Importação da Expressão do Bloco da Formula de Cálculo ' || vcdIdentificacao || ' EXPRESSAO BLOCO Erro: ' || SQLERRM);
-      PKGMIG_ConfiguracaoPadrao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+      PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo ' || vcdIdentificacao ||
+        ' EXPRESSAO BLOCO Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'FORMULA CALCULO EXPRESSAO BLOCO', 'ERRO', 'Erro: ' || SQLERRM,
-        cDEBUG_DESLIGADO, pnuDEBUG);
+        'FORMULA CÁLCULO EXPRESSAO BLOCO', 'ERRO', 'Erro: ' || SQLERRM,
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
     ROLLBACK;
     RAISE;
-  END pImportarBlocoExpressao;
+  END pImportarExpressaoBloco;
 
-END PKGMIG_ImportarFormulasCalculo;
+END PKGMIG_ParametrizacaoFormulasCalculo;
 /
