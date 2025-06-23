@@ -62,8 +62,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
   
     vdtOperacao := LOCALTIMESTAMP;
 
-    PKGMIG_Parametrizacao.pLimparLog;
-
     PKGMIG_Parametrizacao.PConsoleLog('Inicio da Exportações das Parametrizações dos ' ||
       'Valores de Referencia do Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
 	    'Data da Exportação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
@@ -148,7 +146,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,  
         vsgModulo, vsgConceito, vcdIdentificacao, 1,
         'VALORES REFERENCIA', 'ERRO', 'Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pPersistirLog;
     ROLLBACK;
     RAISE;
   END pExportar;
@@ -393,7 +390,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
         vsgModulo, vsgConceito, vcdIdentificacao, 1,
         'VALOR REFERENCIA', 'ERRO', 'Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pPersistirLog;
     ROLLBACK;
     RAISE;
   END pImportar;
@@ -488,7 +484,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'VALOR REFERENCIA', 'ERRO', 'Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pPersistirLog;
     ROLLBACK;
     RAISE;
   END pExcluirVersoesVigencias;
@@ -591,7 +586,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'VERCAO', 'ERRO', 'Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pPersistirLog;
     ROLLBACK;
     RAISE;
   END pImportarVersoes;
@@ -787,7 +781,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'VIGENCIA', 'ERRO', 'Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pPersistirLog;
     ROLLBACK;
     RAISE;
   END pImportarVigencias;
