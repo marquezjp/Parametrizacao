@@ -19,10 +19,10 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
     CASE UPPER(psgConceito)
       WHEN 'VALORREFERENCIA' THEN
         PKGMIG_ParemetrizacaoValoresReferencia.pExportar(psgAgrupamento, vnuNivelAuditoria);
-      WHEN 'BASE' THEN
+      WHEN 'BASECALCULO' THEN
         PKGMIG_ParametrizacaoBasesCalculo.pExportar(psgAgrupamento, vnuNivelAuditoria);
       WHEN 'RUBRICA' THEN
-        PKGMIG_ExportarRubricas.pExportar(psgAgrupamento, vnuNivelAuditoria);
+        PKGMIG_ParametrizacaoRubricas.pExportar(psgAgrupamento, vnuNivelAuditoria);
       ELSE
         RAISE_APPLICATION_ERROR(-20001, 'Conceito não suportado: ' || psgConceito);
     END CASE;
@@ -35,10 +35,10 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
     CASE UPPER(psgConceito)
       WHEN 'VALORREFERENCIA' THEN
         PKGMIG_ParemetrizacaoValoresReferencia.pImportar(psgAgrupamentoOrigem, psgAgrupamentoDestino, vnuNivelAuditoria);
-      WHEN 'BASE' THEN
+      WHEN 'BASECALCULO' THEN
         PKGMIG_ParametrizacaoBasesCalculo.pImportar(psgAgrupamentoOrigem, psgAgrupamentoDestino, vnuNivelAuditoria);
       WHEN 'RUBRICA' THEN
-        PKGMIG_ImportarRubricas.pImportar(psgAgrupamentoOrigem, psgAgrupamentoDestino, vnuNivelAuditoria);
+        PKGMIG_ParametrizacaoRubricas.pImportar(psgAgrupamentoOrigem, psgAgrupamentoDestino, vnuNivelAuditoria);
       ELSE
         RAISE_APPLICATION_ERROR(-20002, 'Importação não suportada para o conceito: ' || psgConceito);
     END CASE;
