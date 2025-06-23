@@ -58,8 +58,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
 
     vdtOperacao := LOCALTIMESTAMP;
 
-    PKGMIG_Parametrizacao.pLimparLog;
-
     PKGMIG_Parametrizacao.PConsoleLog('Inicio da Exportação das Parametrizações das ' ||
       'Bases de Cálculo do Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
 	    'Data da Exportação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
@@ -140,7 +138,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,  
         vsgModulo, vsgConceito, vcdIdentificacao, 1,
         'BASE', 'ERRO', 'Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pPersistirLog;
     ROLLBACK;
     RAISE;
   END PExportar;
@@ -377,7 +374,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
         vsgModulo, vsgConceito, vcdIdentificacao, 1,
         'BASE CALCULO', 'ERRO', 'Erro: ' || SQLERRM,
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pPersistirLog;
     ROLLBACK;
     RAISE;
   END pImportar;
@@ -565,7 +561,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'BASE CALCULO', 'ERRO', 'Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pPersistirLog;
     ROLLBACK;
     RAISE;
   END pExcluirBaseCalculo;
@@ -674,7 +669,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'BASE CALCULO VERCAO', 'ERRO', 'Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pPersistirLog;
     ROLLBACK;
     RAISE;
   END pImportarVersoes;
@@ -909,7 +903,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'VIGENCIA', 'ERRO', 'Erro: ' || SQLERRM,
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pPersistirLog;
     ROLLBACK;
     RAISE;
   END pImportarVigencias;
@@ -1012,7 +1005,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'BASE CALCULO BLOCOS', 'ERRO', 'Erro: ' || SQLERRM,
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pPersistirLog;
     ROLLBACK;
     RAISE;
   END pImportarBlocos;
@@ -1321,7 +1313,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'GRUPO RUBRICAS', 'ERRO', 'Erro: ' || SQLERRM,
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pPersistirLog;
     ROLLBACK;
     RAISE;
   END pImportarExpressaoBloco;
