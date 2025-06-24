@@ -1,0 +1,78 @@
+DECLARE
+-- Variáveis de controle e contexto
+vtxSQL VARCHAR2(1000);
+vnuRegistros NUMBER;
+pListaTabelas CLOB := '[
+  "EPAGRUBRICA",
+  "EPAGGRUPORUBRICAPAGAMENTO",
+  "EPAGHISTRUBRICA",
+  "EPAGRUBRICAAGRUPAMENTO",
+  "EPAGHISTRUBRICAAGRUPAMENTO",
+  "EPAGHISTRUBRICAAGRUPCARREIRA",
+  "EPAGHISTRUBRICAAGRUPNIVELREF",
+  "EPAGHISTRUBRICAAGRUPCCO",
+  "EPAGHISTRUBRICAAGRUPFUC",
+  "EPAGHISTRUBRICAAGRUPPROGRAMA",
+  "EPAGHISTRUBRICAAGRUPMODELOAPO",
+  "EPAGHISTRUBAGRUPLOCCHO",
+  "EPAGHISTRUBRICAAGRUPORGAO",
+  "EPAGHISTRUBRICAAGRUPUO",
+  "EPAGHISTRUBRICAAGRUPNATVINC",
+  "EPAGHISTRUBRICAAGRUPRELTRAB",
+  "EPAGHISTRUBRICAAGRUPREGTRAB",
+  "EPAGHISTRUBRICAAGRUPREGPREV",
+  "EPAGHISTRUBRICAAGRUPSITPREV",
+  "EPAGRUBAGRUPMOTAFASTTEMPIMP",
+  "EPAGRUBAGRUPMOTAFASTTEMPEX",
+  "EPAGHISTRUBRICAAGRUPMOTMOVI",
+  "EPAGHISTRUBRICAAGRUPMOTCONV",
+  "EPAGHISTRUBRICAAGRUPIMPEDITIVA",
+  "EPAGHISTRUBRICAAGRUPEXIGIDA",
+  "EPAGEVENTOPAGAGRUP",
+  "EPAGHISTEVENTOPAGAGRUP",
+  "EPAGEVENTOPAGAGRUPORGAO",
+  "EPAGHISTEVENTOPAGAGRUPCARREIRA",
+  "EPAGFORMULACALCULO",
+  "EPAGFORMULAVERSAO",
+  "EPAGHISTFORMULACALCULO",
+  "EPAGEXPRESSAOFORMCALC",
+  "EPAGFORMULACALCULOBLOCO",
+  "EPAGFORMULACALCBLOCOEXPRESSAO",
+  "EPAGFORMCALCBLOCOEXPRUBAGRUP"
+]';
+
+-- Cursor que lista as SEQUENCE da Tabelas envolvida na Importação das Parametrizações
+CURSOR cDados IS
+  SELECT tab.table_name, col.column_name, seq.sequence_name, seq.last_number, tab.num_rows
+  FROM user_tables tab
+  LEFT JOIN user_sequences seq ON SUBSTR(seq.sequence_name,2) = SUBSTR(tab.table_name,2)
+  LEFT JOIN all_tab_columns col ON col.table_name = tab.table_name AND col.column_id = 1
+  WHERE seq.sequence_name IS NOT NULL
+    AND tab.table_name IN (SELECT table_name FROM JSON_TABLE(pListaTabelas, '$[*]' COLUMNS (table_name PATH '$')));
+
+BEGIN
+
+  DBMS_OUTPUT.PUT_LINE('Atualizar as SEQUENCE após Importação das Parametrização ');
+
+  FOR item IN cDados
+    LOOP
+      -- Obtendo o Maior Número da Chave Primaria da Tabela
+      vtxSQL := 'SELECT NVL(MAX(' || item.column_name || '), 0) + 1 FROM ' || item.table_name;
+      EXECUTE IMMEDIATE vtxSQL INTO vnuRegistros;
+
+      DBMS_OUTPUT.PUT_LINE('SEQUENCE ' || item.sequence_name || ' da Tabela ' || item.table_name ||
+        ' reiniciada em: ' || vnuRegistros);
+
+      -- Atualizar a SEQUENCE com o Maior Número da Chave Primaria da Tabela
+      EXECUTE IMMEDIATE 'ALTER SEQUENCE ' || item.sequence_name || ' RESTART START WITH ' || CASE WHEN vnuRegistros = 0 THEN 1 ELSE vnuRegistros END;
+      EXECUTE IMMEDIATE 'ANALYZE TABLE ' || UPPER(item.table_name) || ' COMPUTE STATISTICS';
+
+  END LOOP;
+
+EXCEPTION
+WHEN OTHERS THEN
+  -- Registro e Propagação do Erro
+  DBMS_OUTPUT.PUT_LINE('Atualizar as SEQUENCE após Importação das Parametrizações SEQUENCE Erro: ' || SQLERRM);
+ROLLBACK;
+RAISE;
+END PAtualizarSequence;
