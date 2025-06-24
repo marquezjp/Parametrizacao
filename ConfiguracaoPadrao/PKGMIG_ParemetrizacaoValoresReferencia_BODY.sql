@@ -244,7 +244,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       
       SYSTIMESTAMP AS dtUltAlteracao,
       
-      js.Versoes
+      cfg.jsConteudo as Versoes
       
       FROM emigParametrizacao cfg
       CROSS APPLY JSON_TABLE(cfg.jsConteudo, '$.PAG.ValorReferencia' COLUMNS (
@@ -297,9 +297,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
       IF r.cdValorReferencia IS NULL THEN
-        -- Incluir Novo Valor de Referencia
 
-	    SELECT NVL(MAX(cdValorReferencia), 0) + 1 INTO vcdValorReferenciaNova FROM epagValorReferencia;
+        -- Incluir Novo Valor de Referencia
+	      SELECT NVL(MAX(cdValorReferencia), 0) + 1 INTO vcdValorReferenciaNova FROM epagValorReferencia;
 
         INSERT INTO epagValorReferencia (cdValorReferencia, cdAgrupamento,
           sgValorReferencia, nmValorReferencia,
@@ -363,11 +363,11 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       'Agrupamento ' || psgAgrupamentoDestino || ', ' || CHR(13) || CHR(10) ||
       'Data e Hora da Inicio da Operação  ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS')  || ', ' || CHR(13) || CHR(10) ||
       'Data e Hora da Termino da Operação ' || TO_CHAR(vdtTermino, 'DD/MM/YYYY HH24:MI:SS')  || ', ' || CHR(13) || CHR(10) ||
-	  'Tempo de Execução ' ||
+	    'Tempo de Execução ' ||
 	    LPAD(EXTRACT(HOUR FROM vnuTempoExecucao), 2, '0') || ':' ||
 	    LPAD(EXTRACT(MINUTE FROM vnuTempoExecucao), 2, '0') || ':' ||
 	    LPAD(TRUNC(EXTRACT(SECOND FROM vnuTempoExecucao)), 2, '0') || ', ' || CHR(13) || CHR(10) ||
-	  'Total de Parametrizações dos Valores de Referencia Incluidas: ' || vnuInseridos ||
+	    'Total de Parametrizações dos Valores de Referencia Incluidas: ' || vnuInseridos ||
       ' e Alteradas: ' || vnuAtualizados;
 
     PKGMIG_Parametrizacao.pGerarResumo(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
@@ -413,7 +413,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
   --   psgConceito           IN VARCHAR2: 
   --   pcdIdentificacao      IN VARCHAR2: 
   --   pcdValorReferencia    IN NUMBER: 
-  --   pnuNivelAuditoria              IN NUMBER DEFAULT NULL: Defini o nível das mensagens
+  --   pnuNivelAuditoria     IN NUMBER DEFAULT NULL: Defini o nível das mensagens
   --                         para acompanhar a execução, sendo:
   --                         - Não informado assume 'Desligado' nível mínimo de mensagens;
   --                         - Se informado 'SILENCIADO' omite todas as mensagens;
@@ -431,7 +431,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
     psgConceito           IN VARCHAR2,
     pcdIdentificacao      IN VARCHAR2,
     pcdValorReferencia    IN NUMBER,
-    pnuNivelAuditoria              IN NUMBER DEFAULT NULL
+    pnuNivelAuditoria     IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
     vcdIdentificacao      VARCHAR2(70) := Null;
@@ -445,12 +445,12 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       'Excluir Versões e Vigencias ' || vcdIdentificacao, cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 
     -- Excluir as Vigências do Valor de Referencia
-	SELECT COUNT(*) INTO vnuRegistros FROM epagHistValorReferencia Vigencias
+	  SELECT COUNT(*) INTO vnuRegistros FROM epagHistValorReferencia Vigencias
         WHERE Vigencias.cdValorReferenciaVersao IN (
           SELECT Versoes.cdValorReferenciaVersao FROM epagValorReferenciaVersao Versoes
             WHERE Versoes.cdValorReferencia = pcdValorReferencia);
 
-	IF vnuRegistros > 0 THEN
+	  IF vnuRegistros > 0 THEN
       DELETE FROM epagHistValorReferencia Vigencias
         WHERE Vigencias.cdValorReferenciaVersao IN (
           SELECT Versoes.cdValorReferenciaVersao FROM epagValorReferenciaVersao Versoes
@@ -460,13 +460,13 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
         'VIGENCIA', 'EXCLUSAO', 'Vigências do Valore de Referencia excluidos com sucesso',
         cAUDITORIA_COMPLETO, pnuNivelAuditoria);
-	END IF;
+	  END IF;
 
     -- Excluir as Versões do Valore Referencia
-	SELECT COUNT(*) INTO vnuRegistros FROM epagValorReferenciaVersao Versoes
+	  SELECT COUNT(*) INTO vnuRegistros FROM epagValorReferenciaVersao Versoes
       WHERE Versoes.cdValorReferencia = pcdValorReferencia;
 
-	IF vnuRegistros > 0 THEN
+	  IF vnuRegistros > 0 THEN
       DELETE FROM epagValorReferenciaVersao Versoes
         WHERE Versoes.cdValorReferencia = pcdValorReferencia;
 
@@ -474,7 +474,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
         'VERCAO', 'EXCLUSAO', 'Versões do Valore de Referencia excluidos com sucesso',
         cAUDITORIA_COMPLETO, pnuNivelAuditoria);
-	END IF;
+	  END IF;
 
   EXCEPTION
     WHEN OTHERS THEN
@@ -490,7 +490,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
 
   PROCEDURE pImportarVersoes(
   -- ###########################################################################
-  -- PROCEDURE: pImportarValoresReferencia
+  -- PROCEDURE: pImportarVersoes
   -- Objetivo:
   --   Importar dados das Versões do Valor de Referencia do Documento Versões JSON
   --     contido na tabela emigParametrizacao, realizando:
@@ -520,7 +520,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
     pcdIdentificacao      IN VARCHAR2,
     pcdValorReferencia    IN NUMBER,
     pVersoes              IN CLOB,
-    pnuNivelAuditoria              IN NUMBER DEFAULT NULL
+    pnuNivelAuditoria     IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
     vcdIdentificacao             VARCHAR2(70) := Null;
@@ -532,11 +532,10 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       WITH
       Versoes as (
       SELECT
-      (SELECT NVL(MAX(cdValorReferenciaVersao),0) + 1 FROM epagValorReferenciaVersao) AS cdValorReferenciaVersao,
-      pcdValorReferencia as cdValorReferencia,
       js.nuVersao,
-      js.Vigencias
-      FROM JSON_TABLE(JSON_QUERY(pVersoes, '$'), '$[*]' COLUMNS (
+      pVersoes as Vigencias
+
+      FROM JSON_TABLE(pVersoes, '$.PAG.ValorReferencia.Versoes[*]' COLUMNS (
         nuVersao  PATH '$.nuVersao',
         Vigencias CLOB FORMAT JSON PATH '$.Vigencias'
       )) js
@@ -553,24 +552,24 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
     -- Loop principal de processamento para Incluir as Versões do Valor de Referencia
     FOR r IN cDados LOOP
 
-	  vcdIdentificacao := pcdIdentificacao || ' ' || r.nuVersao;
+	    vcdIdentificacao := pcdIdentificacao || ' ' || r.nuVersao;
 
-    PKGMIG_Parametrizacao.PConsoleLog('Importação do Valor de Referencia - Versões ' || vcdIdentificacao,
-      cAUDITORIA_COMPLETO, pnuNivelAuditoria);
+      PKGMIG_Parametrizacao.PConsoleLog('Importação do Valor de Referencia - Versões ' || vcdIdentificacao,
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 
-	  -- Inserir na tabela epagBaseCalculoVersao
-	  SELECT NVL(MAX(cdValorReferenciaVersao), 0) + 1 INTO vcdValorReferenciaVersaoNova FROM epagValorReferenciaVersao;
+	    -- Inserir na tabela epagBaseCalculoVersao
+	    SELECT NVL(MAX(cdValorReferenciaVersao), 0) + 1 INTO vcdValorReferenciaVersaoNova FROM epagValorReferenciaVersao;
 
       INSERT INTO epagValorReferenciaVersao (
-	    cdValorReferenciaVersao, cdValorReferencia, nuVersao
+	      cdValorReferenciaVersao, cdValorReferencia, nuVersao
       ) VALUES (
-		vcdValorReferenciaVersaoNova, pcdValorReferencia, r.nuVersao
+		    vcdValorReferenciaVersaoNova, pcdValorReferencia, r.nuVersao
       );
 
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'VERCAO', 'INCLUSAO', 'Versão do Valor de Referencia incluido com sucesso',
-        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
       -- Importar Vigências da Formula de Cálculo
       pImportarVigencias(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
@@ -609,7 +608,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
   --   pcdIdentificacao         IN VARCHAR2:
   --   pcdValorReferenciaVersao IN NUMBER:
   --   pVigencias               IN CLOB:
-  --   pnuNivelAuditoria                 IN NUMBER DEFAULT NULL:
+  --   pnuNivelAuditoria        IN NUMBER DEFAULT NULL:
   --
   -- ###########################################################################
     psgAgrupamentoDestino    IN VARCHAR2,
@@ -621,7 +620,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
     pcdIdentificacao         IN VARCHAR2,
     pcdValorReferenciaVersao IN NUMBER,
     pVigencias               IN CLOB,
-    pnuNivelAuditoria                 IN NUMBER DEFAULT NULL
+    pnuNivelAuditoria        IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
     vcdIdentificacao           VARCHAR2(70) := NULL;
@@ -662,9 +661,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       ),
       Vigencias as (
       SELECT
-      (SELECT NVL(MAX(cdHistValorReferencia),0) + 1 FROM epagHistValorReferencia) AS cdHistValorReferencia,
-      pcdValorReferenciaVersao as cdValorReferenciaVersao,
-      
       CASE WHEN js.nuAnoMesInicioVigencia IS NULL THEN NULL
         ELSE TO_NUMBER(SUBSTR(js.nuAnoMesInicioVigencia,1,4)) END AS nuAnoInicioVigencia,
       CASE WHEN js.nuAnoMesInicioVigencia IS NULL THEN NULL
@@ -684,8 +680,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       '11111111111' AS nuCPFCadastrador,
       TRUNC(SYSDATE) AS dtInclusao,
       SYSTIMESTAMP AS dtUltAlteracao
-      
-      FROM JSON_TABLE(JSON_QUERY(pVigencias, '$'), '$[*]' COLUMNS (
+
+      FROM JSON_TABLE(pVigencias, '$.PAG.ValorReferencia.Versoes.Vigencias[*]' COLUMNS (
         nuAnoMesInicioVigencia PATH '$.nuAnoMesInicioVigencia',
         nuAnoMesFimVigencia    PATH '$.nuAnoMesFimVigencia',
         vlReferencia           PATH '$.Valor.vlReferencia',
@@ -706,16 +702,16 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
 
     vcdIdentificacao := pcdIdentificacao;
 
-    PKGMIG_Parametrizacao.PConsoleLog('Importação do Valor de Referencia - ' || 'Vigências ' || vcdIdentificacao,
-      cAUDITORIA_DETALHADO, pnuNivelAuditoria);
+    PKGMIG_Parametrizacao.PConsoleLog('Importação do Valor de Referencia - ' ||
+      'Vigências ' || vcdIdentificacao, cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 
     -- Loop principal de processamento
     FOR r IN cDados LOOP
 
       vcdIdentificacao := pcdIdentificacao || ' ' || lpad(r.nuAnoInicioVigencia,4,0) || lpad(r.nuMesInicioVigencia,2,0);
 
-      PKGMIG_Parametrizacao.PConsoleLog('Importação do Valor de Referencia - Vigências ' || vcdIdentificacao,
-        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
+      PKGMIG_Parametrizacao.PConsoleLog('Importação do Valor de Referencia - ' ||
+        'Vigências ' || vcdIdentificacao, cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 
       -- Verificar se existe a Tabela Geral de Salarios dos Cargos Efetivos no Agrupamento Destino
       IF r.cdValorGeralCEFAgrup IS NULL AND r.sgValorGeralCEFAgrup IS NOT NULL THEN
@@ -769,7 +765,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'VIGENCIA', 'INCLUSAO', 'Vigência do Valor de Referencia incluidos com sucesso',
-        cAUDITORIA_DETALHADO, pnuNivelAuditoria);
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
     END LOOP;
 
