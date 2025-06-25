@@ -25,14 +25,14 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
     pnuNivelAuditoria              IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
-    vsgOrgao            VARCHAR2(15) := NULL;
-    vsgModulo           CHAR(3)      := 'PAG';
-    vsgConceito         VARCHAR2(20) := 'VALORREFERENCIA';
-    vtpOperacao         VARCHAR2(15) := 'EXPORTACAO';
-    vdtOperacao         TIMESTAMP    := LOCALTIMESTAMP;
-    vcdIdentificacao    VARCHAR2(20) := NULL;
-    vnuVersao           CHAR(04)     := '1.00';
-    vflAnulado          CHAR(01)     := 'N';
+    vsgOrgao            VARCHAR2(15)          := NULL;
+    vsgModulo           CONSTANT CHAR(3)      := 'PAG';
+    vsgConceito         CONSTANT VARCHAR2(20) := 'VALORREFERENCIA';
+    vtpOperacao         CONSTANT VARCHAR2(15) := 'EXPORTACAO';
+    vdtOperacao         TIMESTAMP             := LOCALTIMESTAMP;
+    vcdIdentificacao    VARCHAR2(20)          := NULL;
+    vnuVersao           CONSTANT CHAR(04)     := '1.00';
+    vflAnulado          CONSTANT CHAR(01)     := 'N';
 
     rsgAgrupamento      VARCHAR2(15) := NULL;
     rsgOrgao            VARCHAR2(15) := NULL;
@@ -178,17 +178,18 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
     pnuNivelAuditoria              IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
-    vsgOrgao               VARCHAR2(15) := Null;
-    vsgModulo              CHAR(3)      := 'PAG';
-    vsgConceito            VARCHAR2(20) := 'VALORREFERENCIA';
-    vtpOperacao            VARCHAR2(15) := 'IMPORTACAO';
-    vdtOperacao            TIMESTAMP    := LOCALTIMESTAMP;
-    vcdIdentificacao       VARCHAR2(50) := Null;
-    vcdValorReferenciaNova NUMBER       := Null;
-    vnuInseridos           NUMBER       := 0;
-    vnuAtualizados         NUMBER       := 0;
+    vsgOrgao               VARCHAR2(15)          := Null;
+    vsgModulo              CONSTANT CHAR(3)      := 'PAG';
+    vsgConceito            CONSTANT VARCHAR2(20) := 'VALORREFERENCIA';
+    vtpOperacao            CONSTANT VARCHAR2(15) := 'IMPORTACAO';
+    vdtOperacao            TIMESTAMP             := LOCALTIMESTAMP;
+    vcdIdentificacao       VARCHAR2(50)          := Null;
+    vcdValorReferenciaNova NUMBER                := Null;
+
+    vnuInseridos           NUMBER         := 0;
+    vnuAtualizados         NUMBER         := 0;
     vtxResumo              VARCHAR2(4000) := NULL;
-    vResumoEstatisticas    CLOB         := Null;
+    vResumoEstatisticas    CLOB           := Null;
     vListaTabelas          CLOB := '[
       "EPAGBASECALCULO",
       "EPAGBASECALCULOVERSAO",
@@ -244,7 +245,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       
       SYSTIMESTAMP AS dtUltAlteracao,
       
-      cfg.jsConteudo as Versoes
+      JSON_SERIALIZE(TO_CLOB(js.Versoes) RETURNING CLOB) AS Versoes
       
       FROM emigParametrizacao cfg
       CROSS APPLY JSON_TABLE(cfg.jsConteudo, '$.PAG.ValorReferencia' COLUMNS (
@@ -351,10 +352,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
 
     END LOOP;
 
-    -- Atualizar a SEQUENCE das Tabela Envolvidas na importação dos Valores de Referencia
-    PKGMIG_Parametrizacao.pAtualizarSequence(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
-      vsgModulo, vsgConceito, vListaTabelas, pnuNivelAuditoria);
-
     -- Gerar as Estatísticas da Importação dos Valores de Referencia
     vdtTermino := LOCALTIMESTAMP;
     vnuTempoExecucao := vdtTermino - vdtOperacao;
@@ -378,6 +375,10 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       vsgModulo, vsgConceito, NULL, NULL,
       'VALORES REFERENCIA', 'RESUMO', 'Importação das Parametrizações dos Valores de Referencia do ' || vtxResumo, 
       cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+
+    -- Atualizar a SEQUENCE das Tabela Envolvidas na importação dos Valores de Referencia
+    PKGMIG_Parametrizacao.pAtualizarSequence(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
+      vsgModulo, vsgConceito, vListaTabelas, pnuNivelAuditoria);
 
     PKGMIG_Parametrizacao.PConsoleLog('Termino da Importação das Parametrizações dos Valores de Referencia do ' ||
       vtxResumo, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -533,9 +534,10 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       Versoes as (
       SELECT
       js.nuVersao,
-      pVersoes as Vigencias
 
-      FROM JSON_TABLE(pVersoes, '$.PAG.ValorReferencia.Versoes[*]' COLUMNS (
+      JSON_SERIALIZE(TO_CLOB(js.Vigencias) RETURNING CLOB) AS Vigencias
+
+      FROM JSON_TABLE(pVersoes, '$[*]' COLUMNS (
         nuVersao  PATH '$.nuVersao',
         Vigencias CLOB FORMAT JSON PATH '$.Vigencias'
       )) js
@@ -681,7 +683,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       TRUNC(SYSDATE) AS dtInclusao,
       SYSTIMESTAMP AS dtUltAlteracao
 
-      FROM JSON_TABLE(pVigencias, '$.PAG.ValorReferencia.Versoes.Vigencias[*]' COLUMNS (
+      FROM JSON_TABLE(pVigencias, '$[*]' COLUMNS (
         nuAnoMesInicioVigencia PATH '$.nuAnoMesInicioVigencia',
         nuAnoMesFimVigencia    PATH '$.nuAnoMesFimVigencia',
         vlReferencia           PATH '$.Valor.vlReferencia',

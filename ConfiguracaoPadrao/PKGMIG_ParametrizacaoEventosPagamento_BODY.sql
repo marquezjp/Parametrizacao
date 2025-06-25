@@ -138,9 +138,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoEventosPagamento AS
       
       SYSTIMESTAMP AS dtUltAlteracao,
       
-      js.VigenciasEvento
- 
-      FROM JSON_TABLE(JSON_QUERY(pEventoPagamento, '$'), '$[*]' COLUMNS (
+      JSON_SERIALIZE(TO_CLOB(js.VigenciasEvento) RETURNING CLOB) AS VigenciasEvento
+
+      FROM JSON_TABLE(pEventoPagamento, '$[*]' COLUMNS (
           nmTipoEventoPagamento         PATH '$.nmTipoEventoPagamento',
           deEvento                      PATH '$.deEvento',
           nuRubrica                     PATH '$.nuRubrica',
@@ -551,7 +551,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoEventosPagamento AS
       INNER JOIN EstruturaCarreiraLista cef ON cef.nmEstruturaCarreira = carreira.nmEstruturaCarreira
       ) As GrupoCarreiras
       
-      FROM JSON_TABLE(JSON_QUERY(pVigenciasEvento, '$'), '$[*]' COLUMNS (
+      FROM JSON_TABLE(pVigenciasEvento, '$[*]' COLUMNS (
         nuAnoMesInicioVigencia    PATH '$.nuAnoMesInicioVigencia',
         nuAnoMesFimVigencia       PATH '$.nuAnoMesFimVigencia',
         deDesconto                PATH '$.deDesconto',

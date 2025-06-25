@@ -26,14 +26,14 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
     pnuNivelAuditoria              IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
-    vsgOrgao            VARCHAR2(15) := Null;
-    vsgModulo           CHAR(3)      := 'PAG';
-    vsgConceito         VARCHAR2(20) := 'BASE';
-    vtpOperacao         VARCHAR2(15) := 'EXPORTACAO';
-    vdtOperacao         TIMESTAMP    := LOCALTIMESTAMP;
-    vcdIdentificacao    VARCHAR2(20) := Null;
-    vnuVersao           CHAR(04)     := '1.00';
-    vflAnulado          CHAR(01)     := 'N';
+    vsgOrgao            VARCHAR2(15)          := Null;
+    vsgModulo           CONSTANT CHAR(3)      := 'PAG';
+    vsgConceito         CONSTANT VARCHAR2(20) := 'BASECALCULO';
+    vtpOperacao         CONSTANT VARCHAR2(15) := 'EXPORTACAO';
+    vdtOperacao         TIMESTAMP             := LOCALTIMESTAMP;
+    vcdIdentificacao    VARCHAR2(20)          := Null;
+    vnuVersao           CONSTANT CHAR(04)     := '1.00';
+    vflAnulado          CONSTANT CHAR(01)     := 'N';
 
     rsgAgrupamento      VARCHAR2(15) := NULL;
     rsgOrgao            VARCHAR2(15) := NULL;
@@ -100,7 +100,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       vnuRegistros := vnuRegistros + 1;
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,
         vsgModulo, vsgConceito, rcdIdentificacao, 1,
-        'BASE', 'INCLUSAO', 'Documento JSON Bases incluído com sucesso',
+        'BASECALCULO', 'INCLUSAO', 'Documento JSON Bases incluído com sucesso',
 		    cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
     END LOOP;
@@ -124,7 +124,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
     -- Registro de Resumo da Exportação das Bases de Cálculo
     PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,
       vsgModulo, vsgConceito, NULL, NULL,
-      'BASE', 'RESUMO', 'Exportação das Parametrizações das Bases de Cálculo do ' || vtxResumo, 
+      'BASECALCULO', 'RESUMO', 'Exportação das Parametrizações das Bases de Cálculo do ' || vtxResumo, 
       cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
     PKGMIG_Parametrizacao.PConsoleLog('Termino da Exportação das Parametrizações Bases de Cálculo do ' ||
@@ -137,7 +137,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       ' BASE Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,  
         vsgModulo, vsgConceito, vcdIdentificacao, 1,
-        'BASE', 'ERRO', 'Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        'BASECALCULO', 'ERRO', 'Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
     ROLLBACK;
     RAISE;
   END PExportar;
@@ -170,13 +170,14 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
     pnuNivelAuditoria              IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
-    vsgOrgao               VARCHAR2(15) := Null;
-    vsgModulo              CHAR(3)      := 'PAG';
-    vsgConceito            VARCHAR2(20) := 'BASE';
-	  vtpOperacao            VARCHAR2(15) := 'IMPORTACAO';
-	  vdtOperacao            TIMESTAMP    := LOCALTIMESTAMP;
-    vcdIdentificacao       VARCHAR2(70) := Null;
-    vcdBaseCalculoNova     NUMBER       := Null;
+    vsgOrgao               VARCHAR2(15)          := Null;
+    vsgModulo              CONSTANT CHAR(3)      := 'PAG';
+    vsgConceito            CONSTANT VARCHAR2(20) := 'BASECALCULO';
+	  vtpOperacao            CONSTANT VARCHAR2(15) := 'IMPORTACAO';
+	  vdtOperacao            TIMESTAMP             := LOCALTIMESTAMP;
+    vcdIdentificacao       VARCHAR2(70)          := Null;
+    vcdBaseCalculoNova     NUMBER                := Null;
+
     vnuInseridos           NUMBER       := 0;
     vnuAtualizados         NUMBER       := 0;
     vtxResumo              VARCHAR2(4000) := NULL;
@@ -236,16 +237,18 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       '11111111111' AS nuCPFCadastrador,
       TRUNC(SYSDATE) AS dtInclusao,
       SYSTIMESTAMP AS dtUltAlteracao,
-      js.Versoes
+ 
+      JSON_SERIALIZE(TO_CLOB(js.Versoes) RETURNING CLOB) AS Versoes
+
       FROM emigParametrizacao cfg
-      CROSS APPLY JSON_TABLE(cfg.jsConteudo, '$.PAG.Base' COLUMNS (
+      CROSS APPLY JSON_TABLE(cfg.jsConteudo, '$.PAG.BaseCalculo' COLUMNS (
         sgBaseCalculo PATH '$.sgBaseCalculo',
         nmBaseCalculo PATH '$.nmBaseCalculo',
         Versoes       CLOB FORMAT JSON PATH '$.Versoes'
       )) js
       LEFT JOIN OrgaoLista o on o.sgAgrupamento = psgAgrupamentoDestino and nvl(o.sgOrgao,' ') = nvl(cfg.sgOrgao,' ')
       LEFT JOIN epagBaseCalculo base on base.cdAgrupamento = o.cdAgrupamento and base.sgBaseCalculo = js.sgBaseCalculo
-      WHERE cfg.sgModulo = 'PAG' AND cfg.sgConceito = 'BASE' AND cfg.flAnulado = 'N'
+      WHERE cfg.sgModulo = 'PAG' AND cfg.sgConceito = 'BASECALCULO' AND cfg.flAnulado = 'N'
         AND cfg.sgAgrupamento = psgAgrupamentoOrigem AND cfg.sgOrgao IS NULL
       )
       SELECT * FROM BasesCalculo;
@@ -334,10 +337,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
 
     END LOOP;
 
-    -- Atualizar a SEQUENCE das Tabela Envolvidas na importação das Bases de Cálculo
-    PKGMIG_Parametrizacao.pAtualizarSequence(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
-      vsgModulo, vsgConceito, vListaTabelas, pnuNivelAuditoria);
-
     -- Gerar as Estatísticas da Importação das Bases de Cálculo
     vdtTermino := LOCALTIMESTAMP;
     vnuTempoExecucao := vdtTermino - vdtOperacao;
@@ -361,6 +360,10 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       vsgModulo, vsgConceito, NULL, 1,
       NULL, 'RESUMO', 'Importação das Parametrizações das Bases de Cálculo do ' || vtxResumo, 
       cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+
+    -- Atualizar a SEQUENCE das Tabela Envolvidas na importação das Bases de Cálculo
+    PKGMIG_Parametrizacao.pAtualizarSequence(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
+      vsgModulo, vsgConceito, vListaTabelas, pnuNivelAuditoria);
 
     PKGMIG_Parametrizacao.PConsoleLog('Termino da Importação das Parametrizações das Bases de Cálculo do ' ||
       vtxResumo, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -620,8 +623,10 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
 --        pcdBaseCalculo as cdBaseCalculo,
         js.nuVersao,
         SYSTIMESTAMP AS dtUltAlteracao,
-        js.Vigencias
-      FROM JSON_TABLE(JSON_QUERY(pVersoes, '$'), '$[*]' COLUMNS (
+
+        JSON_SERIALIZE(TO_CLOB(js.Vigencias) RETURNING CLOB) AS Vigencias
+
+      FROM JSON_TABLE(pVersoes, '$[*]' COLUMNS (
         nuVersao  PATH '$.nuVersao',
         Vigencias CLOB FORMAT JSON PATH '$.Vigencias'
       )) js
@@ -787,8 +792,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       TRUNC(SYSDATE) AS dtInclusao,
       SYSTIMESTAMP AS dtUltAlteracao,
       
-      js.Blocos
-      FROM JSON_TABLE(JSON_QUERY(pVigencias, '$'), '$.Vigencia' COLUMNS (
+      JSON_SERIALIZE(TO_CLOB(js.Blocos) RETURNING CLOB) AS Blocos
+
+      FROM JSON_TABLE(pVigencias, '$.Vigencia' COLUMNS (
         nuAnoMesInicioVigencia      PATH '$.nuAnoMesInicioVigencia',
         nuAnoMesFimVigencia         PATH '$.nuAnoMesFimVigencia',
         deFormula                   PATH '$.Expressao.deFormula',
@@ -813,8 +819,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
         deOutroMeio                 PATH '$.Documento.deOutroMeio',
         nmArquivoDocumento          PATH '$.Documento.nmArquivoDocumento',
         deCaminhoArquivoDocumento   PATH '$.Documento.deCaminhoArquivoDocumento',
-      
-        Blocos                      CLOB FORMAT JSON PATH '$.Expressao.Blocos'
+
+        Blocos                      CLOB FORMAT JSON PATH '$.Blocos'
       )) js
       LEFT JOIN OrgaoLista o on o.sgAgrupamento = psgAgrupamentoDestino and nvl(o.sgOrgao,' ') = nvl(psgOrgao,' ')
       LEFT JOIN epagValorReferencia vlrefinf ON vlrefinf.cdAgrupamento = o.cdAgrupamento
@@ -953,10 +959,12 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       SELECT 
       js.sgBloco,
       SYSTIMESTAMP AS dtUltAlteracao,
-      js.ExpressaoBloco
-      FROM JSON_TABLE(JSON_QUERY(pBlocos, '$'), '$[*]' COLUMNS (
+
+      JSON_SERIALIZE(TO_CLOB(js.ExpressaoBloco) RETURNING CLOB) AS ExpressaoBloco
+
+      FROM JSON_TABLE(pBlocos, '$[*]' COLUMNS (
         sgBloco        PATH '$.sgBloco',
-        ExpressaoBloco CLOB FORMAT JSON PATH '$.Expressao'
+        ExpressaoBloco CLOB FORMAT JSON PATH '$.ExpressaoBloco'
       )) js
       )
       SELECT * FROM Blocos;
@@ -1194,7 +1202,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
                                  AND rub.cdAgrupamento = o.cdAgrupamento
       ) As GrupoRubricas
       
-      FROM JSON_TABLE(JSON_QUERY(pExpressaoBloco, '$'), '$[*]' COLUMNS (
+      FROM JSON_TABLE(pExpressaoBloco, '$' COLUMNS (
         sgTipoMneumonico        PATH '$.sgTipoMneumonico',
         deOperacao              PATH '$.deOperacao',
         inTipoRubrica           PATH '$.inTipoRubrica',
@@ -1543,7 +1551,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       SELECT a.sgAgrupamento, o.sgOrgao, base.sgBaseCalculo,
       JSON_OBJECT(
         'PAG' value JSON_OBJECT(
-          'Base' value JSON_OBJECT(
+          'BASECALCULO' value JSON_OBJECT(
             'sgBaseCalculo' VALUE base.sgBaseCalculo,
             'nmBaseCalculo' VALUE base.nmBaseCalculo,
             'Versoes' VALUE Versoes.Versoes

@@ -41,7 +41,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
     pcdIdentificacao      IN VARCHAR2,
     pcdRubricaAgrupamento IN NUMBER,
     pFormulaCalculo       IN CLOB,
-	pnuNivelAuditoria     IN NUMBER DEFAULT NULL
+    pnuNivelAuditoria     IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
     vcdIdentificacao      VARCHAR2(70) := Null;
@@ -89,8 +89,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
       o.cdAgrupamento,
       o.cdOrgao,
       
-      js.Versoes
-      FROM JSON_TABLE(JSON_QUERY(pFormulaCalculo, '$'), '$[*]' COLUMNS (
+      JSON_SERIALIZE(TO_CLOB(js.Versoes) RETURNING CLOB) AS Versoes
+
+      FROM JSON_TABLE(pFormulaCalculo, '$' COLUMNS (
           sgFormulaCalculo  PATH '$.sgFormulaCalculo',
           deFormulaCalculo  PATH '$.deFormulaCalculo',
           Versoes           CLOB FORMAT JSON PATH '$.Versoes'
@@ -127,7 +128,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'FORMULA CÁLCULO', 'INCLUSAO',
-        'Formula de Cálculo incluida com sucesso',
+        'Formula de Cálculo incluída com sucesso',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
       -- Importar Versão da Formula de Cálculo
@@ -446,8 +447,10 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
       js.nuFormulaVersao,
       pcdFormulaCalculo,
       SYSTIMESTAMP AS dtUltAlteracao,
-      js.VigenciasFormula
-      FROM JSON_TABLE(JSON_QUERY(pVersoesFormula, '$'), '$[*]' COLUMNS (
+
+      JSON_SERIALIZE(TO_CLOB(js.VigenciasFormula) RETURNING CLOB) AS VigenciasFormula
+
+      FROM JSON_TABLE(pVersoesFormula, '$[*]' COLUMNS (
         nuFormulaVersao  PATH '$.nuFormulaVersao',
         VigenciasFormula CLOB FORMAT JSON PATH '$.Vigencias'
       )) js
@@ -478,7 +481,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'FORMULA CÁLCULO VERCAO', 'INCLUSAO',
-        'Versão da Formula de Cálculo incluida com sucesso',
+        'Versão da Formula de Cálculo incluída com sucesso',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
       -- Importar Vigências da Formula de Cálculo
@@ -578,8 +581,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
       TRUNC(SYSDATE) AS dtInclusao,
       systimestamp AS dtUltAlteracao,
       
-      js.ExpressaoFormula
-      FROM JSON_TABLE(JSON_QUERY(pVigenciasFormula, '$'), '$[*]' COLUMNS (
+      JSON_SERIALIZE(TO_CLOB(js.ExpressaoFormula) RETURNING CLOB) AS ExpressaoFormula
+
+      FROM JSON_TABLE(pVigenciasFormula, '$[*]' COLUMNS (
         nuAnoMesInicioVigencia      PATH '$.nuAnoMesInicioVigencia',
         nuAnoMesFimVigencia         PATH '$.nuAnoMesFimVigencia',
       
@@ -638,7 +642,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
         PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
           psgModulo, psgConceito, vcdIdentificacao, 1,
           'FORMULA CÁLCULO DOCUMENTO', 'INCLUSAO',
-          'Documentos de Amparo ao Fato da Formula de Cálculo incluidas com sucesso',
+          'Documentos de Amparo ao Fato da Formula de Cálculo incluídas com sucesso',
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 	  END IF;
 
@@ -658,7 +662,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'FORMULA CÁLCULO VIGENCIA', 'INCLUSAO',
-        'Vigência da Formula de Cálculo incluidas com sucesso',
+        'Vigência da Formula de Cálculo incluídas com sucesso',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
       -- Importar Expressão da Formula de Cálculo
@@ -762,8 +766,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
       
       systimestamp AS dtUltAlteracao,
       
-      js.BlocosFormula
-      FROM JSON_TABLE(JSON_QUERY(pExpressaoFormula, '$'), '$' COLUMNS (
+      JSON_SERIALIZE(TO_CLOB(js.BlocosFormula) RETURNING CLOB) AS BlocosFormula
+
+      FROM JSON_TABLE(pExpressaoFormula, '$' COLUMNS (
         deFormulaExpressao           PATH '$.deFormulaExpressao',
         deExpressao                  PATH '$.deExpressao',
         deIndiceExpressao            PATH '$.deiIndiceExpressao',
@@ -838,7 +843,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'FORMULA CÁLCULO EXPRESSAO FORMULA', 'INCLUSAO',
-        'Expressão da Formula de Cálculo incluidas com sucesso',
+        'Expressão da Formula de Cálculo incluídas com sucesso',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
       -- Importar Blocos da Formula de Cálculo
@@ -880,7 +885,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
   --   pcdIdentificacao      IN VARCHAR2:
   --   pcdExpressaoFormCalc  IN NUMBER:
   --   pBlocosFormula        IN CLOB:
-  --   pnuNivelAuditoria              IN NUMBER DEFAULT NULL:
+  --   pnuNivelAuditoria     IN NUMBER DEFAULT NULL:
   --
   -- ###########################################################################
     psgAgrupamentoDestino IN VARCHAR2,
@@ -910,8 +915,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
       NVL(js.flLimiteParcial, 'N') AS flLimiteParcial,
       systimestamp AS dtUltAlteracao,
       
-      js.BlocoExpressao
-      FROM JSON_TABLE(JSON_QUERY(pBlocosFormula, '$'), '$[*]' COLUMNS (
+      JSON_SERIALIZE(TO_CLOB(js.BlocoExpressao) RETURNING CLOB) AS BlocoExpressao
+
+      FROM JSON_TABLE(pBlocosFormula, '$[*]' COLUMNS (
         sgBloco         PATH '$.sgBloco',
         flLimiteParcial PATH '$.flLimiteParcial',
       
@@ -944,7 +950,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'FORMULA CÁLCULO BLOCOS', 'INCLUSAO',
-        'Inclusão dos Blocos da Formula de Cálculo incluidas com sucesso',
+        'Inclusão dos Blocos da Formula de Cálculo incluídas com sucesso',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
       -- Importar Expressão do Bloco da Formula de Cálculo
@@ -989,7 +995,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
   --   pcdIdentificacao      IN VARCHAR2:
   --   pcdFFormulaCalculoBloco IN NUMBER:
   --   pBlocoExpressao       IN CLOB:
-  --   pnuNivelAuditoria              IN NUMBER DEFAULT NULL:
+  --   pnuNivelAuditoria     IN NUMBER DEFAULT NULL:
   --
   -- ###########################################################################
     psgAgrupamentoDestino IN VARCHAR2,
@@ -1158,7 +1164,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
                                  AND rub.cdAgrupamento = o.cdAgrupamento
       ) As GrupoRubricas
 
-      FROM JSON_TABLE(JSON_QUERY(pBlocoExpressao, '$'), '$' COLUMNS (
+      FROM JSON_TABLE(pBlocoExpressao, '$' COLUMNS (
         sgTipoMneumonico        PATH '$.sgTipoMneumonico',
         deOperacao              PATH '$.deOperacao',
       
@@ -1229,16 +1235,11 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'FORMULA CÁLCULO EXPRESSAO BLOCO', 'INCLUSAO',
-        'Expressão do Bloco da Formula de Cálculo incluidas com sucesso',
+        'Expressão do Bloco da Formula de Cálculo incluídas com sucesso',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
       PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo - ' ||
         'Grupo de Rubricas ' || vcdIdentificacao, cAUDITORIA_COMPLETO, pnuNivelAuditoria);
-
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
-        psgModulo, psgConceito, vcdIdentificacao, 1,
-        'FORMULA CÁLCULO GRUPO RUBRICAS', 'JSON', r.GrupoRubricas,
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
       -- Incluir Incluir o Grupo de Rubricas do Bloco da Formula de Cálculo
       vnuRegistros := 0;
@@ -1258,9 +1259,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
         WHERE js.cdRubricaAgrupamento IS NOT NULL;
 
         PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
-          psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
+          psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
             'FORMULA CÁLCULO GRUPO RUBRICAS', 'INCLUSAO',
-            'Grupo de Rubricas do Bloco da Formula de Cálculo incluidas com sucesso',
+            'Grupo de Rubricas do Bloco da Formula de Cálculo incluídas com sucesso',
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
       END IF;
         

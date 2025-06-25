@@ -258,9 +258,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
           cgt.cdConsignataria, js.nucodigoconsignataria,
           js.nuOutraConsignataria,
           NVL(js.flExtraOrcamentaria, 'N') AS flExtraOrcamentaria,
-          js.VigenciasTipo,
-          js.GruposRubrica,
-          js.Agrupamento
+          JSON_SERIALIZE(TO_CLOB(js.VigenciasTipo) RETURNING CLOB) AS VigenciasTipo,
+          JSON_SERIALIZE(TO_CLOB(js.GruposRubrica) RETURNING CLOB) AS GruposRubrica,
+          JSON_SERIALIZE(TO_CLOB(js.Agrupamento) RETURNING CLOB) AS Agrupamento
         FROM emigParametrizacao cfg
         CROSS APPLY JSON_TABLE(cfg.jsConteudo, '$.PAG.Rubrica' COLUMNS (
           nuNaturezaRubrica            PATH '$.nuNaturezaRubrica',
@@ -436,7 +436,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
       -- Importar Vigências da Rubrica
       --pImportarVigencias(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
       --  vsgModulo, vsgConceito, vcdIdentificacao, vcdRubricaNova, r.VigenciasTipo, pnuNivelAuditoria);
-  
+
       -- Importar Rubricas do Agrupamento
       PKGMIG_ParametrizacaoRubricasAgrupamento.pImportar(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
         vsgModulo, vsgConceito, vcdIdentificacao, vcdRubricaNova, r.Agrupamento, pnuNivelAuditoria);
@@ -472,6 +472,10 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
       vsgModulo, vsgConceito, NULL, 1,
       NULL, 'RESUMO', 'Importação das Parametrizações das Rubricas do ' || vtxResumo, 
       cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+
+    -- Atualizar a SEQUENCE das Tabela Envolvidas na importação dos Valores de Referencia
+    PKGMIG_Parametrizacao.pAtualizarSequence(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
+      vsgModulo, vsgConceito, vListaTabelas, pnuNivelAuditoria);
 
     PKGMIG_Parametrizacao.pConsoleLog('Termino da Importação das Parametrizações das Rubricas do ' ||
       vtxResumo, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -673,8 +677,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
         '11111111111' AS nuCPFCadastrador,
         TRUNC(SYSDATE) AS dtInclusao,
         SYSTIMESTAMP AS dtUltAlteracao
-      
-      FROM JSON_TABLE(JSON_QUERY(pVigenciasTipo, '$'), '$[*]' COLUMNS (
+
+      FROM JSON_TABLE(pVigenciasTipo, '$[*]' COLUMNS (
         nuAnoMesInicioVigencia    PATH '$.nuAnoMesInicioVigencia',
         nuAnoMesFimVigencia       PATH '$.nuAnoMesFimVigencia',
         deRubrica                 PATH '$.deRubrica',
@@ -1236,7 +1240,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
               'deRubricaAgrupamento'        VALUE vigencia.deRubricaAgrupamento,
               'deRubricaAgrupResumida'      VALUE vigencia.deRubricaAgrupResumida,
               'mnRelacaoTrabalho'           VALUE relTrabVigencia.nmRelacaoTrabalho, -- cdRelacaoTrabalho
-              'flCargaHorariaPadrao'        VALUE NULLIF(vigencia.flCargaHorariaPadrao, 'N'),
+              'flCargaHorariaPadrao'        VALUE NULLIF(vigencia.flCargaHorariaPadrao, 'N'), -- DEFAULT S
               'nuCargaHorariaSemanal'       VALUE vigencia.nuCargaHorariaSemanal,
               'nuOutraRubrica'              VALUE rubOutra.nuRubrica                 -- cdOutraRubrica
             ABSENT ON NULL),
@@ -1326,9 +1330,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
               'flPagaEfetivoOrgao'          VALUE NULLIF(vigencia.flPagaEfetivoOrgao, 'N'),
               'flPagAposentadoria'          VALUE NULLIF(vigencia.flPagAposentadoria, 'N'),
               'flLaudoAcompanhamento'       VALUE NULLIF(vigencia.flLaudoAcompanhamento, 'N'),
-              'flGeraRubricaCarreiraIncideApo' VALUE NULLIF(vigencia.flGeraRubricaCarreiraIncideApo, 'N'),
-              'flGeraRubricaCarreiraIncideCCO' VALUE NULLIF(vigencia.flGeraRubricaCarreiraIncideCCO, 'N'),
-              'flGeraRubricaCCOIncideCEF'   VALUE NULLIF(vigencia.flGeraRubricaCCOIncideCEF, 'N'),
+              'flGeraRubricaCarreiraIncideApo' VALUE NULLIF(vigencia.flGeraRubricaCarreiraIncideApo, 'N'), -- DEFAULT S
+              'flGeraRubricaCarreiraIncideCCO' VALUE NULLIF(vigencia.flGeraRubricaCarreiraIncideCCO, 'N'), -- DEFAULT S
+              'flGeraRubricaCCOIncideCEF'   VALUE NULLIF(vigencia.flGeraRubricaCCOIncideCEF, 'N'), -- DEFAULT S
               'flGeraRubricaFUCIncideCEF'   VALUE NULLIF(vigencia.flGeraRubricaFUCIncideCEF, 'N'),
               'flGeraRubricaHoraExtra'      VALUE NULLIF(vigencia.flGeraRubricaHoraExtra, 'N'),
               'flGeraRubricaEscala'         VALUE NULLIF(vigencia.flGeraRubricaEscala, 'N'),
@@ -1372,7 +1376,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
                                                     '3', 'APLICAR MEDIA',
                                                   NULL),
               'nuMesesApuracao'             VALUE vigencia.nuMesesApuracao,
-              'flPropMesComercial'          VALUE NULLIF(vigencia.flPropMesComercial, 'N'),
+              'flPropMesComercial'          VALUE NULLIF(vigencia.flPropMesComercial, 'N'), -- DEFAULT S
               'flCargaHorariaLimitada'      VALUE NULLIF(vigencia.flCargaHorariaLimitada, 'N'),
               'flIgnoraAfastCEFAgPolitico'  VALUE NULLIF(vigencia.flIgnoraAfastCEFAgPolitico, 'N'),
               'flIncidParcialContrPrev'     VALUE NULLIF(vigencia.flIncidParcialContrPrev, 'N'),
@@ -1406,7 +1410,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
                                                     '2', 'POSSUA AO MENOS UMA PERMITIRA',
                                                     '3', NULL, --'NAO SE APLICA',
                                                   NULL),
-              'flAplicaRubricaOrgaos'       VALUE NULLIF(vigencia.flAplicaRubricaOrgaos, 'N'),
+              'flAplicaRubricaOrgaos'       VALUE NULLIF(vigencia.flAplicaRubricaOrgaos, 'N'), -- DEFAULT S
               'flGestaoSobreRubrica'        VALUE NULLIF(vigencia.flGestaoSobreRubrica, 'N'),
               'flImpedeIdadeCompulsoria'    VALUE NULLIF(vigencia.flImpedeIdadeCompulsoria, 'N'),
               'flPagaAposEmParidade'        VALUE NULLIF(vigencia.flPagaAposEmParidade, 'N'),
@@ -1503,8 +1507,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
           'ParametrosAgrupamento'           VALUE JSON_OBJECT(
             'nmModalidadeRubrica'           VALUE modrub.nmModalidadeRubrica,
             'sgBaseCalculo'                 VALUE basecalc.sgBaseCalculo,
-            'flVisivelServidor'             VALUE NULLIF(rubagrup.flVisivelServidor, 'S'),
-            'flGeraSuplementar'             VALUE NULLIF(rubagrup.flGeraSuplementar, 'S'),
+            'flVisivelServidor'             VALUE NULLIF(rubagrup.flVisivelServidor, 'S'),  -- DEFAULT S
+            'flGeraSuplementar'             VALUE NULLIF(rubagrup.flGeraSuplementar, 'S'),  -- DEFAULT S
             'flConsad'                      VALUE NULLIF(rubagrup.flConsad, 'N'),
             'flCompoe13'                    VALUE NULLIF(rubagrup.flCompoe13, 'N'),
             'flPropria13'                   VALUE NULLIF(rubagrup.flPropria13, 'N'),
