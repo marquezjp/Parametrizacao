@@ -1,18 +1,55 @@
 -- ===========================================================================
 --- Como executar o Pacote de exportação das configurações de rubricas
-SET SERVEROUTPUT ON SIZE UNLIMITED;
-SET SERVEROUTPUT ON SIZE UNLIMITED;
+/*
+MILITAR
+INDIR-FEMARH
+INDIR-ADERR
+INDIR-IATER
+INDIR-IERR
+INDIR-IPEM/RR
+ADM-DIR
+*/
 
+SET SERVEROUTPUT ON SIZE UNLIMITED;
+EXEC PKGMIG_Parametrizacao.PExportar('MILITAR', 'VALORREFERENCIA');
+EXEC PKGMIG_Parametrizacao.PExportar('INDIR-FEMARH', 'VALORREFERENCIA');
+EXEC PKGMIG_Parametrizacao.PExportar('INDIR-ADERR', 'VALORREFERENCIA');
+EXEC PKGMIG_Parametrizacao.PExportar('INDIR-IATER', 'VALORREFERENCIA');
+EXEC PKGMIG_Parametrizacao.PExportar('INDIR-IERR', 'VALORREFERENCIA');
+EXEC PKGMIG_Parametrizacao.PExportar('INDIR-IPEM/RR', 'VALORREFERENCIA');
+EXEC PKGMIG_Parametrizacao.PExportar('ADM-DIR', 'VALORREFERENCIA');
+
+EXEC PKGMIG_Parametrizacao.PExportar('MILITAR', 'BASECALCULO');
+EXEC PKGMIG_Parametrizacao.PExportar('INDIR-FEMARH', 'BASECALCULO');
+EXEC PKGMIG_Parametrizacao.PExportar('INDIR-ADERR', 'BASECALCULO');
+EXEC PKGMIG_Parametrizacao.PExportar('INDIR-IATER', 'BASECALCULO');
+EXEC PKGMIG_Parametrizacao.PExportar('INDIR-IERR', 'BASECALCULO');
+EXEC PKGMIG_Parametrizacao.PExportar('INDIR-IPEM/RR', 'BASECALCULO');
+EXEC PKGMIG_Parametrizacao.PExportar('ADM-DIR', 'BASECALCULO');
+
+EXEC PKGMIG_Parametrizacao.PExportar('MILITAR', 'RUBRICA');
+EXEC PKGMIG_Parametrizacao.PExportar('INDIR-FEMARH', 'RUBRICA');
+EXEC PKGMIG_Parametrizacao.PExportar('INDIR-ADERR', 'RUBRICA');
+EXEC PKGMIG_Parametrizacao.PExportar('INDIR-IATER', 'RUBRICA');
+EXEC PKGMIG_Parametrizacao.PExportar('INDIR-IERR', 'RUBRICA');
+EXEC PKGMIG_Parametrizacao.PExportar('INDIR-IPEM/RR', 'RUBRICA');
 EXEC PKGMIG_Parametrizacao.PExportar('ADM-DIR', 'RUBRICA');
+
+SELECT sgConceito, sgAgrupamento, TO_CHAR(dtExportacao, 'YYYY/MM/DD HH24:MI:SS') AS dtExportacao,
+COUNT(*) AS nuRegistros FROM emigParametrizacao
+GROUP BY sgConceito, sgAgrupamento, TO_CHAR(dtExportacao, 'YYYY/MM/DD HH24:MI:SS')
+ORDER BY sgConceito, sgAgrupamento, dtExportacao
+;
+
 EXEC PKGMIG_Parametrizacao.PImportar('ADM-DIR', 'INDIR-IPEM/RR', 'RUBRICA', 'DETALHADO');
 
-  PROCEDURE pExportar(psgAgrupamento IN VARCHAR2,
-    psgConceito IN VARCHAR2, pNivelAuditoria VARCHAR2 DEFAULT NULL
-  );
+PROCEDURE pExportar(psgAgrupamento IN VARCHAR2,
+  psgConceito IN VARCHAR2, pNivelAuditoria VARCHAR2 DEFAULT NULL
+);
 
-  PROCEDURE pImportar(psgAgrupamentoOrigem IN VARCHAR2, psgAgrupamentoDestino IN VARCHAR2,
-    psgConceito IN VARCHAR2, pNivelAuditoria VARCHAR2 DEFAULT NULL
-  );
+PROCEDURE pImportar(psgAgrupamentoOrigem IN VARCHAR2, psgAgrupamentoDestino IN VARCHAR2,
+  psgConceito IN VARCHAR2, pNivelAuditoria VARCHAR2 DEFAULT NULL
+);
 
 --- Parametrizações
 select sgAgrupamento, sgConceito, TO_CHAR(max(dtExportacao), 'YYYY/MM/DD HH24:MI:SS') as dtExportacao from emigParametrizacao
