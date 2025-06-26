@@ -318,7 +318,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
     PKGMIG_Parametrizacao.pConsoleLog('Inicio da Importação das Parametrizações das ' ||
       'Rubricas do Agrupamento ' || psgAgrupamentoOrigem || ' ' ||
       'para o Agrupamento ' || psgAgrupamentoDestino || ', ' || CHR(13) || CHR(10) ||
-      'Data da Exportacao ' || TO_CHAR(vdtExportacao, 'DD/MM/YYYY HH24:MI:SS') || ', ' || CHR(13) || CHR(10) ||
+      'Data da Exportação ' || TO_CHAR(vdtExportacao, 'DD/MM/YYYY HH24:MI:SS') || ', ' || CHR(13) || CHR(10) ||
       'Data da Operação   ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
       cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
@@ -342,7 +342,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
     FOR r IN cDados LOOP
   
       vContador := vContador + 1;
-      vcdIdentificacao := r.cdIdentificacao || ' ' || LPAD(r.cdTipoRubrica,2,0) || '-' || LPAD(r.nuRubrica,4,0);
+      vcdIdentificacao := SUBSTR(r.cdIdentificacao || ' ' ||
+        LPAD(r.cdTipoRubrica,2,0) || '-' || LPAD(r.nuRubrica,4,0),1,70);
   
       PKGMIG_Parametrizacao.pConsoleLog('Importação da Rubrica - Rubrica ' || vcdIdentificacao,
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -712,7 +713,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
       -- Loop principal de processamento para Incluir a Vigências da Rubrica
       FOR r IN cDados LOOP
 	
-	      vcdIdentificacao := pcdIdentificacao || ' ' || LPAD(r.nuanoiniciovigencia,4,0) || LPAD(r.numesiniciovigencia,2,0);
+	      vcdIdentificacao := SUBSTR(pcdIdentificacao || ' ' ||
+          LPAD(r.nuanoiniciovigencia,4,0) || LPAD(r.numesiniciovigencia,2,0),1,70);
 
         PKGMIG_Parametrizacao.pConsoleLog('Importação da Rubrica - ' ||
         'Vigências ' || vcdIdentificacao, cAUDITORIA_DETALHADO, pnuNivelAuditoria);
@@ -1239,7 +1241,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
             'DadosRubrica' VALUE JSON_OBJECT(
               'deRubricaAgrupamento'        VALUE vigencia.deRubricaAgrupamento,
               'deRubricaAgrupResumida'      VALUE vigencia.deRubricaAgrupResumida,
-              'mnRelacaoTrabalho'           VALUE relTrabVigencia.nmRelacaoTrabalho, -- cdRelacaoTrabalho
+              'mnRelacaoTrabalho'           VALUE UPPER(relTrabVigencia.nmRelacaoTrabalho), -- cdRelacaoTrabalho
               'flCargaHorariaPadrao'        VALUE NULLIF(vigencia.flCargaHorariaPadrao, 'N'), -- DEFAULT S
               'nuCargaHorariaSemanal'       VALUE vigencia.nuCargaHorariaSemanal,
               'nuOutraRubrica'              VALUE rubOutra.nuRubrica                 -- cdOutraRubrica
