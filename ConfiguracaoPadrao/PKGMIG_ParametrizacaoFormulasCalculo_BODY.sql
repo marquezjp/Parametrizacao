@@ -114,7 +114,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
     -- Loop principal de processamento para Incluir as Verões da Base
     FOR r IN cDados LOOP
 
-	    vcdIdentificacao := pcdIdentificacao || ' ' || r.sgFormulaCalculo;
+	    vcdIdentificacao := SUBSTR(pcdIdentificacao || ' ' || r.sgFormulaCalculo,1,70);
 
 	    -- Inserir na tabela epagFormulaCalculo
 	    SELECT NVL(MAX(cdFormulaCalculo), 0) + 1 INTO vcdFormulaCalculoNova FROM epagFormulaCalculo;
@@ -194,7 +194,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
     psgConceito           IN VARCHAR2,
     pcdIdentificacao      IN VARCHAR2,
     pcdRubricaAgrupamento IN NUMBER,
-	pnuNivelAuditoria              IN NUMBER DEFAULT NULL
+    pnuNivelAuditoria     IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
     vcdIdentificacao      VARCHAR2(70) := Null;
@@ -233,7 +233,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
         'FORMULA CÁLCULO GRUPO RUBRICAS', 'EXCLUSAO',
         'Grupo de Rubricas do Blocos da Formula de Cálculo excluidas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 	  END IF;
 
     -- Excluir a Expressão do Bloco da Formula de Cálculo
@@ -260,7 +260,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
         'FORMULA CÁLCULO EXPRESSAO BLOCO', 'EXCLUSAO',
         'Expressão do Bloco da Formula de Cálculo excluidos com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 	  END IF;
 
     -- Excluir as Blocos da Formula de Cálculo
@@ -285,7 +285,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
         'FORMULA CÁLCULO BLOCOS', 'EXCLUSAO',
         'Blocos da Formula de Cálculo excluidas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 	  END IF;
 
     -- Excluir a Expressão da Formula de Cálculo
@@ -308,7 +308,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
         'FORMULA CÁLCULO EXPRESSAO FORMULA', 'EXCLUSAO',
         'Expressão da Formula de Cálculo excluidas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 	  END IF;
 
     -- Excluir os Documentos das Vigências da Formula de Cálculo
@@ -328,7 +328,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'DOCUMENTO', 'EXCLUSAO',
         'Documentos de Amparo ao Fato da Formula de Cálculo excluídos com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
     END LOOP;      
 
     -- Excluir as Vigências da Formula de Cálculo
@@ -349,7 +349,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
         'FORMULA CÁLCULO VIGENCIA', 'EXCLUSAO',
         'Vigências da Formula de Cálculo excluidas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 	  END IF;
 
     -- Excluir as Versões da Formula de Cálculo
@@ -368,7 +368,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
         'FORMULA CÁLCULO VERCAO', 'EXCLUSAO',
         'Versões da Formula de Cálculo excluidas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 	  END IF;
 
     -- Excluir a Formula de Cálculo
@@ -383,7 +383,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
         'FORMULA CÁLCULO', 'EXCLUSAO',
         'Formula de Cálculo excluidas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 	  END IF;
 
   EXCEPTION
@@ -467,7 +467,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
     -- Loop principal de processamento para Incluir as Verões da Base
     FOR r IN cDados LOOP
 
-	    vcdIdentificacao := pcdIdentificacao || ' ' || r.nuFormulaVersao;
+	    vcdIdentificacao := SUBSTR(pcdIdentificacao || ' ' || r.nuFormulaVersao,1,70);
 	  
 	    -- Inserir na tabela epagBaseCalculoVersao
 	    SELECT NVL(MAX(cdFormulaVersao), 0) + 1 INTO vcdFormulaVersaoNova FROM epagFormulaVersao;
@@ -619,7 +619,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
     -- Loop principal de processamento
     FOR r IN cDados LOOP
 
-       vcdIdentificacao := pcdIdentificacao || ' ' || lpad(r.nuAnoInicio,4,0) || lpad(r.nuMesInicio,2,0);
+       vcdIdentificacao := SUBSTR(pcdIdentificacao || ' ' ||
+         lpad(r.nuAnoInicio,4,0) || lpad(r.nuMesInicio,2,0),1,70);
        
 	  -- Incluir Novo Documento se as informações não forem nulas
 	  IF  r.nuAnoDocumento IS NULL AND r.cdTipoDocumento IS NULL AND r.dtDocumento IS NULL AND
@@ -643,7 +644,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
           psgModulo, psgConceito, vcdIdentificacao, 1,
           'FORMULA CÁLCULO DOCUMENTO', 'INCLUSAO',
           'Documentos de Amparo ao Fato da Formula de Cálculo incluídas com sucesso',
-          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+          cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 	  END IF;
 
       -- Incluir Nova Vigência da Formula de Cálculo
@@ -936,7 +937,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
     -- Loop principal de processamento para Incluir os Blocos da Formula de Cálculo
     FOR r IN cDados LOOP
 
-      vcdIdentificacao := pcdIdentificacao || ' ' || r.sgBloco;
+      vcdIdentificacao := SUBSTR(pcdIdentificacao || ' ' || r.sgBloco,1,70);
 
       SELECT NVL(MAX(cdFormulaCalculoBloco), 0) + 1 INTO vcdFormulaCalculoBlocoNova FROM epagFormulaCalculoBloco;
 
@@ -1216,7 +1217,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
     -- Loop principal de processamento para Incluir a Expressão do Bloco da Formula de Cálculo
     FOR r IN cDados LOOP
 
-      vcdIdentificacao := pcdIdentificacao || ' ' || r.sgTipoMneumonico;
+      vcdIdentificacao := SUBSTR(pcdIdentificacao || ' ' || r.sgTipoMneumonico,1,70);
 
       SELECT NVL(MAX(cdFormulaCalcBlocoExpressao), 0) + 1 INTO vcdFormulaCalcBlocoExpressaoNova FROM epagFormulaCalcBlocoExpressao;
 
@@ -1262,7 +1263,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
           psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
             'FORMULA CÁLCULO GRUPO RUBRICAS', 'INCLUSAO',
             'Grupo de Rubricas do Bloco da Formula de Cálculo incluídas com sucesso',
-          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+          cAUDITORIA_COMPLETO, pnuNivelAuditoria);
       END IF;
         
       FOR i IN (
@@ -1275,7 +1276,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
       )
       LOOP
         PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
-          psgModulo, psgConceito, vcdIdentificacao || ' ' || i.nuRubrica, 1,
+          psgModulo, psgConceito, SUBSTR(vcdIdentificacao || ' ' || i.nuRubrica,1,70), 1,
             'FORMULA CÁLCULO GRUPO RUBRICAS', 'INCONSISTENTE',
             'Rubricas do Grupo do Bloco da Formula de Cálculo Inexistente no Agrupamento',
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
