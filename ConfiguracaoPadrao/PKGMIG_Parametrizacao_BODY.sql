@@ -189,8 +189,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
           EXECUTE IMMEDIATE 'ANALYZE TABLE ' || UPPER(item.table_name) || ' COMPUTE STATISTICS';
 
           pRegistrarLog(psgAgrupamento, psgOrgao, ptpOperacao, pdtOperacao,  
-            psgModulo, psgConceito, NULL, NULL, 'SEQUENCE', NULL,
-            'RESUMO' || item.sequence_name || ' da Tabela ' || item.table_name ||
+            psgModulo, psgConceito, NULL, NULL,
+            'SEQUENCE', 'SEQUENCE',
+            'RESUMO - ' || item.sequence_name || ' da Tabela ' || item.table_name ||
             ' reiniciada em: ' || vnuRegistros,
             cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
       END LOOP;
