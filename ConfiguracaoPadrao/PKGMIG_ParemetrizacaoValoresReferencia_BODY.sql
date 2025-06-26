@@ -364,7 +364,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
 	    LPAD(EXTRACT(HOUR FROM vnuTempoExecucao), 2, '0') || ':' ||
 	    LPAD(EXTRACT(MINUTE FROM vnuTempoExecucao), 2, '0') || ':' ||
 	    LPAD(TRUNC(EXTRACT(SECOND FROM vnuTempoExecucao)), 2, '0') || ', ' || CHR(13) || CHR(10) ||
-	    'Total de Parametrizações dos Valores de Referencia Incluidas: ' || vnuInseridos ||
+	    'Total de Parametrizações dos Valores de Referencia Incluídas: ' || vnuInseridos ||
       ' e Alteradas: ' || vnuAtualizados;
 
     PKGMIG_Parametrizacao.pGerarResumo(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
@@ -554,7 +554,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
     -- Loop principal de processamento para Incluir as Versões do Valor de Referencia
     FOR r IN cDados LOOP
 
-	    vcdIdentificacao := pcdIdentificacao || ' ' || r.nuVersao;
+	    vcdIdentificacao := SUBSTR(pcdIdentificacao || ' ' || r.nuVersao,1,70);
 
       PKGMIG_Parametrizacao.PConsoleLog('Importação do Valor de Referencia - Versões ' || vcdIdentificacao,
         cAUDITORIA_COMPLETO, pnuNivelAuditoria);
@@ -710,7 +710,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
     -- Loop principal de processamento
     FOR r IN cDados LOOP
 
-      vcdIdentificacao := pcdIdentificacao || ' ' || lpad(r.nuAnoInicioVigencia,4,0) || lpad(r.nuMesInicioVigencia,2,0);
+      vcdIdentificacao := SUBSTR(pcdIdentificacao || ' ' ||
+        lpad(r.nuAnoInicioVigencia,4,0) || lpad(r.nuMesInicioVigencia,2,0),1,70);
 
       PKGMIG_Parametrizacao.PConsoleLog('Importação do Valor de Referencia - ' ||
         'Vigências ' || vcdIdentificacao, cAUDITORIA_COMPLETO, pnuNivelAuditoria);
