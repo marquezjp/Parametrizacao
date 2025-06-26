@@ -176,7 +176,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoEventosPagamento AS
     -- Loop principal de processamento para Incluir o Evento Pagamento
     FOR r IN cDados LOOP
   
-  	  vcdIdentificacao := pcdIdentificacao || ' ' || SUBSTR(TRIM(r.deEvento),1,30);  
+  	  vcdIdentificacao := SUBSTR(pcdIdentificacao || ' ' || SUBSTR(TRIM(r.deEvento),1,30),1,70);  
 	    
 	    -- Inserir na tabela epagFormulaCalculo  
 	    SELECT NVL(MAX(cdEventoPagAgrup), 0) + 1 INTO vcdEventoPagAgrupNova FROM epagEventoPagAgrup;
@@ -282,7 +282,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoEventosPagamento AS
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
         'EVENTO PAGAMENTO GRUPO ORGAO', 'EXCLUSAO', 'Grupo de Orgao do Evento de Pagamento excluidos com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
     END IF;
 
     -- Excluir as Carreiras do Grupo de Carreiras do Evento de Pagamento
@@ -302,7 +302,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoEventosPagamento AS
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
         'EVENTO PAGAMENTO GRUPO CARREIRA', 'EXCLUSAO', 'Grupo de Carreiras do Evento de Pagamento excluidos com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
     END IF;
 
     -- Excluir as Vigências do Evento de Pagamento
@@ -320,7 +320,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoEventosPagamento AS
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
         'EVENTO PAGAMENTO VIGENCIA', 'EXCLUSAO', 'Vigências do Evento de Pagamento excluidas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
     END IF;
 
     -- Excluir a Formula de Cálculo
@@ -334,7 +334,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoEventosPagamento AS
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
         'EVENTO PAGAMENTO', 'EXCLUSAO', 'Evento de Pagamento excluidos com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
     END IF;
 
   EXCEPTION
@@ -507,7 +507,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoEventosPagamento AS
       js.nuMesPagamentoInicio,
       js.nuMesPagamentoFim,
       
-      relTrab.cdRelacaoTrabalho, js.nmRelacaoTrabalho,
+      relTrab.cdRelacaoTrabalho, UPPER(js.nmRelacaoTrabalho) AS nmRelacaoTrabalho,
       
       NVL(js.flAbrangeTodosOrgaos, 'N') AS flAbrangeTodosOrgaos,
       DECODE(js.inAcaoCarreira,
@@ -574,13 +574,13 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoEventosPagamento AS
         cdTipoRisco               PATH '$.Abrangencia.cdTipoRisco',
         cdTipoFalta               PATH '$.Abrangencia.cdTipoFalta',
         cdTipoFaltaParcialAgrup   PATH '$.Abrangencia.cdTipoFaltaParcialAgrup',
-        Orgaos                    CLOB FORMAT JSON PATH '$.Orgaos.Orgaos',
-        Carreiras                 CLOB FORMAT JSON PATH '$.Carreiras.Carreiras'
+        Orgaos                    CLOB FORMAT JSON PATH '$.Orgaos',
+        Carreiras                 CLOB FORMAT JSON PATH '$.Carreiras'
       )) js
       LEFT JOIN OrgaoLista o on o.sgAgrupamento = psgAgrupamentoDestino and nvl(o.sgOrgao,' ') = nvl(psgOrgao,' ')
       LEFT JOIN RubricaLista rub ON rub.nuRubrica = js.nuRubrica
                                 AND rub.cdAgrupamento = o.cdAgrupamento
-      LEFT JOIN ecadRelacaoTrabalho relTrab ON relTrab.nmRelacaoTrabalho = js.nmRelacaoTrabalho
+      LEFT JOIN ecadRelacaoTrabalho relTrab ON UPPER(relTrab.nmRelacaoTrabalho) = UPPER(js.nmRelacaoTrabalho)
       )
       SELECT * FROM VigenciaEvento;
 
@@ -594,8 +594,35 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoEventosPagamento AS
     -- Loop principal de processamento para Incluir as Vigências do Evento de Pagamento
     FOR r IN cDados LOOP
 
-	    vcdIdentificacao := pcdIdentificacao || ' ' || lpad(r.nuAnoRefInicial,4,0) || lpad(r.nuMesRefInicial,2,0);
-	  
+	    vcdIdentificacao := SUBSTR(pcdIdentificacao || ' ' ||
+        lpad(r.nuAnoRefInicial,4,0) || lpad(r.nuMesRefInicial,2,0),1,70);
+
+      IF r.cdRelacaoTrabalho IS NULL AND r.nmRelacaoTrabalho IS NOT NULL THEN
+        PKGMIG_Parametrizacao.PConsoleLog('Importação do Evento de Pagamento - ' ||
+          'Relação de Trabalho da Vigência do Evento de Pagamento Inexistente ' ||
+          vcdIdentificacao || ' ' || r.nmRelacaoTrabalho,
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+
+        PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+          psgModulo, psgConceito, vcdIdentificacao || ' ' || r.nmRelacaoTrabalho, 1,
+          'EVENTO PAGAMENTO VIGENCIA', 'INCONSISTENTE',
+          'Relação de Trabalho da Vigência do Evento de Pagamento Inexistente',
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      END IF;
+
+      IF r.cdRubricaAgrupamento IS NULL AND r.nuRubrica IS NOT NULL THEN
+        PKGMIG_Parametrizacao.PConsoleLog('Importação do Evento de Pagamento - ' ||
+          'Código da Rubrica da Vigência do Evento de Pagamento Inexistente ' ||
+          vcdIdentificacao || ' ' || r.nuRubrica,
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+
+        PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+          psgModulo, psgConceito, SUBSTR(vcdIdentificacao || ' ' || r.nuRubrica,1,70), 1,
+          'EVENTO PAGAMENTO VIGENCIA', 'INCONSISTENTE',
+          'Código da Rubrica da Vigência do Evento de Pagamento Inexistente',
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      END IF;
+
 	    -- Inserir na tabela cdHistEventoPagAgrup
 	    SELECT NVL(MAX(cdHistEventoPagAgrup), 0) + 1 INTO vcdHistEventoPagAgrupNova FROM epagHistEventoPagAgrup;
 
@@ -642,8 +669,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoEventosPagamento AS
         
         PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
           psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
-          'GRUPO ORGAO', 'INCLUSAO', 'Órgão do Grupo de Órgãos do Evento de Pagamento incluidos com sucesso',
-          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+          'EVENTO PAGAMENTO VIGENCIA GRUPO ORGAO', 'INCLUSAO',
+          'Órgão do Grupo de Órgãos do Evento de Pagamento incluidos com sucesso',
+          cAUDITORIA_DETALHADO, pnuNivelAuditoria);
       END IF;
 
       FOR i IN (
@@ -660,8 +688,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoEventosPagamento AS
           vcdIdentificacao || ' ' || i.sgOrgao, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
         PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
-          psgModulo, psgConceito, vcdIdentificacao || ' ' || i.sgOrgao, 1,
-          'GRUPO ORGAO', 'INCONSISTENTE', 'Órgão do Grupo de Órgãos do Evento de Pagamento Inexistente no Agrupamento',
+          psgModulo, psgConceito, SUBSTR(vcdIdentificacao || ' ' || i.sgOrgao,1,70), 1,
+          'EVENTO PAGAMENTO VIGENCIA GRUPO ORGAO', 'INCONSISTENTE',
+          'Órgão do Grupo de Órgãos do Evento de Pagamento Inexistente no Agrupamento',
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
       END LOOP;
 
@@ -684,7 +713,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoEventosPagamento AS
         PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
           psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
           'GRUPO CARREIRA', 'INCLUSAO', 'Carreira do Grupo de Carreiras do Evento de Pagamento incluidas com sucesso',
-          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+          cAUDITORIA_DETALHADO, pnuNivelAuditoria);
       END IF;
         
       FOR i IN (
@@ -702,7 +731,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoEventosPagamento AS
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
         PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
-          psgModulo, psgConceito, vcdIdentificacao || ' ' || TRIM(SUBSTR(i.nmEstruturaCarreira,1,30)), 1,
+          psgModulo, psgConceito, SUBSTR(vcdIdentificacao || ' ' || TRIM(SUBSTR(i.nmEstruturaCarreira,1,30)),1,70), 1,
           'GRUPO CARREIRA', 'INCONSISTENTE', 'Carreira do Grupo de Carreiras do Evento de Pagamento Inexistente no Agrupamento',
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
       END LOOP;
