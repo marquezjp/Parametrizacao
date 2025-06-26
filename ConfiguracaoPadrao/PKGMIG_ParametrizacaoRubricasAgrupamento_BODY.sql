@@ -103,8 +103,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       NVL(js.flApostilamento, 'N') AS flApostilamento,
       NVL(js.flContribuicaoSindical, 'N') AS flContribuicaoSindical,
 
-      modRub.cdModalidadeRubrica AS cdModalidadeRubrica, js.nmmodalidaderubrica,
-      baseCalc.cdBaseCalculo AS cdBaseCalculo, js.sgbasecalculo,
+      modRub.cdModalidadeRubrica AS cdModalidadeRubrica, js.nmModalidadeRubrica,
+      baseCalc.cdBaseCalculo AS cdBaseCalculo, js.sgBaseCalculo,
 
       NVL(js.flVisivelServidor, 'S') AS flVisivelServidor,
       NVL(js.flGeraSuplementar, 'S') AS flGeraSuplementar,
@@ -123,7 +123,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       JSON_SERIALIZE(TO_CLOB(js.FormulaCalculo) RETURNING CLOB) AS FormulaCalculo,
 
       SYSTIMESTAMP AS dtUltAlteracao
-      
+
+      -- Caminho Absoluto no Documento JSON
+      -- $.PAG.Rubrica.Tipos[*].Agrupamento
       FROM JSON_TABLE(pAgrupamento, '$' COLUMNS (
         flIncorporacao         PATH '$.RubricaPropria.flIncorporacao',
         flPensaoAlimenticia    PATH '$.RubricaPropria.flPensaoAlimenticia',
@@ -161,13 +163,18 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       LEFT JOIN epagRubricaAgrupamento rubAgp ON rubAgp.cdAgrupamento = o.cdAgrupamento AND rubAgp.cdRubrica = pcdRubrica
       LEFT JOIN epagModalidadeRubrica modRub ON modRub.nmModalidadeRubrica = js.nmModalidadeRubrica
       LEFT JOIN epagBaseCalculo baseCalc ON baseCalc.cdAgrupamento = o.cdAgrupamento AND baseCalc.cdOrgao = o.cdOrgao
-                                         AND baseCalc.sgBaseCalculo = js.sgBaseCalculo
+                                        AND baseCalc.sgBaseCalculo = js.sgBaseCalculo
       )
       SELECT * FROM epagRubricaAgrupamentoImportar;
 
     BEGIN
   
       vcdIdentificacao := pcdIdentificacao;
+
+      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+        psgModulo, psgConceito, pcdIdentificacao, 0,
+        'RUBRICA AGRUPAMENTO', 'JSON', SUBSTR(pAgrupamento,1,4000),
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 
       -- Loop principal de processamento
       FOR r IN cDados LOOP
@@ -353,7 +360,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA CARREIRAS', 'EXCLUSAO',
         'Carreiras na Vigência da Rubrica do Agrupamento excluidas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
     END IF;
 
     -- Excluir os Níveis e Referencias da Vigência da Rubrica do Agrupamento
@@ -372,7 +379,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA NIVREF', 'EXCLUSAO',
         'Níveis e Referencias na Vigência da Rubrica do Agrupamento excluidos com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
     END IF;
 
     -- Excluir os Cargos Comissionados da Vigência da Rubrica do Agrupamento
@@ -391,7 +398,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA COMISSIONADOS', 'EXCLUSAO',
         'Cargos Comissiondos na Vigência da Rubrica do Agrupamento excluidos com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
     END IF;
 
     -- Excluir as Unidades Organizacionais da Vigência da Rubrica do Agrupamento
@@ -410,7 +417,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA UNID. ORG.', 'EXCLUSAO',
         'Unidades Organizacionais na Vigência da Rubrica do Agrupamento excluidas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
     END IF;
 
     -- Excluir os Motivos Afstamento que Impedem da Vigência da Rubrica do Agrupamento
@@ -429,7 +436,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA AFAST. IMPEDEM', 'EXCLUSAO',
         'Motivos Afastamento que Impedem na Vigência da Rubrica do Agrupamento excluidos com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
     END IF;
 
     -- Excluir os Motivos Afstamento Exigidos da Vigência da Rubrica do Agrupamento
@@ -448,7 +455,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA AFAST. EXIGIDOS', 'EXCLUSAO',
         'Motivos Afastamento Exigidos na Vigência da Rubrica do Agrupamento excluidos com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
     END IF;
 
     -- Excluir os Motivos Movimentação da Vigência da Rubrica do Agrupamento
@@ -467,7 +474,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA MOT. MOVIMENTACAO', 'EXCLUSAO',
         'Motivos Movimentação na Vigência da Rubrica do Agrupamento excluidos com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
     END IF;
 
     -- Excluir os Motivos Convocação da Vigência da Rubrica do Agrupamento
@@ -486,7 +493,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA CONVOCACAO', 'EXCLUSAO',
         'Motivos Convocação na Vigência da Rubrica do Agrupamento excluidos com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
     END IF;
 
     -- Excluir os Órgãos Permitidos da Vigência da Rubrica do Agrupamento
@@ -505,7 +512,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA ORGAOS', 'EXCLUSAO',
         'Órgãos Permitidas na Vigência da Rubrica do Agrupamento excluidos com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
     END IF;
 
     -- Excluir os Rubrica que Impedem da Vigência da Rubrica do Agrupamento
@@ -524,7 +531,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA RUB. IMPEDEM', 'EXCLUSAO',
         'Rubricas que Impedem na Vigência da Rubrica do Agrupamento excluidas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
     END IF;
 
     -- Excluir as Rubrica Exigidas da Vigência da Rubrica do Agrupamento
@@ -543,7 +550,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA RUG. EXIGIDAS', 'EXCLUSAO',
         'Rubricas Exigidas na Vigência da Rubrica do Agrupamento excluidas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
     END IF;
 
     -- Excluir as Naturezas de Vinculo Permitidas Vigência da Rubrica do Agrupamento
@@ -562,7 +569,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA NATVINC', 'EXCLUSAO',
         'Naturezas de Vinculo Permitidas na Vigência da Rubrica do Agrupamento excluidas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
     END IF;
 
     -- Excluir os Regimes Previdenciários Permitidas Vigência da Rubrica do Agrupamento
@@ -581,7 +588,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA REGPREV', 'EXCLUSAO',
         'Regimes Previdenciários Permitidos na Vigência da Rubrica do Agrupamento excluidas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
     END IF;
 
     -- Excluir os Regimes de Trabalho Permitidas Vigência da Rubrica do Agrupamento
@@ -600,7 +607,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA REGTRAB', 'EXCLUSAO',
         'Regimes de Trabalho Permitidos na Vigência da Rubrica do Agrupamento excluidas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
     END IF;
 
     -- Excluir as Relações de Trabalho Permitidas Vigência da Rubrica do Agrupamento
@@ -619,7 +626,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA RELTRAB', 'EXCLUSAO',
         'Relações de Trabalho Permitidas na Vigência da Rubrica do Agrupamento excluidas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
     END IF;
 
     -- Excluir as Situações Previdenciárias Permitidas na Vigência da Rubrica do Agrupamento
@@ -638,7 +645,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA SITPREV', 'EXCLUSAO',
         'Situações Previdenciárias Permitidas na Vigência da Rubrica do Agrupamento excluidas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
     END IF;
 
      -- Excluir as Vigências existentes da Rubrica do Agrupamento
@@ -652,7 +659,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'EXCLUSAO',
         'Vigências existentes da Rubrica do Agrupamento excluidas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_COMPLETO, pnuNivelAuditoria);
     END IF;
 
   EXCEPTION
@@ -1002,26 +1009,14 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         NVL(UPPER(js.flPermiteFGFTG), 'N') AS flPermiteFGFTG,
         NVL(UPPER(js.flPreservaValorIntegral), 'N') AS flPreservaValorIntegral,
 
-        js.ListaEstruturaCarreira,
-        js.ListaFuncaoChefia,
-        js.ListaCargoComissionado,
-        js.ListaModeloAposentadoria,
-        js.ListaMotivosConvocacao,
-        js.ListaMotivosMovimentacao,
-        js.ListaPrograma,
-        js.ListaUnidadeOrganizacional,
-        js.ListaNivelReferencia,
-        js.ListaCargasHorarias,
-        js.ListaMotivosAfastamentoQueImpedem,
-        js.ListaMotivosAfastamentoExigidos,
         JSON_OBJECT(
-          'ListaFuncaoChefia'                 VALUE js.ListaFuncaoChefia,
-          'ListaModeloAposentadoria'          VALUE js.ListaModeloAposentadoria,
-          'ListaMotivosConvocacao'            VALUE js.ListaMotivosConvocacao,
-          'ListaMotivosMovimentacao'          VALUE js.ListaMotivosMovimentacao,
-          'ListaPrograma'                     VALUE js.ListaPrograma,
-          'ListaUnidadeOrganizacional'        VALUE js.ListaUnidadeOrganizacional,
-          'ListaCargasHorarias'               VALUE js.ListaCargasHorarias,
+          'ListaFuncaoChefia'                 VALUE JSON_SERIALIZE(TO_CLOB(js.ListaFuncaoChefia) RETURNING CLOB),
+          'ListaModeloAposentadoria'          VALUE JSON_SERIALIZE(TO_CLOB(js.ListaModeloAposentadoria) RETURNING CLOB),
+          'ListaMotivosConvocacao'            VALUE JSON_SERIALIZE(TO_CLOB(js.ListaMotivosConvocacao) RETURNING CLOB),
+          'ListaMotivosMovimentacao'          VALUE JSON_SERIALIZE(TO_CLOB(js.ListaMotivosMovimentacao) RETURNING CLOB),
+          'ListaPrograma'                     VALUE JSON_SERIALIZE(TO_CLOB(js.ListaPrograma) RETURNING CLOB),
+          'ListaUnidadeOrganizacional'        VALUE JSON_SERIALIZE(TO_CLOB(js.ListaUnidadeOrganizacional) RETURNING CLOB),
+          'ListaCargasHorarias'               VALUE JSON_SERIALIZE(TO_CLOB(js.ListaCargasHorarias) RETURNING CLOB),
           'ListaMotivosAfastamentoQueImpedem' VALUE (
             SELECT JSON_ARRAYAGG(JSON_OBJECT(
               'deMotivoAfastTemporario'       VALUE lst.deMotivoAfastTemporario,
@@ -1056,7 +1051,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
               deCargoComissionado             PATH '$.deCargoComissionado')) lst
             LEFT JOIN CargoComissionadoLista ccoLst ON ccoLst.nmGrupoOcupacional = lst.nmGrupoOcupacional
                                                    AND NVL(ccoLst.deCargoComissionado, ' ') = NVL(lst.deCargoComissionado, ' ')),
-          'ListaNivelReferencia'              VALUE ListaNivelReferencia,
+          'ListaNivelReferencia'              VALUE JSON_SERIALIZE(TO_CLOB(js.ListaNivelReferencia) RETURNING CLOB),
 
           'ListaOrgaoPermitidos'              VALUE (
             SELECT JSON_ARRAYAGG(JSON_OBJECT(
@@ -1088,17 +1083,19 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
             LEFT JOIN RubricaLista rub ON rub.nuRubrica = SUBSTR(lst.nuRubrica,1,7)
                                       AND rub.cdAgrupamento = o.cdAgrupamento),
 
-          'NaturezaVinculo'                   VALUE js.NaturezaVinculo,
-          'RegimePrevidenciario'              VALUE js.RegimePrevidenciario,
-          'RegimeTrabalho'                    VALUE js.RegimeTrabalho,
-          'RelacaoTrabalho'                   VALUE js.RelacaoTrabalho,
-          'SituacaoPrevidenciaria'            VALUE js.SituacaoPrevidenciaria
+          'NaturezaVinculo'                   VALUE JSON_SERIALIZE(TO_CLOB(js.NaturezaVinculo) RETURNING CLOB),
+          'RegimePrevidenciario'              VALUE JSON_SERIALIZE(TO_CLOB(js.RegimePrevidenciario) RETURNING CLOB),
+          'RegimeTrabalho'                    VALUE JSON_SERIALIZE(TO_CLOB(js.RegimeTrabalho) RETURNING CLOB),
+          'RelacaoTrabalho'                   VALUE JSON_SERIALIZE(TO_CLOB(js.RelacaoTrabalho) RETURNING CLOB),
+          'SituacaoPrevidenciaria'            VALUE JSON_SERIALIZE(TO_CLOB(js.SituacaoPrevidenciaria) RETURNING CLOB)
         ABSENT ON NULL RETURNING CLOB) AS ListasVigenciasAgrupamento,
 
         '11111111111' AS nuCPFCadastrador,
         TRUNC(SYSDATE) AS dtInclusao,
         systimestamp AS dtUltAlteracao
 
+      -- Caminho Absoluto no Documento JSON
+      -- $.PAG.Rubrica.Tipos[*].Agrupamento.VigenciasAgrupamento[*]
       FROM JSON_TABLE(pVigenciasAgrupamento, '$[*]' COLUMNS (
         nuAnoMesInicioVigencia            PATH '$.nuAnoMesInicioVigencia',
         nuAnoMesFimVigencia               PATH '$.nuAnoMesFimVigencia',
@@ -1211,6 +1208,11 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
 
     vcdIdentificacao := pcdIdentificacao;
 
+    PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+      psgModulo, psgConceito, pcdIdentificacao, 0,
+      'RUBRICA AGRUPAMENTO VIGENCIA', 'JSON', SUBSTR(pVigenciasAgrupamento,1,4000),
+      cAUDITORIA_COMPLETO, pnuNivelAuditoria);
+
     -- Loop principal de processamento para Incluir a Vigências da Rubrica do Agrupamento
     FOR r IN cDados LOOP
 
@@ -1241,7 +1243,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
           psgModulo, psgConceito, vcdIdentificacao || ' ' || r.nuOutraRubrica, 1,
           'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
-          'Relação de Trabalho da Vigência da Rubrica do Agrupamento Inexistente',
+          'Outra Rubrica da Vigência da Rubrica do Agrupamento Inexistente',
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
       END IF;
 
@@ -1266,7 +1268,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
           psgModulo, psgConceito, vcdIdentificacao || ' ' || r.nmRubProporcionalidadeCHO, 1,
           'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
-          'Relação de Trabalho da Vigência da Rubrica do Agrupamento Inexistente',
+          'Rubrica Proporcionlidade de Carga Horária da Rubrica do Agrupamento Inexistente',
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
       END IF;
 
@@ -1388,6 +1390,11 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
     
     vnuRegistros := 0;
 
+    PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+      psgModulo, psgConceito, pcdIdentificacao, 0,
+      'RUBRICA AGRUPAMENTO VIGENCIA LISTAS', 'JSON', SUBSTR(pListasVigenciasAgrupamento,1,4000),
+      cAUDITORIA_COMPLETO, pnuNivelAuditoria);
+
     -- Incluir ListaUnidadesOrganizacionais
     -- Incluir ListaMotivosAfastamentoQueImpedem
     -- Incluir ListaMotivosAfastamentoExigidos
@@ -1419,7 +1426,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCLUSAO',
 		    'Motivos de Afastamento que Impedem na Vigência da Rubrica do Agrupamento Incluídas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_DETALHADO, pnuNivelAuditoria);
     END IF;
       
     FOR i IN (
@@ -1432,10 +1439,10 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
     )
     LOOP
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
-        psgModulo, psgConceito, pcdIdentificacao || ' ' || i.deMotivoAfastTemporario, 1,
+        psgModulo, psgConceito, SUBSTR(pcdIdentificacao || ' ' || i.deMotivoAfastTemporario,1,70), 1,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
 		    'Motivos de Afastamento que Impedem da Vigência da Rubrica do Agrupamento Inexistente',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_DETALHADO, pnuNivelAuditoria);
     END LOOP;
 
     -- Incluir Estrutura de Carreiras Permitidas na Vigência da Rubrica do Agrupamento
@@ -1458,7 +1465,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCLUSAO',
         'Estruturas de Carreiras na Vigência da Rubrica do Agrupamento Incluídas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_DETALHADO, pnuNivelAuditoria);
     END IF;
       
     FOR i IN (
@@ -1471,7 +1478,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
     )
     LOOP
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
-        psgModulo, psgConceito, pcdIdentificacao || ' ' || i.nmEstruturaCarreira, 1,
+        psgModulo, psgConceito, SUBSTR(pcdIdentificacao || ' ' || i.nmEstruturaCarreira,1,70), 1,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
         'Esturura de Carreira da Vigência da Rubrica do Agrupamento Inexistente',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -1499,7 +1506,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCLUSAO',
         'Níveis e Referencia Permitidas na Vigência da Rubrica do Agrupamento Incluídas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_DETALHADO, pnuNivelAuditoria);
     END IF;
       
     FOR i IN (
@@ -1512,7 +1519,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
     )
     LOOP
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
-        psgModulo, psgConceito, pcdIdentificacao || ' ' || i.nuNivel || ' ' || i.nuReferencia, 1,
+        psgModulo, psgConceito, SUBSTR(pcdIdentificacao || ' ' || i.nuNivel || ' ' || i.nuReferencia,1,70), 1,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
         'Níveis e Referencia Permitido da Vigência da Rubrica do Agrupamento Inexistente',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -1549,7 +1556,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCLUSAO',
         'Cargos Comissionados na Vigência da Rubrica do Agrupamento Incluídas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_DETALHADO, pnuNivelAuditoria);
     END IF;
       
     FOR i IN (
@@ -1565,7 +1572,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
     )
     LOOP
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
-        psgModulo, psgConceito, pcdIdentificacao || ' ' || SUBSTR(i.nmGrupoOcupacional || ' ' || i.deCargoComissionado,1,30), 1,
+        psgModulo, psgConceito, SUBSTR(pcdIdentificacao || ' ' || SUBSTR(i.nmGrupoOcupacional || ' ' || i.deCargoComissionado,1,30),1,70), 1,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
         'Cargo Comissionado da Vigência da Rubrica do Agrupamento Inexistente',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -1593,7 +1600,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCLUSAO',
         'Órgãos Permitidas na Vigência da Rubrica do Agrupamento Incluídas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_DETALHADO, pnuNivelAuditoria);
     END IF;
       
     FOR i IN (
@@ -1606,7 +1613,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
     )
     LOOP
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
-        psgModulo, psgConceito, pcdIdentificacao || ' ' || i.sgOrgao, 1,
+        psgModulo, psgConceito, SUBSTR(pcdIdentificacao || ' ' || i.sgOrgao,1,70), 1,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
         'Órgao Permitido da Vigência da Rubrica do Agrupamento Inexistente',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -1633,7 +1640,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA RUBRICAS EXIGIDAS', 'INCLUSAO',
         'Rubricas que Impedem na Vigência da Rubrica do Agrupamento Incluídas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_DETALHADO, pnuNivelAuditoria);
     END IF;
       
     FOR i IN (
@@ -1646,7 +1653,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
     )
     LOOP
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
-        psgModulo, psgConceito, pcdIdentificacao || ' ' || i.nuRubrica, 1,
+        psgModulo, psgConceito, SUBSTR(pcdIdentificacao || ' ' || i.nuRubrica,1,70), 1,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
         'Rubrica que Impede na Vigência da Rubrica do Agrupamento Inexistente',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -1672,7 +1679,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCLUSAO',
         'Rubricas Exigidas na Vigência da Rubrica do Agrupamento Incluídas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_DETALHADO, pnuNivelAuditoria);
     END IF;
       
     FOR i IN (
@@ -1685,7 +1692,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
     )
     LOOP
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
-        psgModulo, psgConceito, pcdIdentificacao || ' ' || i.nuRubrica, 1,
+        psgModulo, psgConceito, SUBSTR(pcdIdentificacao || ' ' || i.nuRubrica,1,70), 1,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
         'Rubrica Exigida na Vigência da Rubrica do Agrupamento Inexistente',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -1707,7 +1714,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
       'RUBRICA AGRUPAMENTO VIGENCIA NATVINC', 'INCLUSAO', 
       'Naturezas de Vinculo Permitidas na Vigência da Rubrica do Agrupamento Incluídas com sucesso',
-      cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      cAUDITORIA_DETALHADO, pnuNivelAuditoria);
     END IF;
       
     FOR i IN (
@@ -1718,7 +1725,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
     )
     LOOP
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
-        psgModulo, psgConceito, pcdIdentificacao || ' ' || i.nmNaturezaVinculo, 1,
+        psgModulo, psgConceito, SUBSTR(pcdIdentificacao || ' ' || i.nmNaturezaVinculo,1,70), 1,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
         'Natureza do Vínculo da Vigência da Rubrica do Agrupamento Inexistente',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -1740,7 +1747,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA REGPREV', 'INCLUSAO',
         'Regime Previdenciários Permitidas na Vigência da Rubrica do Agrupamento Incluídas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_DETALHADO, pnuNivelAuditoria);
     END IF;
       
     FOR i IN (
@@ -1751,7 +1758,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
     )
     LOOP
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
-        psgModulo, psgConceito, pcdIdentificacao || ' ' || i.nmRegimepreVidenciario, 1,
+        psgModulo, psgConceito, SUBSTR(pcdIdentificacao || ' ' || i.nmRegimepreVidenciario,1,70), 1,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
         'Regime Previdenciário da Vigência da Rubrica do Agrupamento Inexistente',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -1773,7 +1780,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA REGTRAB', 'INCLUSAO',
         'Regimes de Trabalho Permitidas na Vigência da Rubrica do Agrupamento Incluídas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_DETALHADO, pnuNivelAuditoria);
     END IF;
       
     FOR i IN (
@@ -1784,7 +1791,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
     )
     LOOP
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
-        psgModulo, psgConceito, pcdIdentificacao || ' ' || i.nmRegimeTrabalho, 1,
+        psgModulo, psgConceito, SUBSTR(pcdIdentificacao || ' ' || i.nmRegimeTrabalho,1,70), 1,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
         'Regime de Trabalho da Vigência da Rubrica do Agrupamento Inexistente',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -1806,7 +1813,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA RELTRAB', 'INCLUSAO',
         'Relaçao de Trabalho Permitidas na Vigência da Rubrica do Agrupamento Incluídas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_DETALHADO, pnuNivelAuditoria);
     END IF;
       
     FOR i IN (
@@ -1817,7 +1824,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
     )
     LOOP
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
-        psgModulo, psgConceito, pcdIdentificacao || ' ' || i.nmRelacaoTrabalho, 1,
+        psgModulo, psgConceito, SUBSTR(pcdIdentificacao || ' ' || i.nmRelacaoTrabalho,1,70), 1,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
         'Natureza de Vinculo da Vigência da Rubrica do Agrupamento Inexistente',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -1839,7 +1846,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA SITPREV', 'INCLUSAO',
         'Situações Previdenciárias Permitidas na Vigência da Rubrica do Agrupamento Incluídas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        cAUDITORIA_DETALHADO, pnuNivelAuditoria);
     END IF;
       
     FOR i IN (
@@ -1850,8 +1857,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
     )
     LOOP
       PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
-        psgModulo, psgConceito, pcdIdentificacao || ' ' || i.nmSituacaoPrevidenciaria, 1,
-        'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE', 'Situação Previdenciária da Vigência da Rubrica do Agrupamento Inexistente',
+        psgModulo, psgConceito, SUBSTR(pcdIdentificacao || ' ' || i.nmSituacaoPrevidenciaria,1,70), 1,
+        'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
+        'Situação Previdenciária da Vigência da Rubrica do Agrupamento Inexistente',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
     END LOOP;
 
