@@ -10,73 +10,54 @@ INDIR-IPEM/RR
 ADM-DIR
 */
 
+/* INDIR-FEMARH INDIR-IPEM/RR */
 SET SERVEROUTPUT ON SIZE UNLIMITED;
-EXEC PKGMIG_Parametrizacao.PExportar('MILITAR', 'VALORREFERENCIA');
-EXEC PKGMIG_Parametrizacao.PExportar('INDIR-FEMARH', 'VALORREFERENCIA');
-EXEC PKGMIG_Parametrizacao.PExportar('INDIR-ADERR', 'VALORREFERENCIA');
-EXEC PKGMIG_Parametrizacao.PExportar('INDIR-IATER', 'VALORREFERENCIA');
-EXEC PKGMIG_Parametrizacao.PExportar('INDIR-IERR', 'VALORREFERENCIA');
-EXEC PKGMIG_Parametrizacao.PExportar('INDIR-IPEM/RR', 'VALORREFERENCIA');
-EXEC PKGMIG_Parametrizacao.PExportar('ADM-DIR', 'VALORREFERENCIA');
-
-EXEC PKGMIG_Parametrizacao.PExportar('MILITAR', 'BASECALCULO');
-EXEC PKGMIG_Parametrizacao.PExportar('INDIR-FEMARH', 'BASECALCULO');
-EXEC PKGMIG_Parametrizacao.PExportar('INDIR-ADERR', 'BASECALCULO');
-EXEC PKGMIG_Parametrizacao.PExportar('INDIR-IATER', 'BASECALCULO');
-EXEC PKGMIG_Parametrizacao.PExportar('INDIR-IERR', 'BASECALCULO');
-EXEC PKGMIG_Parametrizacao.PExportar('INDIR-IPEM/RR', 'BASECALCULO');
-EXEC PKGMIG_Parametrizacao.PExportar('ADM-DIR', 'BASECALCULO');
-
-EXEC PKGMIG_Parametrizacao.PExportar('MILITAR', 'RUBRICA');
-EXEC PKGMIG_Parametrizacao.PExportar('INDIR-FEMARH', 'RUBRICA');
-EXEC PKGMIG_Parametrizacao.PExportar('INDIR-ADERR', 'RUBRICA');
-EXEC PKGMIG_Parametrizacao.PExportar('INDIR-IATER', 'RUBRICA');
-EXEC PKGMIG_Parametrizacao.PExportar('INDIR-IERR', 'RUBRICA');
-EXEC PKGMIG_Parametrizacao.PExportar('INDIR-IPEM/RR', 'RUBRICA');
-EXEC PKGMIG_Parametrizacao.PExportar('ADM-DIR', 'RUBRICA');
-
-SELECT sgConceito, sgAgrupamento, TO_CHAR(dtExportacao, 'YYYY/MM/DD HH24:MI:SS') AS dtExportacao,
-COUNT(*) AS nuRegistros FROM emigParametrizacao
-GROUP BY sgConceito, sgAgrupamento, TO_CHAR(dtExportacao, 'YYYY/MM/DD HH24:MI:SS')
-ORDER BY sgConceito, sgAgrupamento, dtExportacao
-;
-
-EXEC PKGMIG_Parametrizacao.PImportar('ADM-DIR', 'INDIR-IPEM/RR', 'RUBRICA', 'DETALHADO');
-
-PROCEDURE pExportar(psgAgrupamento IN VARCHAR2,
-  psgConceito IN VARCHAR2, pNivelAuditoria VARCHAR2 DEFAULT NULL
-);
-
-PROCEDURE pImportar(psgAgrupamentoOrigem IN VARCHAR2, psgAgrupamentoDestino IN VARCHAR2,
-  psgConceito IN VARCHAR2, pNivelAuditoria VARCHAR2 DEFAULT NULL
-);
-
---- Parametrizações
-select sgAgrupamento, sgConceito, TO_CHAR(max(dtExportacao), 'YYYY/MM/DD HH24:MI:SS') as dtExportacao from emigParametrizacao
-where sgAgrupamento = 'ADM-DIR' and sgConceito = 'RUBRICA'
-group by sgAgrupamento, sgConceito;
-
-select TO_CHAR(dtExportacao, 'YYYY/MM/DD HH24:MI:SS') as dtExportacao, sgConceito, cdIdentificacao, jsConteudo
-from emigParametrizacao
-where sgAgrupamento = 'ADM-DIR' and sgConceito = 'RUBRICA'
- and TO_CHAR(dtExportacao, 'YYYY/MM/DD HH24:MI:SS') = '2025/06/21 18:31:01'
-order by dtExportacao desc, cdIdentificacao
-;
+EXEC PKGMIG_Parametrizacao.PImportar('INDIR-FEMARH', 'INDIR-IPEM/RR', 'BASECALCULO');
 
 --- Log das Operações
-select sgAgrupamento, sgConceito, tpOperacao,
-TO_CHAR(min(dtOperacao), 'YYYY/MM/DD HH24:MI:SS') as dtOperacaoMin,
-TO_CHAR(max(dtOperacao), 'YYYY/MM/DD HH24:MI:SS') as dtOperacaoMax
-from emigParametrizacaoLog
-group by sgAgrupamento, sgConceito, tpOperacao
-order by sgAgrupamento, sgConceito, tpOperacao desc
+--- Log das Operações
+SELECT tpOperacao, TO_CHAR(dtOperacao, 'YYYY/MM/DD HH24:MI') as dtOperacao, --sgConceito, 
+nmEntidade, cdIdentificacao, nmEvento, nuRegistros, deMensagem, dtInclusao from emigParametrizacaoLog
+WHERE tpOperacao = 'IMPORTACAO' AND sgAgrupamento = 'INDIR-IPEM/RR' AND sgConceito = 'BASECALCULO'
+  --AND nmEntidade LIKE 'BASE CALCULO%'
+  --AND cdIdentificacao LIKE 'B1000%'
+  --AND nmEvento = 'RESUMO'
+  --AND nmEvento = 'JSON'
+ORDER BY dtInclusao
 ;
 
-select nmEntidade, cdIdentificacao, nmEvento, deMensagem, dtInclusao from emigParametrizacaoLog
-where sgAgrupamento = 'ADM-DIR' and sgConceito = 'RUBRICA' and tpOperacao = 'EXPORTACAO'
-order by dtInclusao desc
+--SELECT DISTINCT sgAgrupamento, sgConceito, TO_CHAR(dtOperacao, 'YYYY/MM/DD HH24:MI') AS dtOperacao FROM emigParametrizacaoLog
+DELETE FROM emigParametrizacaoLog
+WHERE tpOperacao = 'IMPORTACAO' AND sgAgrupamento = 'INDIR-IPEM/RR' AND sgConceito = 'BASECALCULO'
+--  AND TO_CHAR(dtOperacao, 'YYYY/MM/DD HH24:MI') = '15/06/2025 13:23'
 ;
 
+Select sgAgrupamento, sgConceito, tpOperacao, TO_CHAR(MAX(dtOperacao), 'YYYY/MM/DD HH24:MI') as dtOperacao
+FROM emigParametrizacaoLog
+WHERE tpOperacao = 'IMPORTACAO' AND sgAgrupamento = 'INDIR-IPEM/RR' AND sgConceito = 'BASECALCULO'
+GROUP BY sgAgrupamento, sgConceito, tpOperacao
+ORDER BY sgAgrupamento, sgConceito, tpOperacao
+;
+
+/* INDIR-FEMARH */
+SET SERVEROUTPUT ON SIZE UNLIMITED;
+EXEC PKGMIG_Parametrizacao.PExportar('INDIR-FEMARH', 'BASECALCULO');
+
+--- Parametrizações
+SELECT sgConceito, sgAgrupamento, cdIdentificacao, jsConteudo
+FROM emigParametrizacao
+WHERE sgAgrupamento = 'INDIR-FEMARH' AND sgConceito = 'BASECALCULO'
+  --AND nmEntidade LIKE 'BASE CALCULO%'
+  --AND cdIdentificacao LIKE 'B1000%'
+  --AND nmEvento = 'RESUMO'
+ORDER BY sgConceito, sgAgrupamento, cdIdentificacao
+;
+
+SELECT sgConceito, sgAgrupamento, TO_CHAR(dtExportacao, 'YYYY/MM/DD HH24:MI') AS dtExportacao,
+COUNT(*) AS nuRegistros FROM emigParametrizacao
+GROUP BY sgConceito, sgAgrupamento, TO_CHAR(dtExportacao, 'YYYY/MM/DD HH24:MI')
+ORDER BY sgConceito, sgAgrupamento, dtExportacao
+;
 
 SELECT DISTINCT sgAgrupamento, sgConceito, TO_CHAR(dtExportacao, 'DD/MM/YYYY HH24:MI:SS') AS dtExportacao FROM emigParametrizacao
 --DELETE FROM emigParametrizacao
@@ -84,16 +65,7 @@ WHERE sgAgrupamento = 'ADM-DIR' AND sgConceito = 'RUBRICA'
 --  AND TO_CHAR(dtExportacao, 'DD/MM/YYYY HH24:MI:SS') = '15/06/2025 13:23:10'
 ;
 
---- Log das Operações
-SELECT TO_CHAR(max(dtOperacao), 'YYYYMMDDHH24MISS') AS dtOperacao FROM emigParametrizacaoLog
---DELETE FROM emigParametrizacaoLog
-WHERE tpOperacao = 'EXPORTACAO' AND sgAgrupamento = 'ADM-DIR' AND sgConceito = 'RUBRICA'
-;
-
-select * from emigParametrizacao
-where TO_CHAR(dtExportacao, 'DD/MM/YYYY HH24:MI:SS') = '15/06/2025 13:23:10'
-;
-
+-- ===========================================================================
 select a.sgAgrupamento, 'FORMULA' as Tipo, lpad(r.cdTipoRubrica,2,0) || '-' || lpad(r.nuRubrica,4,0) as nuRubrica, f.deFormulaCalculo as Sigla
 from epagFormulaCalculo f
 inner join epagRubricaAgrupamento ra on ra.cdRubricaAgrupamento = f.cdRubricaAgrupamento
@@ -117,6 +89,7 @@ where ra.cdAgrupamento = 1 and ra.cdBaseCalculo is not null
 order by sgAgrupamento, nuRubrica, Tipo, Sigla
 ;
 
+-- ===========================================================================
 EXEC PKGMIG_Parametrizacao.pGerarResumo(
 psgAgrupamento => 'INDIR-IPEM/RR',
 psgOrgao => NULL,
@@ -129,38 +102,7 @@ pnuTempoExecucao => to_number(substr('00:19:20',1,2)*3600 + substr('00:19:20',4,
 pnuNivelAuditoria => 1
 );
 
-PKGMIG_Parametrizacao.pGerarResumo(
-psgAgrupamentoDestino,
-vsgOrgao,
-vtpOperacao,
-vdtOperacao,
-vsgModulo,
-vsgConceito,
-vdtTermino,
-vnuTempoExecucao,
-pnuNivelAuditoria
-);
-      
-SELECT
-'INDIR-IPEM/RR' as sgAgrupamento,
-NULL as sgOrgao,
-'IMPORTACAO' as tpOperacao,
-to_date('22/06/2025 06:12:32', 'DD/MM/YYYY HH24:MI:SS') as dtOperacao,
-'PAG' as sgModulo,
-'RUBRICA' as sgConceito,
-to_date('22/06/2025 06:31:53', 'DD/MM/YYYY HH24:MI:SS') as dtTermino,
-to_number(substr('00:19:20',1,2)*3600 + substr('00:19:20',4,2)*60 + substr('00:19:20',7,2)) as nuTempoExecucao,
-'1' as pnuNivelAuditoria
-FROM DUAL
-;
-
-select 'IMPORTACAO' AS tpOperacao, nmEntidade, cdIdentificacao, nmEvento, nuRegistros, deMensagem, dtInclusao from emigParametrizacaoLog
-where sgAgrupamento = 'INDIR-IPEM/RR' and sgConceito = 'RUBRICA' and tpOperacao = 'IMPORTACAO'
-  --and nmEvento = 'JSON' and deMensagem is not null
-  and cdIdentificacao like '01-0002%'
-order by dtInclusao
-;
-
+-- ===========================================================================
 WITH
 RubricaLista AS (
 SELECT rubagrp.cdAgrupamento, rubagrp.cdRubricaAgrupamento, rub.cdRubrica,
