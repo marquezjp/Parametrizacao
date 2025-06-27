@@ -964,8 +964,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
             'deCodigoCco'             VALUE blexp.deCodigoCco,
             'cdTipoAdicionalTempServ' VALUE blexp.cdTipoAdicionalTempServ,
             'GrupoRubricas'           VALUE grupoRub.GrupoRubricas
---              CASE WHEN JSON_EXISTS(grupoRub.GrupoRubricas, '$.*') THEN NULL
---              ELSE grupoRub.GrupoRubricas END
             ABSENT ON NULL RETURNING CLOB) AS Expressao
         FROM epagFormulaCalcBlocoExpressao blexp
         INNER JOIN epagFormulaCalculoBloco bloco ON bloco.cdFormulaCalculoBloco = blexp.cdFormulaCalculoBloco
@@ -977,8 +975,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
         LEFT JOIN BlocoExpressaoRubricas grupoRub ON grupoRub.cdFormulaCalcBlocoExpressao = blexp.cdFormulaCalcBlocoExpressao
         LEFT JOIN epagValorReferencia valorReferencia ON valorReferencia.cdAgrupamento = formula.cdAgrupamento
               AND valorReferencia.cdValorReferencia = blexp.cdValorReferencia
-        LEFT JOIN epagBaseCalculo baseCalculo ON baseCalculo.cdAgrupamento = formula.cdAgrupamento
-              AND baseCalculo.cdBaseCalculo = blexp.cdBaseCalculo
+        LEFT JOIN epagBaseCalculo baseCalculo ON baseCalculo.cdBaseCalculo = blexp.cdBaseCalculo
         LEFT JOIN epagValorGeralCefAgrup valorGeral ON valorGeral.cdAgrupamento = formula.cdAgrupamento
               AND valorGeral.cdValorGeralCefAgrup = blexp.cdValorGeralCefAgrup
         LEFT JOIN EstruturaCarreiraLista cef ON cef.cdEstruturaCarreira = blexp.cdEstruturaCarreira
@@ -1508,7 +1505,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
           ABSENT ON NULL) END,
           'ParametrosAgrupamento'           VALUE JSON_OBJECT(
             'nmModalidadeRubrica'           VALUE modrub.nmModalidadeRubrica,
-            'sgBaseCalculo'                 VALUE basecalc.sgBaseCalculo,
+            'sgBaseCalculo'                 VALUE baseCalculo.sgBaseCalculo,
             'flVisivelServidor'             VALUE NULLIF(rubagrup.flVisivelServidor, 'S'),  -- DEFAULT S
             'flGeraSuplementar'             VALUE NULLIF(rubagrup.flGeraSuplementar, 'S'),  -- DEFAULT S
             'flConsad'                      VALUE NULLIF(rubagrup.flConsad, 'N'),
@@ -1528,9 +1525,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
       INNER JOIN ecadAgrupamento a ON a.cdAgrupamento = rubagrup.cdAgrupamento
       LEFT JOIN ecadHistOrgao o ON o.cdOrgao = rubagrup.cdOrgao
       LEFT JOIN epagModalidadeRubrica modrub ON modrub.cdModalidadeRubrica = rubagrup.cdModalidadeRubrica
-      LEFT JOIN epagBaseCalculo basecalc ON basecalc.cdAgrupamento = rubagrup.cdAgrupamento
-                                        AND NVL(basecalc.cdOrgao, 0) = NVL(rubagrup.cdOrgao, 0)
-                                        AND basecalc.cdBaseCalculo = rubagrup.cdBaseCalculo
+      LEFT JOIN epagBaseCalculo baseCalculo ON baseCalculo.cdBaseCalculo = rubagrup.cdBaseCalculo
       LEFT JOIN RubricaAgrupamentoVigencia vigencia ON vigencia.cdRubricaAgrupamento = rubagrup.cdRubricaAgrupamento
       LEFT JOIN Evento evento ON evento.cdRubricaAgrupamento = rubagrup.cdRubricaAgrupamento
       LEFT JOIN Formula formula ON formula.cdRubricaAgrupamento = rubagrup.cdRubricaAgrupamento
