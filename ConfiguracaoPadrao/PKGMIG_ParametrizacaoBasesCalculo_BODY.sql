@@ -243,14 +243,14 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       FROM emigParametrizacao cfg
       -- Caminho Absoluto no Documento JSON
       -- $.PAG.BASECALCULO
-      CROSS APPLY JSON_TABLE(cfg.jsConteudo, '$.PAG.BASECALCULO' COLUMNS (
+      CROSS APPLY JSON_TABLE(cfg.jsConteudo, '$.PAG.BaseCalulo' COLUMNS (
         sgBaseCalculo PATH '$.sgBaseCalculo',
         nmBaseCalculo PATH '$.nmBaseCalculo',
         Versoes       CLOB FORMAT JSON PATH '$.Versoes'
       )) js
       LEFT JOIN OrgaoLista o on o.sgAgrupamento = psgAgrupamentoDestino and nvl(o.sgOrgao,' ') = nvl(cfg.sgOrgao,' ')
       LEFT JOIN epagBaseCalculo base on base.cdAgrupamento = o.cdAgrupamento and base.sgBaseCalculo = js.sgBaseCalculo
-      WHERE cfg.sgModulo = 'PAG' AND cfg.sgConceito = 'BASECALCULO' AND cfg.flAnulado = 'N'
+      WHERE cfg.sgModulo = vsgModulo AND cfg.sgConceito = vsgConceito AND cfg.flAnulado = 'N'
         AND cfg.sgAgrupamento = psgAgrupamentoOrigem AND cfg.sgOrgao IS NULL
       )
       SELECT * FROM BasesCalculo;
@@ -812,9 +812,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
         deExpressaoCalculo          PATH '$.Expressao.deExpressaoCalculo',
         deLimiteInferior            PATH '$.Expressao.Limites.deLimiteInferior',
         deLimiteSuperior            PATH '$.Expressao.Limites.deLimiteSuperior',
-        sgValorReferenciaInferior   PATH '$.Expressao.Limites.sgValorReferenciaInferior',
+        nmValorReferenciaInferior   PATH '$.Expressao.Limites.nmValorReferenciaInferior',
         nuQtdeValReferenciaInferior PATH '$.Expressao.Limites.nuQtdeValReferenciaInferior',
-        sgValorReferenciaSuperior   PATH '$.Expressao.Limites.sgValorReferenciaSuperior',
+        nmValorReferenciaSuperior   PATH '$.Expressao.Limites.nmValorReferenciaSuperior',
         nuQtdeValReferenciaSuperior PATH '$.Expressao.Limites.nuQtdeValReferenciaSuperior',
       
         nuAnoDocumento              PATH '$.Documento.nuAnoDocumento',
@@ -835,9 +835,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       )) js
       LEFT JOIN OrgaoLista o on o.sgAgrupamento = psgAgrupamentoDestino and nvl(o.sgOrgao,' ') = nvl(psgOrgao,' ')
       LEFT JOIN epagValorReferencia vlrefinf ON vlrefinf.cdAgrupamento = o.cdAgrupamento
-                                            AND vlrefinf.sgValorReferencia = js.sgValorReferenciaInferior
+                                            AND vlrefinf.nmValorReferencia = js.nmValorReferenciaInferior
       LEFT JOIN epagValorReferencia vlrefsup ON vlrefsup.cdAgrupamento = o.cdAgrupamento
-                                            AND vlrefsup.sgValorReferencia = js.sgValorReferenciaSuperior
+                                            AND vlrefsup.nmValorReferencia = js.nmValorReferenciaSuperior
       LEFT JOIN eatoTipoDocumento tpdoc ON tpdoc.deTipoDocumento = js.deTipoDocumento
       LEFT JOIN ecadMeioPublicacao meiopub ON meiopub.nmMeioPublicacao = js.nmMeioPublicacao
       LEFT JOIN ecadTipoPublicacao tppub ON tppub.nmTipoPublicacao = js.nmTipoPublicacao
@@ -1481,8 +1481,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
           'deCodigoCCO'           VALUE blexp.deCodigoCCO,
           -- 'cdtipoadicionaltempserv' VALUE cdtipoadicionaltempserv,
           'GrupoRubricas'         VALUE gruporub.GrupoRubricas
-            --CASE WHEN JSON_EXISTS(gruporub.GrupoRubricas, '$.*') THEN NULL
-            --ELSE gruporub.GrupoRubricas END
         ABSENT ON NULL RETURNING CLOB) AS expressao
       FROM epagBaseCalculoBlocoExpressao blexp
       INNER JOIN epagBaseCalculoBloco bloco ON bloco.cdBaseCalculoBloco = blexp.cdBaseCalculoBloco
@@ -1526,9 +1524,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
                 ELSE JSON_OBJECT(
                   'deLimiteInferior'            VALUE vigencia.deLimiteInferior,
                   'deLimiteSuperior'            VALUE vigencia.deLimiteSuperior,
-                  'sgValorReferenciaInferior'   VALUE vlrefinf.sgValorReferencia,
+                  'nmValorReferenciaInferior'   VALUE vlrefinf.nmValorReferencia,
                   'nuQtdeValReferenciaInferior' VALUE vigencia.nuQtdeValReferenciaInferior,
-                  'sgValorReferenciaSuperior'   VALUE vlrefsup.sgValorReferencia,
+                  'nmValorReferenciaSuperior'   VALUE vlrefsup.nmValorReferencia,
                   'nuQtdeValReferenciaSuperior' VALUE vigencia.nuQtdeValReferenciaSuperior
               ABSENT ON NULL) END,
               'Documento' VALUE
@@ -1584,7 +1582,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       SELECT a.sgAgrupamento, o.sgOrgao, base.sgBaseCalculo,
       JSON_OBJECT(
         'PAG' value JSON_OBJECT(
-          'BASECALCULO' value JSON_OBJECT(
+          'BaseCalulo' value JSON_OBJECT(
             'sgBaseCalculo' VALUE base.sgBaseCalculo,
             'nmBaseCalculo' VALUE base.nmBaseCalculo,
             'Versoes' VALUE Versoes.Versoes
