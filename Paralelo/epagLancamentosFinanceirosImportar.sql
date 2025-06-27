@@ -34,7 +34,7 @@
 DECLARE
   -- Parâmetros obrigatórios com valores default
   pAcao          CHAR         := 'I';          -- Default: Inclusão
-  pCompetencia   INTEGER      := 202411;       -- Default: Nov/2025
+  pCompetencia   INTEGER      := 202505;       -- Default: Nov/2025
   pAgrupamento   INTEGER      := 19;           -- Default: Agrupamento 19
   
   -- Parâmetros opcionais inicializados como NULL
@@ -69,7 +69,7 @@ BEGIN
     RAISE_APPLICATION_ERROR(-20003, 'Agrupamento não pode ser nulo');
   END IF;
 
-  pCompetencia := 202411; -- Nov/2024
+  pCompetencia := 202505; -- Nov/2024
   pAgrupamento := 19;     -- Militares
   pAcao := 'E';           -- Exclusão
   pTpRubrica := Null;     -- Todos
