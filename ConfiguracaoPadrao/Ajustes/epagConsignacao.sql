@@ -76,36 +76,73 @@ LEFT JOIN epagConsignataria cst ON cst.cdConsignataria = csg.cdConsignataria
 /
 
 -- Vigência da Consignação
-SELECT
-cdhistconsignacao,
-cdconsignacao,
-dtiniciovigencia,
-dtfimvigencia,
-vlminconsignado,
-fllancamentomanual,
-fldescontoparcial,
-flformulacalculo,
-vlmindescontofolha,
-numaxparcelas,
-flmaisdeumaocorrencia,
-vltaxaretencao,
-vlretencao,
-vltaxair,
-vltaxaadministracao,
-vltaxaprolabore,
-fldescontoeventual,
-cddocumento,
-cdtipopublicacao,
-dtpublicacao,
-nupublicacao,
-nupaginicial,
-cdmeiopublicacao,
-deoutromeio,
-nucpfcadastrador,
-dtinclusao,
-dtultalteracao,
-vltaxabescor
-FROM epagHistConsignacao
+SELECT vigencia.cdConsignacao,
+JSON_OBJECT(
+  'Vigencias' VALUE JSON_ARRAYAGG(JSON_OBJECT(
+    'dtInicioVigencia' VALUE CASE WHEN vigencia.dtInicioVigencia IS NULL THEN NULL
+      ELSE TO_CHAR(vigencia.dtInicioVigencia, 'YYYY-DD-MM') END,
+    'dtFimVigencia'    VALUE CASE WHEN vigencia.dtFimVigencia IS NULL THEN NULL
+      ELSE TO_CHAR(vigencia.dtFimVigencia, 'YYYY-DD-MM') END,
+    'Parametros' VALUE
+      CASE WHEN vigencia.nuMaxParcelas IS NULL AND vigencia.vlMinConsignado IS NULL AND
+        vigencia.vlMinDescontoFolha IS NULL AND NULLIF(vigencia.flMaisDeUmaOcorrencia, 'S') IS NULL AND
+        NULLIF(vigencia.flLancamentoManual, 'N') IS NULL AND NULLIF(vigencia.flDescontoEventual, 'N') IS NULL AND
+        NULLIF(vigencia.flDescontoParcial, 'N') IS NULL AND NULLIF(vigencia.flFormulaCalculo, 'N') IS NULL
+      THEN NULL
+      ELSE JSON_OBJECT(
+      'nuMaxParcelas'               VALUE vigencia.nuMaxParcelas,
+      'vlMinConsignado'             VALUE vigencia.vlMinConsignado,
+      'vlMinDescontoFolha'          VALUE vigencia.vlMinDescontoFolha,
+      'flMaisDeUmaOcorrencia'       VALUE NULLIF(vigencia.flMaisDeUmaOcorrencia, 'S'),
+      'flLancamentoManual'          VALUE NULLIF(vigencia.flLancamentoManual, 'N'),
+      'flDescontoEventual'          VALUE NULLIF(vigencia.flDescontoEventual, 'N'),
+      'flDescontoParcial'           VALUE NULLIF(vigencia.flDescontoParcial, 'N'),
+      'flFormulaCalculo'            VALUE NULLIF(vigencia.flFormulaCalculo, 'N')
+    ABSENT ON NULL) END,
+    'TaxaRetencao' VALUE
+      CASE WHEN vigencia.vlRetencao IS NULL AND vigencia.vlTaxaRetencao IS NULL AND vigencia.vlTaxaIR IS NULL AND
+        vigencia.vlTaxaAdministracao IS NULL AND vigencia.vlTaxaProlabore IS NULL AND vigencia.vlTaxaBescor IS NULL
+      THEN NULL
+      ELSE JSON_OBJECT(
+      'vlRetencao'                  VALUE vigencia.vlRetencao,
+      'vlTaxaRetencao'              VALUE vigencia.vlTaxaRetencao,
+      'vlTaxaIR'                    VALUE vigencia.vlTaxaIR,
+      'vlTaxaAdministracao'         VALUE vigencia.vlTaxaAdministracao,
+      'vlTaxaProlabore'             VALUE vigencia.vlTaxaProlabore,
+      'vlTaxaBescor'                VALUE vigencia.vlTaxaBescor
+    ABSENT ON NULL) END,
+    'Documento' VALUE
+      CASE WHEN doc.nuAnoDocumento IS NULL AND vigencia.cdTipoPublicacao IS NULL AND
+        doc.dtDocumento IS NULL AND doc.nuNumeroAtoLegal IS NULL AND doc.deObservacao IS NULL AND
+        vigencia.cdMeioPublicacao IS NULL AND vigencia.cdTipoPublicacao IS NULL AND
+        vigencia.dtPublicacao IS NULL AND vigencia.nuPublicacao IS NULL AND vigencia.nuPagInicial IS NULL AND
+        vigencia.deOutroMeio IS NULL AND doc.nmArquivoDocumento IS NULL AND doc.deCaminhoArquivoDocumento IS NULL
+      THEN NULL
+      ELSE JSON_OBJECT(
+      'nuAnoDocumento'              VALUE doc.nuAnoDocumento,
+      'deTipoDocumento'             VALUE tpdoc.deTipoDocumento,
+      'dtDocumento'                 VALUE CASE WHEN doc.dtDocumento IS NULL THEN NULL
+                                          ELSE TO_CHAR(doc.dtDocumento, 'YYYY-DD-MM') END,
+      'nuNumeroAtoLegal'            VALUE doc.nuNumeroAtoLegal,
+      'deObservacao'                VALUE doc.deObservacao,
+      'nmMeioPublicacao'            VALUE meiopub.nmMeioPublicacao,
+      'nmTipoPublicacao'            VALUE tppub.nmTipoPublicacao,
+      'dtPublicacao'                VALUE CASE WHEN vigencia.dtPublicacao IS NULL THEN NULL
+                                          ELSE TO_CHAR(vigencia.dtPublicacao, 'YYYY-DD-MM') END,
+      'nuPublicacao'                VALUE vigencia.nuPublicacao,
+      'nuPagInicial'                VALUE vigencia.nuPagInicial,
+      'deOutroMeio'                 VALUE vigencia.deOutroMeio,
+      'nmArquivoDocumento'          VALUE doc.nmArquivoDocumento,
+      'deCaminhoArquivoDocumento'   VALUE doc.deCaminhoArquivoDocumento
+    ABSENT ON NULL) END
+ABSENT ON NULL) ORDER BY vigencia.dtInicioVigencia DESC RETURNING CLOB) RETURNING CLOB) AS Vigencias
+FROM epagHistConsignacao vigencia
+LEFT JOIN eatoDocumento doc ON doc.cdDocumento = vigencia.cdDocumento
+LEFT JOIN eatoTipoDocumento tpdoc ON tpdoc.cdTipoDocumento = doc.cdTipoDocumento
+LEFT JOIN ecadMeioPublicacao meiopub ON meiopub.cdMeioPublicacao = vigencia.cdMeioPublicacao
+LEFT JOIN ecadTipoPublicacao tppub ON tppub.cdTipoPublicacao = vigencia.cdTipoPublicacao
+WHERE doc.cdDocumento IS NOT NULL
+GROUP BY vigencia.cdConsignacao
 ;
 /
 
