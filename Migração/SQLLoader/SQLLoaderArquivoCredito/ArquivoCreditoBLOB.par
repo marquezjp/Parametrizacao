@@ -1,9 +1,0 @@
-sqlldr userid=SIGRHMIG/sigrh@//10.48.1.68:1521/sigrhrrtst control=LoaderArquivoCredito.ctl
-
-sqlldr userid=SIGRHMIG/mS2u#Rh@//192.168.1.10:1521/sigrhprd control=LoaderArquivoCredito_Legado_202309.ctl
-
-LoaderArquivoCredito_Legado_202309
-
-Get-ChildItem -Name *.txt > teste.md
-
-sqlplus SIGRHMIG/mS2u#Rh@//192.168.1.10:1521/sigrhprd

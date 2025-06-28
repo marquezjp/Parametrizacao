@@ -1,6 +1,0 @@
-userid=SIGRHMIG/sigrh@//10.48.1.68:1521/sigrhrrtst
-control=ArquivoCredito.ctl
-log=ArquivoCredito.log
-bad=ArquivoCredito.bad
-data=ArquivoCredito.dat
-direct=true

@@ -1,7 +1,0 @@
-userid=SIGRHMIG/sigrh@//10.48.1.68:1521/sigrhrrtst
-control=emigvinculoefetivo.ctl
-log=emigvinculoefetivo.log
-bad=emigvinculoefetivo.bad
-data='SIGRH-RR-VINCULO-EFETIVO-*.csv'
-direct=true
-silent=header, feedback

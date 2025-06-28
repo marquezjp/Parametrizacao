@@ -1,6 +1,0 @@
-userid=SIGRH/sigrh@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=10.48.1.68)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=sigrhrrtst)))
-control=email.ctl
-log=email.log
-bad=email.bad
-data=email.dat
-direct=true

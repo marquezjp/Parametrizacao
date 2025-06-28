@@ -1,7 +1,0 @@
-userid=SIGRHMIG/mS2u#Rh@//192.168.1.10:1521/sigrhprd
-control=emigcapapagamento.ctl
-log=emigcapapagamento.log
-bad=emigcapapagamento.bad
-data='SIGRH-RR-CAPAPAGAMENTO-202310*.csv'
-direct=true
-silent=header, feedback
