@@ -1,0 +1,37 @@
+{
+	"PAG": {
+		"ValorReferencia": {
+			"sgValorReferencia": "Sigla do Valor de Referencia",
+			"nmValorReferencia": "Nome do Valor de Referencia",
+			"Parametrizacao": {
+				"flValeTransporte": "Indica se é Vale Transporte",
+				"flCorrecaoMonetaria": "Indica se é Correção Monetária",
+				"flBloqueioRemuneracao": "Indica se é Bloqueio Remuneração",
+				"flPermiteValorRetroativo": "Indica se Permite Valores Retroativo",
+				"flTetoAuxilioFuneral": "Indica se é Teto Auxilio Funeral"
+			},
+			"Versoes": [
+				{
+					"nuVersao": "Número da Versão do Valor de Referencia",
+					"Vigencias": [
+						{
+							"nuAnoMesInicioVigencia": "AAAAMM",
+							"nuAnoMesFimVigencia": "AAAAMM",
+							"Valor": {
+								"vlReferencia": "Valor do Valor de Referencia",
+								"qtValorReferencia": "Quantidade do Valor de Referencia",
+								"nuPercentual": "Percentual do Valor de Referencia",
+								"inTipoReferencia": "Tipo do Valor de Referencia"
+							},
+							"TabelaGeral": {
+								"sgTabelaValorGeralCEF": "Sigla da Tabela Valor Geral do Cargo Efetivo",
+								"nuNivel": "Código do Nível",
+								"nuReferencia": "Código da Referencia"
+							}
+						}
+					]
+				}
+			]
+		}
+	}
+}

@@ -1,0 +1,486 @@
+{
+  "PAG": {
+    "Rubrica": {
+      "nuNaturezaRubrica": "Tipos Principais das Rubricas sendo: Natureza de Proventos '01', Natureza de Desconto '05', Natireza de Totalizadores '09'",
+      "nuRubrica": "0287",
+      "nmNaturezaRubrica": "Descrição dos Tipos Principais das Rubricas sendo: 'PROVENTO', 'DESCONTO', 'TOTALIZADORES'",
+      "deRubrica": "Descrição da Rubrica",
+      "Tipos": [
+        {
+          "nuTipoRubrica": "Tipos de Rubricas, sendo que:
+            para Proventos: '01', '02', '03', '08', '10', '12';
+            para Descontos: '05', '06', '07', '04', '11', '13';
+            para Totalizadoras '09'",
+          "deTipoRubrica": "Descrição Resumida dos Tipos de Rubricas, sendo que
+            para Proventos: 'PROV.NORMAL', 'DIFER.PROV.', 'PRV.EXT.FOLH', 'DEVOL.PROV.', 'PRVEXERFINDO', 'DESCEXEFINDO';
+            para Descontos: 'DESCONTO', 'DIF.DESCONTO', 'DESC.EXT.FOL', 'DEVOL.DESC.', 'PRV.EXFINANT', 'DES.EXFINANT';
+            para Totalizadoras 'TOTALIZADOR'",
+          "VigenciasTipo": [
+            {
+              "nuAnoMesInicioVigencia": "AAAAMM",
+              "nuAnoMesFimVigencia": "AAAAMM",
+              "deRubrica": "Descrição da Rubrica no Tipo da Rubrica"
+            }
+          ],
+          "GruposRubrica": ["Lista de Grupos de Rubricas"],
+          "Empenho": {
+            "inNaturezaTCE": "XXX 'X', YYY 'Y', Padrão ''",
+            "nuUnidadeOrcamentaria": "Número Unidade Orçamentaria",
+            "nuSubAcao": "Número da Subação",
+            "nuFonteRecurso": "Número Fonte Recurso",
+            "nuCNPJOutroCredor": "Número CNPJ outro Credor",
+            "ElementosDespesas": {
+              "FolhaMensal": {
+                "nuElemDespesaAtivo": "Número Elemento de Despesa Servidor Ativo Estatutário",
+                "nuElemDespesaRegGeral": "Número Elemento de Despesa Servidor Ativo Regime Geral",
+                "nuElemDespesaInativo": "Número Elemento de Despesa Servidor Inativo",
+                "nuElemDespesaAtivoCLT": "Número Elemento de Despesa Servidor Ativo CLT",
+                "nuElemDespesaPensaoEsp": "Número Elemento de Despesa Pensão Especial",
+                "nuElemDespesaCTISP": "Número Elemento de Despesa da Contribuição Social Militar"
+              },
+              "Folha13Salario": {
+                "nuElemDespesaAtivo13": "Número Elemento de Despesa Servidor Ativo Estatutário 13º Salário",
+                "nuElemDespesaRegGeral13": "Número Elemento de Despesa Servidor Ativo Regime Geral 13º Salário",
+                "nuElemDespesaInativo13": "Número Elemento de Despesa Servidor Inativo 13º Salário",
+                "nuElemDespesaAtivoCLT13": "Número Elemento de Despesa Servidor Ativo CLT 13º Salário",
+                "nuElemDespesaPensaoEsp13": "Número Elemento de Despesa Pensão Especial 13º Salário",
+                "nuElemDespesaCTISP13": "Número Elemento de Despesa Contribuição Social Militar 13º Salário"
+              }
+            },
+            "Consignacao": {
+              "nuCodigoConsignataria": "Número Código Consignatária",
+              "nuOutraConsignataria": "Número outra Consignatária",
+              "flExtraOrcamentaria": "Indica se é contabilizado extra orçamentário, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'"
+            }
+          },
+          "Agrupamento": {
+            "RubricaPropria": {
+              "flIncorporacao": "Indica se Rubrica é Própria para Incorporação, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+              "flPensaoAlimenticia": "Indica se Rubrica é Própria para desconto de Pensão Alimentícia, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+              "flAdiant13Pensao": "Indica se Rubrica é Própria para desconto de Pensão Alimentícia - Adiantamento 13º Salário, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+              "fl13SalPensao": "Indica se Rubrica é Própria para desconto de Pensão Alimentícia - 13º salário, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+              "flConsignacao": "Indica se Rubrica é Própria para descontos de Consignações, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+              "flTributacao": "Indica se Rubrica é Própria para desconto de Tributações, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+              "flSalarioFamilia": "Indica se Rubrica é Própria para pagamento de Salário Família, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+              "flSalarioMaternidade": "Indica se Rubrica é Própria para pagamento de Salário Maternidade, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+              "flDevTributacaoIPREV": "Indica se Rubrica é Própria para Contribuição Previdenciária Própria para Restituição ao Erário, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+              "flDevCorrecaoMonetaria": "Indica se Rubrica é Própria para Correção Monetária, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+              "flAbonoPermanencia": "Indica se Rubrica é Própria para Abono de Permanência, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+              "flApostilamento": "Indica se Rubrica é Própria para Apostilamento de Militar, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+              "flContribuicaoSindical": "Indica se Rubrica é Própria para Contribuição Sindical, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'"
+            },
+            "ParametrosAgrupamento": {
+              "nmModalidadeRubrica": "Nome Modalidade Rubrica",
+              "sgBaseCalculo": "Sigla BaseCalculo",
+              "flVisivelServidor": "Indica se rubrica é Visível no Contracheque do Servidor, sendo que: 'S' - Sim e 'N' - Não, padrão 'S'",
+              "flGeraSuplementar": "Indica se rubrica é Visível na Folha Suplementar, sendo que: 'S' - Sim e 'N' - Não, padrão 'S'",
+              "flConsad": "Indica se é CONSAD, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+              "flCompoe13": "Indica se Compõe Base para o 13º Salário, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+              "flPropria13": "Indica se é Própria para 13º Salário, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+              "flEmpenhadaFilial": "Indica se é Empenhada na Filial, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+              "nuElemDespesaAtivo": "Número Elemento de Despesa Servidor Ativo Estatutário",
+              "nuElemDespesaInativo": "Número Elemento de Despesa Servidor Inativo",
+              "nuElemDespesaAtivoCLT": "Número Elemento de Despesa Servidor Ativo CLT",
+              "nuOrdemConsad": "Número Ordem CONSAD"
+            },
+            "VigenciasAgrupamento": [
+              {
+                "nuAnoMesInicioVigencia": "AAAAMM",
+                "nuAnoMesFimVigencia": "AAAAMM",
+                "DadosRubrica": {
+                  "deRubricaAgrupamento": "Descrição da Rubrica no Agrupamento",
+                  "deRubricaAgrupResumida": "Descrição Resumida da Rubrica no Agrupamento",
+                  "mnRelacaoTrabalho": "Relação de Trabalho Permitidos, sendo  que:
+                    EFETIVO,
+                    COMISSIONADO,
+                    ADMITIDO EM CARÁTER TEMPORÁRIO,
+                    MILITAR,
+                    RESIDENTE,
+                    ESTAGIÁRIO,
+                    PESQUISADOR,
+                    AGENTE POLÍTICO,
+                    CONSELHEIRO,
+                    CONSELHEIRO",
+                  "flCargaHorariaPadrao": "Indica se Utiliza Carga Horaria Padrão, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "nuCargaHorariaSemanal": "Número Carga Horaria Semanal",
+                  "nuOutraRubrica": "Número outra Rubrica"
+                },
+                "Inventario": {
+                  "deRubricaAgrupDetalhada": "Descrição Detalhada da Rubrica no Agrupamento",
+                  "deFormula": "Descrição Formula de Cálculo da Rubrica no Agrupamento",
+                  "deModulo": "Descrição Modulo",
+                  "deComposicao": "Descrição Composição",
+                  "deVantagensNaoAcumulaveis": "Descrição Vantagens não Acumuláveis",
+                  "deObservacao": "Observação"
+                },
+                "LancamentoFinanceiro": {
+                  "inSePossuirValorInformado": "Se Possuir Valor Informado, sendo que:
+                    1 - RELACAO VINCULO PRINCIPAL;
+                    2 - PARA CARGO COMISSIONADO;
+                    3 - PARA SUBSTITUICAO DE CARGO COMISSIONADO;
+                    4 - PARA ESPECIALIDADE COMO TITULAR;
+                    5 - PARA SUBSTITUICAO DE ESPECIALIDADE;
+                    6 - PARA APOSENTADORIA;
+                    7 - PARA CARGO EFETIVO;
+                    Padrão 1 - RELACAO VINCULO PRINCIPAL",
+                  "inLancPropRelVinc": "Quando Executado por Fórmula de Cálculo, sendo:
+                    1 - Para Principal - Gerar Para a Relação de Vinculo Principal;
+                    2 - Para Todas - Gerar para Todas as Relações de Vínculo;
+                    3 - Apenas Cargo Comissionado - Gerar Apenas para as Relações de Vínculo de Comissionado;
+                    4 - Apenas Função de Chefia - Gerar Apenas para as Relações de Vínculo Função de Chefia; e
+                    5 - Apenas Aposentadoria - Gerar Apenas para a Relação de Vínculo Aposentadoria.
+                    Padrão 2 - Para Todas",
+                  "flBloqLancFinanc": "Indica se Rubrica deve ser bloqueada para Lançamentos Financeiros, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flSuspensa": "Indica se Rubrica está Suspensa, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flSuspensaRetroativoErario": "Indica se Rubrica é Bloqueada para Lançamentos nos Processos de Retroativo e de Erário, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flConsolidaRubrica": "Indicar se Rubrica deve ser Consolida caso possua outras com sufixos diferentes e não sejam advindas de lançamento financeiro, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flPermiteAfastAcidente": "Indica se Rubrica é Permitida apenas para servidores que estejam ou estiveram afastados no mês por afastamento caracterizado como acidente de trabalho, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flValidaSufixoPrecedenciaLF": "Indica se o Sufixo da Rubrica do Lançamento Financeiro prevalência sobre a geração automática, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'"
+                },
+                "GerarRubrica": {
+                  "inGeraRubricaUO": "Unidades Organizacionais em relação à geração da rubrica, sendo que:
+                    1 - Algumas Impedem - Algumas Unidades Organizacionais Impedem a geração da rubrica;
+                    2 - Algumas Exigem - Algumas Unidades Organizacionais Exigem a geração da rubrica;
+                    3 - Todas Permitem - Todas as Unidades Organizacionais Permitem a geração da rubrica; e
+                    4 - Nenhuma Permite.
+                    Padrão 3 - Todas Permitem",
+                  "ListaUnidadeOrganizacional": ["Lista de Unidade Organizacional que Impedem ou Exigem para geração da Rubrica"],
+                  "inGeraRubricaCarreira": "Carreiras em relação à geração da rubrica, sendo que:
+                    1 - Algumas Impedem - Algumas Carreiras Impedem a geração da rubrica;
+                    2 - Algumas Exigem - Algumas Carreiras Exigem a geração da rubrica; e
+                    3 - Todas Permitem - Todas as Carreiras Permitem a geração da rubrica.
+                    Padrão 3 - Todas Permitem,
+                  "ListaEstruturaCarreira": ["Lista de Cargos e Carreiras que Impedem ou Exigem para geração da Rubrica"],
+                  "inGeraRubricaNivel": "Níveis e Referências em relação à geração da rubrica, sendo que:
+                    1 - Algumas Impedem - Alguns Níveis e Referências Impedem a geração da rubrica;
+                    2 - Algumas Exigem - Alguns Níveis e Referências Exigem a geração da rubrica;
+                    3 - Todas Permitem - Todos os Níveis e Referências Permitem a geração da rubrica; e
+                    4 - Nenhuma Permite.
+                    Padrão 3 - Todas Permitem",
+                  "ListaNivelReferencia": ["Lista de Códigos de Níveis e Códigos de Referencia que Impedem ou Exigem para geração da Rubrica"]
+                  "inGeraRubricaCCO": "Cargos Comissionados em relação à geração da rubrica, sendo que:
+                    1 - Algumas Impedem - Alguns Cargos Comissionados Impedem a geração da rubrica;
+                    2 - Algumas Exigem - Alguns Cargos Comissionados Exigem a geração da rubrica1;
+                    3 - Todas Permitem - Todos os Cargos Comissionados Permitem a geração da rubrica; e
+                    4 - Nenhuma Permite.
+                    Padrão 3 - Todas Permitem",
+                  "ListaCargoComissionado": ["Lista de Cargos Comissionado que Impedem ou Exigem para geração da Rubrica"],
+                  "inGeraRubricaFUC": "Funções de Chefia em relação à geração da rubrica, sendo que:
+                    1 - Algumas Impedem - Algumas Funções de Chefia impedem a geração da rubrica;
+                    2 - Algumas Exigem - Algumas Funções de Chefia exigem a geração da rubrica;
+                    3 - Todas Permitem - Todas as Funções de Chefia permitem a geração da rubrica; e
+                    4 - Nenhuma Permite - Nenhuma Função de Chefia permite a geração da rubrica.
+                    Padrão 3 - Todas Permitem",
+                  "ListaFuncaoChefia": ["Lista de Funções de Chefia que Impedem ou Exigem para geração da Rubrica"],
+                  "inGeraRubricaPrograma": "Programas de Bolsistas em relação à geração da rubrica, sendo que:
+                    1 - Algumas Impedem - Alguns Programas de Bolsistas Impedem a geração da rubrica;
+                    2 - Algumas Exigem - Alguns Programas de Bolsistas Exigem a geração da rubrica;
+                    3 - Todas Permitem - Todos os Programas de Bolsistas Permitem a geração da rubrica; e 
+                    4 - Nenhuma Permite.
+                    Padrão 3 - Todas Permitem",
+                  "ListaPrograma": ["Lista de Programa que Impedem ou Exigem para geração da Rubrica"],
+                  "inAposentadoriaServidor": "Gerar Rubrica para Servidor Aposentado, sendo que:
+                    1 - Deve estar Aposentado;
+                    2 - Deve ter o Direito à Aposentadoria;
+                    3 - Laudo Pericial por Invalidez - Laudo pericial que concedeu a aposentadoria por invalidez precisa ter determinado o acompanhamento constante ou internação em decorrência de acidente de trabalho.
+                    Padrão 2 - Deve ter o Direito à Aposentadoria",
+                  "ListaModeloAposentadoria": ["Lista de Modelos Aposentadoria que Impedem ou Exigem para geração da Rubrica"],
+                  "inGeraRubricaAfastTemp": "Motivos de Afastamento Temporários Remunerados que Impedem a Geração da Rubrica, sendo que:
+                    1 - Motivos Impedem - Alguns institutos/motivos de movimentação impedem a geração da rubrica;
+                    2 - Motivos Não Impedem - Alguns institutos/motivos de movimentação permitem a geração da rubrica; e
+                    3 - Nenhum Impede - Todos os institutos/motivos de movimentação permitem a geração da rubrica.
+                    Padrão 3 - Nenhum Impede",
+                  "ListaMotivosAfastamentoQueImpedem": ["Lista de Motivos de Afastamento que Impedem a geração da Rubrica"],
+                  "ListaMotivosAfastamentoExigidos": ["Lista de Motivos de Afastamento que Exigem para geração da Rubrica"],
+                  "inGeraRubricaMotMovi": "Motivos de Movimentação em Relação à Geração da Rubrica, sendo que:
+                    1 - Motivos Impedem;
+                    2 - Motivos Não Impedem; e
+                    3 - Nenhum Impede.
+                    Padrão 3 - Nenhum Impede",
+                  "ListaMotivosMovimentacao": ["Lista de Motivos Movimentação que Impedem ou Exigem para geração da Rubrica"],
+                  "ListaMotivosConvocacao": ["Lista de Motivos Convocação que Impedem para geração da Rubrica"],
+                  "ListaCargasHorarias": ["Lista de CargasHorarias permitidas"]
+                  "flPagaEfetivoOrgao": "Indica se Rubrica é utilizada somente para os Servidores de Cargo Efetivos do Órgão, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flPagAposentadoria": "Indica se Paga Aposentadoria, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flLaudoAcompanhamento": "Indica se Laudo pericial que concedeu a aposentadoria por invalidez precisa ter determinado o acompanhamento constante ou internação em decorrência de acidente de trabalho, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flGeraRubricaCarreiraIncideApo": "Indica se Rubrica é Pré-requisito para geração de valores para Aposentadoria, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flGeraRubricaCarreiraIncideCCO": "Indica se Rubrica é Pré-requisito para geração de valores para Cargo Comissionados, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flGeraRubricaCCOIncideCEF": "Indica se Rubrica é Pré-requisito para geração de valores para Servidor de Cargo Efetivos, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flGeraRubricaFUCIncideCEF": "Indica se Rubrica é Pré-requisito para geração de valores para Servidor em Função de Chefia, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flGeraRubricaHoraExtra": "Indica se Gera a rubrica para servidores que estejam em escalas de serviço ou em empregos de escala que determinam o pagamento de horas extras e adicionais noturnos, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flGeraRubricaEscala": "Indica se Gera a rubrica para servidores que estejam em escalas de serviço, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flGeraRubricaServCCO": "Indica se Rubrica não deve ser gerada no Órgão para servidores que ocupam Cargo Comissionado fora do Órgão, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'"
+                },
+                "Proporcionalidade": {
+                  "deTipoIndice": "Tipo de Índice Padrão, sendo que:
+                    VL - Valor;
+                    % - Percentual;
+                    HH:MM - Quantidade Horas/Minutos;
+                    DIAS - Quantidade de dias;
+                    COTA - Quant.Quotas (Soldo) 1 Cota = 1/30 Soldo;
+                    GNR - Grupo/Nível/Referência;
+                    % REF - Percentual Sobre Valores Referência;
+                    % TAB - Perc.Tabela Financeira;
+                    OUT - Outros;
+                    MESES - Meses; e
+                    ANOS - Anos.",
+                  "nmRubProporcionalidadeCHO": "Proporcionalidade de Carga Horária, sendo que:
+                    1 - Não Aplicar - Não aplicar proporcionalidade de carga horária;
+                    2 - Aplicar - Aplicar proporcionalidade da carga horária contratual do servidor; e
+                    3 - Aplicar Média - Aplicar proporcionalidade da média da carga horária contratual do servidor dentro de um período apurado.
+                    Padrão 1 - Não Aplicar",
+                  "nuMesesApuracao": "Meses de Apuracão",
+                  "flPropMesComercial": "Indica se a Proporcionalidade de Cálculo é baseada em Mês Comercial, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flCargaHorariaLimitada": "Indica se Carga horária do servidor deve ser limitada a carga horária padrão/integral, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flIgnoraAfastCEFAgPolitico": "Indica se Ignora Agastamento do Cargo Efetivo para Agente Politico, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flIncidParcialContrPrev": "Indica se Permite incidência parcial da contribuição previdenciária, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flPagaMaiorRV": "Indica se é para aplicar o índice do Cargo Comissionado no cálculo do Cargo Efetivo e pagar o maior valor, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flPercentLimitado100": "Indica se Percentual limitado a 100%, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flPercentReducaoAfastRemun": "Indica se deve ser aplicado o percentual de redução definido para alguns afastamentos temporários remunerados, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flPropServRelVinc": "Indica se deve ser aplicada a proporcionalidade dos dias em que o servidor exerceu a relação de vínculo, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flPropAfaComissionado": "Indica se deve ser aplicada a proporcionalidade dos dias afastados para ocupar Cargo Comissionado, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flPropAfaCCOSubst": "Indica se deve ser aplicada a proporcionalidade dos dias afastados para Substitutos de Cargo Comissionado, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flPropAfaComOpcPercCEF": "Indica se deve ser aplicada a proporcionalidade dos dias afastados para Cargo Comissionado com opção de percentual sobre o Cargo Efetivo, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flPropAfaFGFTG": "Indica se deve ser aplicada a proporcionalidade dos dias afastados para Função de Chefia, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flPropAfastTempNaoRemun": "Indica se deve ser aplicada a proporcionalidade dos afastamentos temporários não remunerados ao invés de descontar dias não trabalhados e ao invés de respeitar a base de cálculo já proporcionalizada, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flPropAposParidade": "Indica se dDeve ser aplicada a proporcionalidade da Aposentadoria com paridade ou Pensão não Previdenciária, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                },
+                "PermissoesRubrica": {
+                  "inImpedimentoRubrica": "Rubricas que Impedem o Recebimento, sendo que:
+                    1 - Possua Todas Impedirá o Recebimento - Caso o Servidor Possua Todas as Rubricas abaixo, o sistema Impedirá o Recebimento desta;
+                    2 - Possua ao Menos uma Impedirá o Recebimento - Caso o Servidor Possua ao Menos uma das Rubricas abaixo, o sistema Impedirá o Recebimento desta; e
+                    3 - Não se Aplica.
+                    Padrão 1 - Não Aplicar",
+                  "inRubricasExigidas": "Rubricas Exigidas para Recebimento, sendo que:
+                    1 - Possua Todas Permitirá - Caso o servidor possua todas as rubricas abaixo, o sistema permitirá o recebimento desta;
+                    2 - Possua ao Menos Uma Permitirá - Caso o servidor possua ao menos uma das rubricas abaixo, o sistema permitirá o recebimento desta; e
+                    3 - Não se aplica.",
+                  "flAplicaRubricaOrgaos": "Indica se Aplica Rubrica no Órgão, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flGestaoSobreRubrica": "Indica se Permiti gestão da rubrica para todos os órgãos, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flImpedeIdadeCompulsoria": "Indica se Impede o pagamento para servidores com direito à aposentadoria compulsória, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flPagaAposEmParidade": "Indica se é Permitido para aposentadoria sem paridade, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flPagaRespondendo": "Indica se é Permitido para servidores que estejam Respondendo, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flPagaSubstituicao": "Indica se é Permitido para servidores que estejam Substituindo, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flPermiteApoOriginadoCCO": "Indica se é Permitido para Aposentado originado de Cargo Comissionado, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flPermiteFGFTG": "Indica se é Permitido para FG/FTG/Cargo Comissionado sem Cargo Efetivo de titular, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "flPreservaValorIntegral": "Indica se Preserva o Valor Integral do Cargo Efetivo para efeito de tributação previdenciária, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                  "ListaOrgaoPermitidos": ["Lista de Órgão Permitidos"],
+                  "ListaRubricaQueImpedem": ["Lista de Rubrica que Impedem]",
+                  "ListaRubricaExigidas": ["Lista de Rubrica Exigidas"],
+                  "NaturezaVinculo": ["Lista de Natureza de Vínculo Permitidas",
+                    "CARGO PERMANENTE",
+                    "CARGO TEMPORÁRIO",
+                    "EMPREGO PERMANENTE",
+                    "EMPREGO TEMPORÁRIO",
+                    "FUNÇÃO PÚBLICA TEMPORÁRIA",
+                    "FUNÇÃO PÚBLICA ESPECIAL",
+                    "PENSIONISTA",
+                    "SERVIÇO VOLUNTÁRIO"
+                  ],
+                  "RegimePrevidenciario": ["Lista de Regimes Previdenciários Permitidos",
+                    "REGIME GERAL",
+                    "REGIME PRÓPRIO",
+                    "REGIME PRÓPRIO (OUTROS ESTADOS, MUNICÍPIOS E FEDERAL)",
+                    "CONTRIBUIÇÃO DE PROTEÇÃO SOCIAL DOS MILITARES",
+                    "SEM CONTRIBUIÇÃO"
+                  ],
+                  "RegimeTrabalho": ["Lista de Regime de Trabalho Permitidos",
+                    "ESTATUTÁRIO",
+                    "CLT",
+                    "ADMINISTRATIVO ESPECIAL",
+                    "CONTRIBUINTE INDIVIDUAL",
+                    "VOLUNTÁRIO"
+                  ],
+                  "RelacaoTrabalho": ["Lista de Relação de Trabalho Permitidos",
+                    "EFETIVO",
+                    "COMISSIONADO",
+                    "ADMITIDO EM CARÁTER TEMPORÁRIO",
+                    "MILITAR",
+                    "RESIDENTE",
+                    "ESTAGIÁRIO",
+                    "PESQUISADOR",
+                    "AGENTE POLÍTICO",
+                    "CONSELHEIRO",
+                    "CONSELHEIRO",
+                  ],
+                  "SituacaoPrevidenciaria": ["Lista de Situações Previdenciárias Permitidas",
+                    "ATIVO",
+                    "ATIVO COM DIREITO A APOSENTADORIA COMPULSÓRIA",
+                    "INATIVO/APOSENTADO",
+                    "PENSIONISTA PREVIDENCIÁRIA",
+                    "PENSIONISTA NÃO PREVIDENCIÁRIA",
+                    "FALECIDO",
+                    "FALECIDO SEM PENSÃO",
+                    "MORTE PRESUMIDA",
+                    "INSTITUIDOR DE PENSÃO",
+                    "APOSENTADORIA ENCERRADA",
+                    "AUXÍLIO RECLUSÃO",
+                    "BENEFICIÁRIO DE AUXÍLIO RECLUSÃO",
+                    "DECISÃO JUDICIAL"
+                  ]
+                }
+              }
+            ],
+            "Eventos": [
+              {
+                "nmTipoEventoPagamento": "Tipo do Evento de Pagamento",
+                "deEvento": "Descrição do Evento de Pagamento",
+                "nuRubrica": "Número da Rubrica do Evento de Pagamento",
+                "nuRubAgrupOpRecebCCO": "Número da Rubrica opção do Recebimento Cargo Comissionado",
+                "nuRubricaAgrupAlternativa2": "Número da Rubrica Alternativa 02",
+                "nuRubricaAgrupAlternativa3": "Número da Rubrica Alternativa 03",
+                "Vigencias": [
+                  {
+                    "nuAnoMesInicioVigencia": "AAAAMM",
+                    "nuAnoMesFimVigencia": "AAAAMM",
+                    "deDesconto": "Descrição Desconto",
+                    "nuRubrica": "Número da Rubrica",
+                    "MesPagamento": {
+                      "nuMesPagamento": "Mês Pagamento",
+                      "nuMesPagamentoInicio": "Mês Inicio Pagamento",
+                      "nuMesPagamentoFim": " Mês Fim Pagamento"
+                    },
+                    "nmRelacaoTrabalho": "Relação de Trabalho Permitidos, sendo que:
+                      EFETIVO,
+                      COMISSIONADO,
+                      ADMITIDO EM CARÁTER TEMPORÁRIO,
+                      MILITAR,
+                      RESIDENTE,
+                      ESTAGIÁRIO,
+                      PESQUISADOR,
+                      AGENTE POLÍTICO,
+                      CONSELHEIRO,
+                      CONSELHEIRO",
+                  "flCargaHorariaPadrao": "Indica se utiliza Carga Horaria Padrão, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                    "Orgaos": {
+                      "flAbrangeTodosOrgaos": "Indicar a Abrangências dos Órgãos do Agrupamento, sendo que:
+                        S - Todos os Órgãos; e
+                        N - Alguns Órgãos Permitidos.
+                        Padrão S - Todos os Órgãos",
+                      "Orgaos": ["Lista de Órgão do AGrupamento para a Abrangência",
+                        "ORGAO 01",
+                        "ORGAO 02",
+                        "ORGAO 03"
+                      ]
+                    },
+                    "Carreiras": {
+                      "inAcaoCarreira": "Carreiras que Impedem ou Exigem para o Recebimento, sendo que:
+                        1 - Algumas Impedem - Algumas Carreiras Impedem a geração do evento;
+                        2 - Algumas Exigem - Algumas Carreiras Exigem a geração da evento; e 
+                        3 - Todas Permitem - Todas as Carreiras Permitem a geração da evento.
+                        Padrão 3 - Todas Permitem",
+                      "EstruturaCarreira": ["Lista de Cargos e Carreiras que Impedem ou Exigem"]
+                    },
+                    "FormulaCalculo": {
+                      "flUtilizaFormulaCalculo": "Indica se Utiliza Formula de Cálculo, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                      "nuFormulaEspecifica": "Número da Formula Especifica"
+                    },
+                    "ConquistaPeriodoAquisitivo": {
+                      "dtInicioConquistaPerAquis": "AAAA-MM-DD",
+                      "dtFimConquistaPerAquis": "AAAA-MM-DD"
+                    },
+                    "Abrangencia": {
+                      "nmTipoComConselhoGrupo": "Tipo da Comissão ou Conselho ou Grupo",
+                      "nmTipoPensaoNaoPrev": "Tipo da Pensão não Previdenciária",
+                      "nmTipoTempoServico": "Tipo do Adicional de Tempo de Serviço",
+                      "nmTipoFuncaoChefia": "Tipo da Função de Chefia",
+                      "nmTipoGratAtivFazendaria": "Tipo da GRatificação de Atividade Fazendária",
+                      "nmTipoRisco": "Tipo de Risco",
+                      "nmTipoFalta": "Tipo de Falta",
+                      "nmTipoFaltaParcialAgrup": "Tipo de Falta PArcial do Agrupamento"
+                    }
+                  }
+                ]
+              }
+            ],
+            "Formula": {
+              "sgFormulaCalculo": "Sigla da Formula de Cálculo",
+              "deFormulaCalculo": "Descrição da Formula de Cálculo",
+              "Versoes": [
+                {
+                  "nuFormulaVersao": "Versão da Formula de Cálculo",
+                  "Vigencias": [
+                    {
+                      "nuAnoMesInicioVigencia": "AAAAMM",
+                      "nuAnoMesFimVigencia": "AAAAMM",
+                      "Expressao": {
+                        "deFormulaExpressao": "Expressão Matemática da Formula de Cálculo",
+                        "deExpressao": "Descrição Expressão da Formula de Cálculo",
+                        "deIndiceExpressao": "Descrição Tipo de Índice ",
+                        "flExpGeral": "Indica se é Expressão Geral, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                        "flDesprezaPropChoRubrica": "Indica se Despreza Proporcionalidade de Carga Horaria da Rubrica, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                        "flExigeIndice": "Indica se Exige o Índice Informado, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                        "flValorHoraMinuto": "Indica se o Índice é do Tipo Hora e Minuto, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                        "nmEstruturaCarreira": "Nome do Cargo e Carreira",
+                        "nmUnidadeOrganizacional": "Nome da Unidade Organizacional",
+                        "nmCargoComissionado": "Nome do Cargo Comissionado",
+                        "Blocos": [
+                          {
+                            "sgBloco": "Sigla do Bloco da Expressão Matemática da Formula de Cálculo",
+                            "Expressao": {
+                              "sgTipoMneumonico": "Sigla do Tipo do Mnemônico",
+                              "deOperacao": "Descrição Operação",
+                              "inTipoRubrica": "Quais valores a serem considerados, sendo que:
+                                I - Valor Integral;
+                                P - Valor Pago; e
+                                R - Valor Real.",
+                              "inRelacaoRubrica": "Indica se considera os valores somente da Relação de Trabalho Atual ou o somatório de todas as relações de trabalho do vínculo sendo que:
+                                R - Relação de Trabalho; e
+                                S - Somatório.",
+                              "inMes": "Indica se Valor de Referencia se refere ao mês atual ou mês anterior sendo que:
+                                AT - Valor Referente ao Mês Atual; e
+                                AN - Valor Referente ao Mês Anterior.",
+                              "nuMeses": "Número Meses",
+                              "nuValor": "Valor",
+                              "flValorHoraMinuto": "Indica se é informado como Hora e Minuto, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                              "nuRubrica": "Número Rubrica",
+                              "nuMesRubrica": "Mês da Rubrica",
+                              "nuAnoRubrica": "Ano da Rubrica",
+                              "nmValorReferencia": "Nome do Valor de Referencia",
+                              "sgBaseCalculo": "Sigla da Base de Cálculo",
+                              "sgTabelaValorGeralCef": "Sigla da Tabela Valor Geral do Cargo Efetivo",
+                              "nmEstruturaCarreira": "Nome do Cargo e Carreira",
+                              "nmFuncaoChefia": "Nome da Função de Chefia",
+                              "deNivel": "Código do Nível",
+                              "deReferencia": "Código da Referencia",
+                              "deCodigoCco": "Código de Remuneração do Cargo Comissionado",
+                              "nmTipoAdicionalTempServ": "Tipo de Adicional de Tempo de Serviço",
+                              "GrupoRubricas": ["Lista de Rubricas do Bloco",
+                                "01-0001 RUBRICA 0001",
+                                "01-0002 RUBRICA 0002",
+                                "01-0003 RUBRICA 0003"
+                              ]
+                            }
+                          }
+                        ],
+                        "FormulaEspecifica": {
+                          "sgFormulaEspecifica": "Sigla da Formula Especifica",
+                          "deFormulaEspecifica": "Descrição da Formula Especifica",
+                          "nuFormulaEspecifica": "Número da Formula Especifica"
+                        },
+                        "Limites": {
+                          "nmValorRefLimInfParcial": "Nome Valor de Referencia Limite Inferior Parcial",
+                          "nmValorRefLimSupParcial": "Nome Valor de Referencia Limite Superior Parcial",
+                          "nmValorRefLimInfFinal": "Nome Valor de Referencia Limite Inferior Final",
+                          "nmValorRefLimSupFinal": "Nome Valor de Referencia Limite Superior Final",
+                          "nuQtdeLimInfParcial": "Número Quantidade Limite Inferior Parcial",
+                          "nuQtdeLimiteSupParcial": "Número Quantidade Limite Superior Parcial",
+                          "nuQtdeLimiteInfFinal": "Número Quantidade Limite Inferior Final",
+                          "nuQtdeLimiteSupFinal": "Número Quantidade Limite Superior Final",
+                          "vlIndiceLimInferiorMensal": "Valor Índice Limite Inferior Mensal",
+                          "vlIndiceLimSuperiorMensal": "Valor Índice Limite Superior Mensal",
+                          "vlIndiceLimSuperiorSemestral": "Valor Índice Limite Superior Semestral",
+                          "vlIndiceLimSuperiorAnual": "Valor Índice Limite Superior Anual"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}

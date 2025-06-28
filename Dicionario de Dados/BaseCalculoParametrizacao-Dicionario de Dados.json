@@ -1,0 +1,86 @@
+{
+  "PAG": {
+    "BaseCalulo": {
+      "sgBaseCalculo": "Sigla da Base de Cálculo",
+      "nmBaseCalculo": "Nome da Base de Cálculo",
+      "Versoes": [
+        {
+          "nuVersao": "Número da Versão da Base de Cálculo",
+          "Vigencias": [
+            {
+              "Vigencia": {
+                "nuAnoMesInicioVigencia": "AAAAMM",
+                "nuAnoMesFimVigencia": "AAAAMM",
+                "Expressao": {
+                  "deFormula": "Expressão Matemática da Formula da Base de Cálculo",
+                  "deExpressaoCalculo": "Descrição Expressão da Base de Cálculo",
+                  "Blocos": [
+                    {
+                      "sgBloco": "Sigla do Bloco da Expressão Matemática da Base de Cálculo",
+                      "Expressao": {
+                        "sgTipoMneumonico": "Sigla do Tipo do Mnemônico",
+                        "deOperacao": "Descrição Operação",
+                        "inTipoRubrica": "Quais valores a serem considerados, sendo que:
+                          I - Valor Integral;
+                          P - Valor Pago; e
+                          R - Valor Real.",,
+                        "inRelacaoRubrica": "Indica se considera os valores somente da Relação de Trabalho Atual ou o somatório de todas as relações de trabalho do vínculo sendo que:
+                          R - Relação de Trabalho; e
+                          S - Somatório.",
+                        "inMes": "Indica se Valor de Referencia se refere ao mês atual ou mês anterior sendo que:
+                          AT - Valor Referente ao Mês Atual; e
+                          AN - Valor Referente ao Mês Anterior.",
+                        "nuMeses": "Número Meses",
+                        "nuValor": "Valor",
+                        "inTipoRetorno": "Indica o Tipo de Retorno",
+                        "inValorHoraMinuto": "Indica se é informado como Hora e Minuto, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+                        "nuRubrica": "Número Rubrica",
+                        "nuMesRubrica": "Mês da Rubrica",
+                        "nuAnoRubrica": "Ano da Rubrica",
+                        "nmValorReferencia": "Nome do Valor de Referencia",
+                        "sgBaseCalculo": "Sigla da Base de Cálculo",
+                        "sgTabelaValorGeralCEF": "Sigla da Tabela Valor Geral do Cargo Efetivo",
+                        "nmEstruturaCarreira": "Nome do Cargo e Carreira",
+                        "deNivel": "Código do Nível",
+                        "deReferencia": "Código da Referencia",
+                        "deCodigoCCO": "Código de Remuneração do Cargo Comissionado",
+                        "GrupoRubricas": ["Lista de Rubricas do Bloco",
+                                "01-0001 RUBRICA 0001",
+                                "01-0002 RUBRICA 0002",
+                                "01-0003 RUBRICA 0003"
+                        ]
+                      }
+                    }
+                  ],
+                  "Limites": {
+                    "deLimiteInferior": "Descrição Limite Inferior",
+                    "deLimiteSuperior": "Descrição Limite Superior",
+                    "nmValorReferenciaInferior": "Nome Valor de Referencia Inferior",
+                    "nuQtdeValReferenciaInferior": "Quantidade de Valor de Referencia Inferior",
+                    "nmValorReferenciaSuperior": "Nome Valor de Referencia Superior",
+                    "nuQtdeValReferenciaSuperior": "Quantidade de Valor de Referencia Superior"
+                  },
+                  "Documento": {
+                    "nuAnoDocumento": "Ano do Documento de Aparo ao Fato",
+                    "deTipoDocumento": "Tipo do Documento de Aparo ao Fato",
+                    "dtDocumento": "AAAA-MM-DD",
+                    "nuNumeroAtoLegal": "Número do Ato Legal",
+                    "deObservacao": "Observação do Ato Legal",
+                    "nmMeioPublicacao": "Meio de Publicação do Ato Legal",
+                    "nmTipoPublicacao": "Tipo de Publicação do Ato Legal",
+                    "dtPublicacao": "AAAA-MM-DD",
+                    "nuPublicacao": "Número da Publicação do Ato Legal",
+                    "nuPagInicial": "Número da Pagina Inicial da Publicação do Ato Legal",
+                    "deOutroMeio": "Descrição de Outro Meio de Publicação caso não esteja cadastrado no Meio de Publicação",
+                    "nmArquivoDocumento": "Nome do Arquivo do Documento de Aparo ao Fato",
+                    "deCaminhoArquivoDocumento": "Caminho de persistência do Arquivo do Documento de Aparo ao Fato",
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
