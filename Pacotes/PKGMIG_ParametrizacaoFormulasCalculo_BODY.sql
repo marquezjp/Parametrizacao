@@ -564,7 +564,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
       --JSON_OBJECT(
         js.nuAnoDocumento,
         tpdoc.cdTipoDocumento,
-        js.dtDocumento,
+        CASE WHEN js.dtDocumento IS NULL THEN NULL
+          ELSE TO_DATE(js.dtDocumento, 'YYYY-MM-DD') END AS dtDocumento,
         js.deObservacao,
         js.nuNumeroAtoLegal,
         js.nmArquivoDocumento,
@@ -572,7 +573,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
       --) AS cdDocumento,
       meiopub.cdMeioPublicacao,
       tppub.cdTipoPublicacao,
-      TO_DATE(js.dtPublicacao, 'yyyy-mm-dd') AS dtPublicacao,
+      CASE WHEN js.dtPublicacao IS NULL THEN NULL
+        ELSE TO_DATE(js.dtPublicacao, 'YYYY-MM-DD') END AS dtPublicacao,
       js.nuPublicacao,
       js.nuPagInicial,
       js.deOutroMeio,

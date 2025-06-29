@@ -519,8 +519,10 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoEventosPagamento AS
       NVL(js.flUtilizaFormulaCalculo, 'N') AS flUtilizaFormulaCalculo,
       js.nuFormulaEspecifica,
       
-      js.dtInicioConquistaPerAquis,
-      js.dtFimConquistaPerAquis,
+      CASE WHEN js.dtInicioConquistaPerAquis IS NULL THEN NULL
+        ELSE TO_DATE(js.dtInicioConquistaPerAquis, 'YYYY-MM-DD') END AS dtInicioConquistaPerAquis,
+      CASE WHEN js.dtFimConquistaPerAquis IS NULL THEN NULL
+        ELSE TO_DATE(js.dtFimConquistaPerAquis, 'YYYY-MM-DD') END AS dtFimConquistaPerAquis,
       
       js.cdTipoComConselhoGrupo,
       js.cdTipoPensaoNaoPrev,
