@@ -128,10 +128,10 @@ JSON_OBJECT(
   'nuContrato'                      VALUE ctr.nuContrato,
   'dtInicioContrato'                VALUE CASE WHEN ctr.dtInicioContrato IS NULL THEN NULL
                                           ELSE TO_CHAR(ctr.dtInicioContrato, 'YYYY-DD-MM') END,
-  'dtFimContrato'                   VALUE CASE WHEN ctr.dtInicioContrato IS NULL THEN NULL
-                                          ELSE TO_CHAR(ctr.dtInicioContrato, 'YYYY-DD-MM') END,
-  'dtFimProrrogacao'                VALUE CASE WHEN ctr.dtInicioContrato IS NULL THEN NULL
-                                          ELSE TO_CHAR(ctr.dtInicioContrato, 'YYYY-DD-MM') END,
+  'dtFimContrato'                   VALUE CASE WHEN ctr.dtFimContrato IS NULL THEN NULL
+                                          ELSE TO_CHAR(ctr.dtFimContrato, 'YYYY-DD-MM') END,
+  'dtFimProrrogacao'                VALUE CASE WHEN ctr.dtFimProrrogacao IS NULL THEN NULL
+                                          ELSE TO_CHAR(ctr.dtFimProrrogacao, 'YYYY-DD-MM') END,
   'nmTipoServico'                   VALUE tpserv.nmTipoServico,
   'nuCodigoConsignataria'           VALUE cst.nuCodigoConsignataria,
   'deServico'                       VALUE ctr.deServico,
@@ -497,9 +497,10 @@ LEFT JOIN ContratoServico contrato ON contrato.cdContratoServico = csg.cdContrat
 
 --SELECT MAX(LENGTH(Consignacao)) FROM Consignacao;
 SELECT cdAgrupamento, nuRubrica, Consignacao, LENGTH(Consignacao) AS Tamanho  FROM Consignacao
-WHERE SUBSTR(nuRubrica,1,7) IN ('05-0160', '05-0161', '05-0537', '05-0538', '05-0791',
-                    '05-0813', '05-0850', '05-0950', '05-0974', '05-1601', '05-1603')
+--WHERE SUBSTR(nuRubrica,1,7) IN ('05-0160', '05-0161', '05-0537', '05-0538', '05-0791',
+--                    '05-0813', '05-0850', '05-0950', '05-0974', '05-1601', '05-1603')
 --WHERE LENGTH(Consignacao) > 1400
+WHERE cdAgrupamento = 19
 ORDER BY cdAgrupamento, nuRubrica -- Tamanho DESC
 ;
 /
