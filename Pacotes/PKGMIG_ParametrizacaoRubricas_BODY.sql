@@ -670,7 +670,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
 
         meiopub.cdMeioPublicacao,
         tppub.cdTipoPublicacao,
-        TO_DATE(js.dtPublicacao, 'yyyy-mm-dd') AS dtPublicacao,
+  	    CASE WHEN js.dtPublicacao IS NULL THEN NULL
+          ELSE TO_DATE(js.dtPublicacao, 'YYYY-MM-DD') END AS dtPublicacao,
         js.nuPublicacao,
         js.nuPagInicial,
         js.deOutroMeio,
@@ -785,6 +786,48 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
     psgModulo IN CHAR, psgConceito IN VARCHAR2, pdtExportacao IN TIMESTAMP,
     pnuVersao IN CHAR, pflAnulado IN CHAR) RETURN SYS_REFCURSOR IS
     vRefCursor SYS_REFCURSOR;
+    vParametroTributacao VARCAHR2(4000) := '{"ParametroTributacao":[
+      {"tpRubAgrupParametro": "cdRubAgrupDescINSS",              "tpTributacao": "INSS"},
+      {"tpRubAgrupParametro": "cdRubAgrupDescINSSSobre13",       "tpTributacao": "INSS Gratificacao Natalina"},
+      
+      {"tpRubAgrupParametro": "cdRubAgrupDescIRRF",              "tpTributacao": "IRRF"},
+      {"tpRubAgrupParametro": "cdRubAgrupDescIRRFSobre13",       "tpTributacao": "IRRF Gratificacao Natalina"},
+      {"tpRubAgrupParametro": "cdRubAgrupDescIRRFSobreFerias",   "tpTributacao": "IRRF ferias"},
+      
+      {"tpRubAgrupParametro": "cdRubAgrupIPREVFundFinanc",       "tpTributacao": "IPER Fundo Financeiro [RRA]"},
+      {"tpRubAgrupParametro": "cdRubAgrupIPREVFundFinanc13",     "tpTributacao": "IPER Fundo Financeiro Gratificação Natalina [RRA]"},
+      {"tpRubAgrupParametro": "cdRubAgrupIPREVFundLC662",        "tpTributacao": "IPER Fundo LC 662 [RRA]"},
+      {"tpRubAgrupParametro": "cdRubAgrupIPREVFundLC66213",      "tpTributacao": "IPER Fundo LC 662 Gratificação Natalina [RRA]"},
+      {"tpRubAgrupParametro": "cdRubAgrupIPREVFundPrev",         "tpTributacao": "IPER Fundo Previdenciário [RRA]"},
+      {"tpRubAgrupParametro": "cdRubAgrupDescIPREVLiminar",      "tpTributacao": "IPER Liminar [RRA]"},
+      {"tpRubAgrupParametro": "cdRubricaAgrupDescIPREVJun1613",  "tpTributacao": "IPER Jun 1613 [RRA]"},
+      {"tpRubAgrupParametro": "cdRubricaAgrupDescIPREVJun2016",  "tpTributacao": "IPER Jun 2016 [RRA]"},
+      {"tpRubAgrupParametro": "cdRubAgrupDescIPREVDepois2008",   "tpTributacao": "IPER Fundo Previdenciário Depois 2008"},
+      {"tpRubAgrupParametro": "cdRubAgrupDescIPREVAntes2008",    "tpTributacao": "IPER Fundo Previdenciário Antes 2008"},
+      
+      {"tpRubAgrupParametro": "cdRubricaAgrupDescIPESC",         "tpTributacao": "IPESC"},
+      {"tpRubAgrupParametro": "cdRubAgrupDescIPESCSobre13",      "tpTributacao": "IPESC Gratificação Natalina"},
+      {"tpRubAgrupParametro": "cdRubricaAgrupDescIPESCJul2008",  "tpTributacao": "IPESC Jul 2008"},
+      {"tpRubAgrupParametro": "cdRubAgrupDescIPESCJul200813",    "tpTributacao": "IPESC Jul 2008 Gratificação Natalina"},
+      
+      {"tpRubAgrupParametro": "cdRubricaAgrupDescCPSM",          "tpTributacao": "CPSM"},
+      {"tpRubAgrupParametro": "cdRubAgrupDescCPSMSobre13",       "tpTributacao": "CPSM Gratificação Natalina"},
+      {"tpRubAgrupParametro": "cdRubAgrupDescCPSMRetera",        "tpTributacao": "CPSM [RRA]"},
+      {"tpRubAgrupParametro": "cdRubAgrupDescCPSMRetera13",      "tpTributacao": "CPSM Gratificação Natalina [RRA]"},
+      
+      {"tpRubAgrupParametro": "cdRubAgrupPensao13",              "tpTributacao": "Pensão Alimentícia Gratificação Natalina"},
+      {"tpRubAgrupParametro": "cdRubricaAdiant13Pensao",         "tpTributacao": "Pensão Alimentícia Adiantamento Gratificação Natalina"},
+      {"tpRubAgrupParametro": "cdRubAgrupPensaoAliRRA",          "tpTributacao": "Pensão Alimentícia [RRA]"},
+      
+      {"tpRubAgrupParametro": "cdRubAgrupDescJudicial",          "tpTributacao": "Desconto Judicial"},
+      {"tpRubAgrupParametro": "cdRubricaAgrupDescRRA",           "tpTributacao": "Desconto Judicial [RRA]"},
+      
+      {"tpRubAgrupParametro": "cdRubAgrupBloqRet",               "tpTributacao": "ABATE TETO"},
+      {"tpRubAgrupParametro": "cdRubAgrupBloqRet13Sal",          "tpTributacao": "ABATE TETO GRATIFICACAO NATALINA"},
+      {"tpRubAgrupParametro": "cdRubAgrupBloqRetExercFind",      "tpTributacao": "ABATE TETO [RRA]"},
+      {"tpRubAgrupParametro": "cdRubAgrupBloqExercFind13Sal",    "tpTributacao": "ABATE TETO GRATIFICACAO NATALINA [RRA]"}
+      ]}';
+
   BEGIN
     OPEN vRefCursor FOR
       --- Extrair os Conceito de Rubricas de Eventos de Pagamento com Os Eventos e as suas formulas de Cálculo de um Agrupamento
@@ -816,6 +859,45 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
       INNER JOIN ecadPoder p ON p.cdPoder = a.cdPoder
       INNER JOIN ecadGrupoAgrupamento g ON g.cdGrupoAgrupamento = a.cdGrupoAgrupamento
       ORDER BY sgGrupoAgrupamento, nmPoder, sgAgrupamento, sgOrgao nulls FIRST, dtInicioVigencia DESC NULLS FIRST
+      ),
+      BancoAgencia AS (
+      SELECT ag.cdAgencia,
+        LPAD(bco.nuBanco,3,0) AS nuBanco, ag.nuAgencia, ag.nuDvAgencia,
+        bco.sgBanco, bco.nmBanco, ag.nmAgencia
+      FROM ecadAgencia ag
+      INNER JOIN ecadBanco bco ON bco.cdBanco = ag.cdBanco
+      ),
+      Enderco AS (
+      SELECT ed.cdEndereco,
+      JSON_OBJECT(
+        'nuCEP'                           VALUE NVL(ed.nuCEP,
+                                                NVL(locbairro.nuCEP,loc.nuCEP)),
+        'nmTipoLogradouro'                VALUE tpLog.nmTipoLogradouro,
+        'nmLogradouro'                    VALUE ed.nmLogradouro,
+        'deComplLogradouro'               VALUE ed.deComplLogradouro,
+        'nuNumero'                        VALUE ed.nuNumero,
+        'deComplemento'                   VALUE ed.deComplemento,
+        'nmBairro'                        VALUE bairro.nmBairro,
+        'nmUnidade'                       VALUE ed.nmUnidade,
+        'nmLocalidade'                    VALUE NVL(locbairro.nmLocalidade,loc.nmLocalidade),
+        'sgEstado'                        VALUE NVL(locbairro.sgEstado,loc.sgEstado),
+        'nuCaixaPostal'                   VALUE ed.nuCaixaPostal,
+        'inTipo'                          VALUE DECODE(NVL(locbairro.inTipo,loc.inTipo),
+                                                  'M', 'MUNICIPIO',
+                                                  'D', 'DISTRITO',
+                                                  'P', 'POVOADO',
+                                                  'Município'),
+        'flTipoLogradouro'                VALUE NULLIF(ed.flTipoLogradouro,'N'),
+        'flEnderecoExterior'              VALUE NULLIF(ed.flEnderecoExterior,'N'),
+        'flInconsistente'                 VALUE NULLIF(NVL(ed.flInconsistente,
+                                                       NVL(bairro.flInconsistente,
+                                                       NVL(locbairro.flInconsistente,loc.flInconsistente))),'N')
+      ABSENT ON NULL) AS Endereco
+      FROM ecadEndereco ed
+      LEFT JOIN ecadBairro bairro ON bairro.cdBairro = ed.cdBairro
+      LEFT JOIN ecadLocalidade locbairro ON locbairro.cdLocalidade = bairro.cdLocalidade
+      LEFT JOIN ecadLocalidade loc ON loc.cdLocalidade = ed.cdLocalidade
+      LEFT JOIN ecadTipoLogradouro tpLog ON tpLog.cdTipoLogradouro = ed.cdTipoLogradouro
       ),
       -- RubricaLista: lista Rubricas
       RubricaLista AS (
@@ -909,6 +991,68 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
         LEFT JOIN eafaMotivoAfastTemporario afamot ON afamot.cdMotivoAfastTemporario = vigencia.cdMotivoAfastTemporario
         LEFT JOIN eafaGrupoMotivoAfastamento grupo ON grupo.cdGrupoMotivoAfastamento = vigencia.cdGrupoMotivoAfastamento
       ) WHERE ordem = 1
+      ),
+
+
+      --- Informações referente as Prametrizações de Rubricas do Agrupamento
+      -- Referente as seguintes Tabelas:
+      --   DeParaRubricaTributacao => vParametroTributacao
+      --   AgrupamentoParametro => epagAgrupamentoParametro
+      --   ParametroTributacao => epagHistFormulaCalculo
+      --   
+      -- DeParaRubricaTributacao: DePara do Tipo de Tributação e os Campos com os
+      -- Código de Rubricas da Paramentrização do Agrupamento. HARDCODE vParametroTributacao
+      DeParaRubricaTributacao AS (
+      SELECT tpRubAgrupParametro, tpTributacao FROM JSON_TABLE(vParametroTributacao, '$.ParametroTributacao[*]' COLUMNS (
+        tpRubAgrupParametro PATH '$.tpRubAgrupParametro',
+        tpTributacao   PATH '$.tpTributacao'
+      )) js
+      ),
+      -- AgrupamentoParametro, tranforma os campos dos Parametros do Agrupamento em uma única columa cdRubricaAgrupamento e identifica o Tipo de Parametro.
+      AgrupamentoParametro AS (
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubAgrupDescINSSSobre13' AS tpRubAgrupParametro, cdRubAgrupDescINSSSobre13 AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubAgrupDescIRRF' AS tpRubAgrupParametro, cdRubAgrupDescIRRF AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubAgrupDescIRRFSobre13' AS tpRubAgrupParametro, cdRubAgrupDescIRRFSobre13 AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubAgrupDescIRRFSobreFerias' AS tpRubAgrupParametro, cdRubAgrupDescIRRFsobreFerias AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubricaAgrupDescIPESCJul2008' AS tpRubAgrupParametro, cdRubricaAgrupDescIPESCjul2008 AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubAgrupDescIPESCJul200813' AS tpRubAgrupParametro, cdRubAgrupDescIPESCJul200813 AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubAgrupIPREVFundFinanc' AS tpRubAgrupParametro, cdRubAgrupIPREVFundFinanc AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubAgrupIPREVFundPrev' AS tpRubAgrupParametro, cdRubAgrupIPREVFundPrev AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubAgrupBloqRet' AS tpRubAgrupParametro, cdRubAgrupBloqRet AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubAgrupBloqRetExercFind' AS tpRubAgrupParametro, cdRubAgrupBloqRetExercFind AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubricaAdiant13Pensao' AS tpRubAgrupParametro, cdRubricaAdiant13Pensao AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubAgrupBloqRet13Sal' AS tpRubAgrupParametro, cdRubAgrupBloqRet13Sal AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubAgrupBloqExercFind13Sal' AS tpRubAgrupParametro, cdRubAgrupBloqExercFind13Sal AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubAgrupPensao13' AS tpRubAgrupParametro, cdRubAgrupPensao13 AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubricaAgrupDescRRA' AS tpRubAgrupParametro, cdRubricaAgrupDescRRA AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubAgrupPensaoAliRRA' AS tpRubAgrupParametro, cdRubAgrupPensaoAliRRA AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubricaAgrupDescIPREVJun2016' AS tpRubAgrupParametro, cdRubricaAgrupDescIPREVJun2016 AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubricaAgrupDescIPREVJun1613' AS tpRubAgrupParametro, cdRubricaAgrupDescIPREVJun1613 AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubAgrupDescIPREVAntes2008' AS tpRubAgrupParametro, cdRubAgrupDescIPREVAntes2008 AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubAgrupDescIPREVDepois2008' AS tpRubAgrupParametro, cdRubAgrupDescIPREVDepois2008 AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubAgrupIPREVFundLC662' AS tpRubAgrupParametro, cdRubAgrupIPREVFundLC662 AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubAgrupIPREVFundFinanc13' AS tpRubAgrupParametro, cdRubAgrupIPREVFundFinanc13 AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubAgrupIPREVFundLC66213' AS tpRubAgrupParametro, cdRubAgrupIPREVFundLC66213 AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubricaAgrupDescCPSM' AS tpRubAgrupParametro, cdRubricaAgrupDescCPSM AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubAgrupDescCPSMSobre13' AS tpRubAgrupParametro, cdRubAgrupDescCPSMSobre13 AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubAgrupDescCPSMRetera' AS tpRubAgrupParametro, cdRubAgrupDescCPSMRetera AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubAgrupDescCPSMRetera13' AS tpRubAgrupParametro, cdRubAgrupDescCPSMRetera13 AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubAgrupDescIPREVLiminar' AS tpRubAgrupParametro, cdRubAgrupDescIPREVLiminar AS cdRubricaAgrupamento FROM epagAgrupamentoParametro UNION ALL
+      SELECT cdAgrupamentoParametro, cdAgrupamento, 'cdRubAgrupDescJudicial' AS tpRubAgrupParametro, cdRubAgrupDescJudicial AS cdRubricaAgrupamento FROM epagAgrupamentoParametro
+      ),
+      -- ParametroTributacao, vincula cada Campo da Parametrização do Agrupamento ao Tipo de Tributação
+      ParametroTributacao AS (
+      SELECT a.sgAgrupamento, parm.cdRubricaAgrupamento,
+        LPAD(tprub.nuTipoRubrica,2,0) || '-' || LPAD(rub.nuRubrica,4,0) AS nuRubrica,
+        JSON_ARRAYAGG(rubTrb.tpTributacao) AS ParametroTributacao
+      FROM AgrupamentoParametro parm
+      INNER JOIN ecadAgrupamento a ON a.cdAgrupamento = parm.cdAgrupamento
+      LEFT JOIN DeParaRubricaTributacao rubTrb ON rubTrb.tpRubAgrupParametro = parm.tpRubAgrupParametro
+      LEFT JOIN epagRubricaAgrupamento rubagrp ON rubagrp.cdRubricaAgrupamento = parm.cdRubricaAgrupamento
+      INNER JOIN epagRubrica rub ON rub.cdRubrica = rubagrp.cdRubrica
+      INNER JOIN epagTipoRubrica tprub ON tprub.cdTipoRubrica = rub.cdTipoRubrica
+      WHERE parm.cdRubricaAgrupamento IS NOT NULL
+      GROUP BY a.sgAgrupamento, parm.cdRubricaAgrupamento, LPAD(tprub.nuTipoRubrica,2,0) || '-' || LPAD(rub.nuRubrica,4,0)
       ),
 
       --- Informações referente as Formulas de Calculo
@@ -1159,12 +1303,14 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
                 'flUtilizaFormulaCalculo'   VALUE NULLIF(vigencia.flUtilizaFormulaCalculo, 'N'),
                 'nuFormulaEspecifica'       VALUE vigencia.nuFormulaEspecifica
               ABSENT ON NULL) END,
-            'ConquistaPeriodoAquisitivo'             VALUE
+            'ConquistaPeriodoAquisitivo'    VALUE
       		CASE WHEN vigencia.dtInicioConquistaPerAquis IS NULL AND vigencia.dtFimConquistaPerAquis IS NULL
       		      THEN NULL
               ELSE JSON_OBJECT(
-                'dtInicioConquistaPerAquis' VALUE vigencia.dtInicioConquistaPerAquis,
-                'dtFimConquistaPerAquis'    VALUE vigencia.dtFimConquistaPerAquis
+                'dtInicioConquistaPerAquis' VALUE CASE WHEN vigencia.dtInicioConquistaPerAquis IS NULL THEN NULL
+                                                  ELSE TO_CHAR(vigencia.dtInicioConquistaPerAquis, 'YYYY-DD-MM') END,
+                'dtFimConquistaPerAquis'    VALUE CASE WHEN vigencia.dtFimConquistaPerAquis IS NULL THEN NULL
+                                                  ELSE TO_CHAR(vigencia.dtFimConquistaPerAquis, 'YYYY-DD-MM') END
               ABSENT ON NULL) END,
             'Abrangencia'                   VALUE
       		    CASE WHEN vigencia.cdTipoComConselhoGrupo   IS NULL AND vigencia.cdTipoPensaoNaoPrev     IS NULL 
@@ -1212,6 +1358,418 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
         LEFT JOIN RubricaLista rubAlt2 ON rubAlt2.cdRubricaAgrupamento = evento.cdRubricaAgrupAlternativa2
         LEFT JOIN RubricaLista rubAlt3 ON rubAlt3.cdRubricaAgrupamento = evento.cdRubricaAgrupAlternativa3
         GROUP BY evento.cdAgrupamento, evento.cdRubricaAgrupamento
+      ),
+
+      --- Informações referente as Consignações da Rubrica
+      -- Referente as seguintes Tabelas:
+      --   Consignacao => epagConsignacao
+      --   VigenciaConsignacao => epagHistConsignacao
+      --   Consignataria => epagConsignataria
+      --   ConsignatariaSuspensao => epagConsignatariaSuspensao
+      --   ConsignatariaTaxaServico => epagConsignatariaTaxaServico
+      --   TipoServicoConsigncao => epagTipoServico
+      --   VigenciaTipoServicoConsignacao => epagHistTipoServico
+      --   ParametroBaseConsignacao => epagParametroBaseConsignacao
+      --   ContratoServicoConsignacao => epagContratoServico
+      -- Parametros da Base de Consignaçao
+      ParametroBaseConsignacao AS (
+      SELECT cdParametroBaseConsignacao,
+      JSON_OBJECT(
+        'nuOrdemDesconto'                 VALUE parm.cdOrdemDesconto,
+        'vlMinParcela'                    VALUE parm.vlMinParcela,
+        'nuMaxParcelas'                   VALUE parm.nuMaxParcelas,
+        'nuPrazoMaxCarencia'              VALUE parm.nuPrazoMaxCarencia,
+        'nuPrazoReservaAverb'             VALUE parm.nuPrazoReservaAverb,
+        'vlTaxaIOF'                       VALUE parm.vlTaxaIOF,
+        'vlPercentVariacao'               VALUE NULLIF(parm.vlPercentVariacao, 999.9999),
+        'nuDiaCorte'                      VALUE parm.nuDiaCorte,
+        'nmDiaSemana'                     VALUE UPPER(dia.nmDiaSemana),
+        'nuPrazoDefereConcessao'          VALUE NULLIF(parm.nuPrazoDefereConcessao, 999),
+        'nuPrazoDefereAlteracao'          VALUE NULLIF(parm.nuPrazoDefereAlteracao, 999),
+        'nuPrazoDeferereNegociacao'       VALUE NULLIF(parm.nuPrazoDeferereNegociacao, 999),
+        'nuPrazoDefereLiquidacao'         VALUE NULLIF(parm.nuPrazoDefereLiquidacao, 999),
+        'nuPrazoDefereEmprestimo'         VALUE NULLIF(parm.nuPrazoDefereEmprestimo, 999),
+        'blManualConsig'                  VALUE parm.blManualConsig,
+        'blManualServid'                  VALUE parm.blManualServid
+      ABSENT ON NULL) AS ParametroBaseConsignacao
+      FROM epagParametroBaseConsignacao parm
+      LEFT JOIN ecadDiaSemana dia ON dia.cdDiaSemana = parm.cdDiaSemana
+      ),
+      -- Contrato Servico
+      ContratoServicoConsignacao AS (
+      SELECT ctr.cdcontratoservico, ctr.cdagrupamento, ctr.cdorgao, ctr.cdconsignataria,
+      JSON_OBJECT(
+        'nuContrato'                      VALUE ctr.nuContrato,
+        'dtInicioContrato'                VALUE CASE WHEN ctr.dtInicioContrato IS NULL THEN NULL
+                                                ELSE TO_CHAR(ctr.dtInicioContrato, 'YYYY-DD-MM') END,
+        'dtFimContrato'                   VALUE CASE WHEN ctr.dtFimContrato IS NULL THEN NULL
+                                                ELSE TO_CHAR(ctr.dtFimContrato, 'YYYY-DD-MM') END,
+        'dtFimProrrogacao'                VALUE CASE WHEN ctr.dtFimProrrogacao IS NULL THEN NULL
+                                                ELSE TO_CHAR(ctr.dtFimProrrogacao, 'YYYY-DD-MM') END,
+        'nmTipoServico'                   VALUE tpserv.nmTipoServico,
+        'nuCodigoConsignataria'           VALUE cst.nuCodigoConsignataria,
+        'deServico'                       VALUE ctr.deServico,
+        'deObjeto'                        VALUE ctr.deObjeto,
+        'deSitePublicacao'                VALUE ctr.deSitePublicacao,
+        'Seguro' VALUE
+            CASE WHEN ctr.nuApolice IS NULL AND ctr.nuRegistroSUSEP IS NULL AND ctr.vlTaxaAngariamento IS NULL
+            THEN NULL
+            ELSE JSON_OBJECT(
+            'nuApolice'                   VALUE ctr.nuApolice,
+            'nuRegistroSUSEP'             VALUE ctr.nuRegistroSUSEP,
+            'vlTaxaAngariamento'          VALUE ctr.vlTaxaAngariamento
+          ABSENT ON NULL) END,
+          'Documento' VALUE
+            CASE WHEN doc.nuAnoDocumento IS NULL AND tpdoc.deTipoDocumento IS NULL AND
+              doc.dtDocumento IS NULL AND doc.nuNumeroAtoLegal IS NULL AND doc.deObservacao IS NULL AND
+              meiopub.nmMeioPublicacao IS NULL AND tppub.nmTipoPublicacao IS NULL AND
+              ctr.dtPublicacao IS NULL AND ctr.nuPublicacao IS NULL AND ctr.nuPagInicial IS NULL AND
+              ctr.deOutroMeio IS NULL AND doc.nmArquivoDocumento IS NULL AND doc.deCaminhoArquivoDocumento IS NULL
+            THEN NULL
+            ELSE JSON_OBJECT(
+            'nuAnoDocumento'              VALUE doc.nuAnoDocumento,
+            'deTipoDocumento'             VALUE tpdoc.deTipoDocumento,
+            'dtDocumento'                 VALUE CASE WHEN doc.dtDocumento IS NULL THEN NULL
+                                                ELSE TO_CHAR(doc.dtDocumento, 'YYYY-DD-MM') END,
+            'nuNumeroAtoLegal'            VALUE doc.nuNumeroAtoLegal,
+            'deObservacao'                VALUE doc.deObservacao,
+            'nmMeioPublicacao'            VALUE meiopub.nmMeioPublicacao,
+            'nmTipoPublicacao'            VALUE tppub.nmTipoPublicacao,
+            'dtPublicacao'                VALUE CASE WHEN ctr.dtPublicacao IS NULL THEN NULL
+                                                ELSE TO_CHAR(ctr.dtPublicacao, 'YYYY-DD-MM') END,
+            'nuPublicacao'                VALUE ctr.nuPublicacao,
+            'nuPagInicial'                VALUE ctr.nuPagInicial,
+            'deOutroMeio'                 VALUE ctr.deOutroMeio,
+            'nmArquivoDocumento'          VALUE doc.nmArquivoDocumento,
+            'deCaminhoArquivoDocumento'   VALUE doc.deCaminhoArquivoDocumento
+          ABSENT ON NULL) END
+        ABSENT ON NULL) AS ContratoServico
+      FROM epagContratoServico ctr
+      LEFT JOIN epagTipoServico tpserv On tpserv.cdTipoServico = ctr.cdTipoServico
+      LEFT JOIN epagConsignataria cst ON cst.cdConsignataria = ctr.cdConsignataria
+      LEFT JOIN eatoDocumento doc ON doc.cdDocumento = ctr.cdDocumento
+      LEFT JOIN eatoTipoDocumento tpdoc ON tpdoc.cdTipoDocumento = doc.cdTipoDocumento
+      LEFT JOIN ecadMeioPublicacao meiopub ON meiopub.cdMeioPublicacao = ctr.cdMeioPublicacao
+      LEFT JOIN ecadTipoPublicacao tppub ON tppub.cdTipoPublicacao = ctr.cdTipoPublicacao
+      ),
+      -- Vigência do Tipo Servico 
+      VigenciaTipoServicoConsignacao AS (
+      SELECT vgtpserv.cdtiposervico,
+      JSON_ARRAYAGG(JSON_OBJECT(
+          'dtInicioVigencia'              VALUE CASE WHEN vgtpserv.dtInicioVigencia IS NULL THEN NULL
+                                                ELSE TO_CHAR(vgtpserv.dtInicioVigencia, 'YYYY-DD-MM') END,
+          'dtFimVigencia'                 VALUE CASE WHEN vgtpserv.dtFimVigencia IS NULL THEN NULL
+                                                ELSE TO_CHAR(vgtpserv.dtFimVigencia, 'YYYY-DD-MM') END,
+          'nuOrdem'                       VALUE vgtpserv.nuOrdem,
+          'nmConsigOutroTipo'             VALUE vgtpserv.cdConsigOutroTipo,
+          'Parametros' VALUE
+            CASE WHEN NULLIF(vgtpserv.flEmprestimo, 'N') IS NULL AND NULLIF(vgtpserv.flSeguro, 'N') IS NULL AND 
+              NULLIF(vgtpserv.flCartaoCredito, 'N') IS NULL AND NULLIF(vgtpserv.nuMaxParcelas, 999) IS NULL AND 
+              vgtpserv.vlMinConsignado IS NULL AND vgtpserv.vlLimiteTAC IS NULL AND vgtpserv.vlLimitePercentReservado IS NULL AND 
+              vgtpserv.vlLimiteReservado IS NULL AND NULLIF(vgtpserv.flTacFinanciada, 'N') IS NULL AND 
+              NULLIF(vgtpserv.flVerificaMargemConsig, 'N') IS NULL AND NULLIF(vgtpserv.flIOFFinanciado, 'N') IS NULL AND 
+              NULLIF(vgtpserv.flExigeContrato, 'N') IS NULL AND NULLIF(vgtpserv.flExigeValorLiberado, 'N') IS NULL AND 
+              NULLIF(vgtpserv.flExigeValorReservado, 'N') IS NULL AND NULLIF(vgtpserv.flExigePedido, 'N') IS NULL AND 
+              NULLIF(vgtpserv.flExigeConsigOutroTipo, 'N') IS NULL
+            THEN NULL
+            ELSE JSON_OBJECT(
+            'flEmprestimo'                VALUE NULLIF(vgtpserv.flEmprestimo, 'N'),
+            'flSeguro'                    VALUE NULLIF(vgtpserv.flSeguro, 'N'),
+            'flCartaoCredito'             VALUE NULLIF(vgtpserv.flCartaoCredito, 'N'),
+            'nuMaxParcelas'               VALUE NULLIF(vgtpserv.nuMaxParcelas, 999),
+            'vlMinConsignado'             VALUE vgtpserv.vlMinConsignado,
+            'vlLimiteTAC'                 VALUE vgtpserv.vlLimiteTAC,
+            'vlLimitePercentReservado'    VALUE vgtpserv.vlLimitePercentReservado,
+            'vlLimiteReservado'           VALUE vgtpserv.vlLimiteReservado,
+            'flTacFinanciada'             VALUE NULLIF(vgtpserv.flTacFinanciada, 'N'),
+            'flVerificaMargemConsig'      VALUE NULLIF(vgtpserv.flVerificaMargemConsig, 'N'),
+            'flIOFFinanciado'             VALUE NULLIF(vgtpserv.flIOFFinanciado, 'N'),
+            'flExigeContrato'             VALUE NULLIF(vgtpserv.flExigeContrato, 'N'),
+            'flExigeValorLiberado'        VALUE NULLIF(vgtpserv.flExigeValorLiberado, 'N'),
+            'flExigeValorReservado'       VALUE NULLIF(vgtpserv.flExigeValorReservado, 'N'),
+            'flExigePedido'               VALUE NULLIF(vgtpserv.flExigePedido, 'N'),
+            'flExigeConsigOutroTipo'      VALUE NULLIF(vgtpserv.flExigeConsigOutroTipo, 'N')
+          ABSENT ON NULL) END,
+          'TaxaRetencao' VALUE
+            CASE WHEN vgtpserv.vlRetencao IS NULL AND vgtpserv.vlTaxaRetencao IS NULL AND vgtpserv.vlTaxaIRRF IS NULL AND
+              vgtpserv.vlTaxaAdministracao IS NULL AND vgtpserv.vlTaxaProlabore IS NULL AND vgtpserv.vlTaxaBescor IS NULL
+            THEN NULL
+            ELSE JSON_OBJECT(
+            'vlRetencao'                  VALUE vgtpserv.vlRetencao,
+            'vlTaxaRetencao'              VALUE vgtpserv.vlTaxaRetencao,
+            'vlTaxaIR'                    VALUE vgtpserv.vlTaxaIRRF,
+            'vlTaxaAdministracao'         VALUE vgtpserv.vlTaxaAdministracao,
+            'vlTaxaProlabore'             VALUE vgtpserv.vlTaxaProlabore,
+            'vlTaxaBescor'                VALUE vgtpserv.vlTaxaBescor
+          ABSENT ON NULL) END
+      ABSENT ON NULL) ORDER BY vgtpserv.dtInicioVigencia DESC RETURNING CLOB) AS Vigencias
+      FROM epagHistTipoServico vgtpserv
+      GROUP BY vgtpserv.cdtiposervico
+      ),
+      -- Tipo de Servico de Consignção
+      TipoServicoConsigncao AS (
+      SELECT tiposervico.cdTipoServico, tiposervico.cdAgrupamento,
+      JSON_OBJECT(
+        'nmTipoServico'                   VALUE tiposervico.nmTipoServico,
+        'ParametrosPadrao'                VALUE parm.ParametroBaseConsignacao,
+        'Vigencias'                       VALUE vigencia.Vigencias
+      ABSENT ON NULL RETURNING CLOB) AS TipoServico
+      FROM epagTipoServico tiposervico
+      LEFT JOIN VigenciaTipoServicoConsignacao vigencia on vigencia.cdtiposervico = tiposervico.cdtiposervico
+      LEFT JOIN ParametroBaseConsignacao parm on parm.cdParametroBaseConsignacao = 1
+      ),
+      -- Consignataria Suspensao
+      ConsignatariaSuspensao AS (
+      SELECT cstsup.cdconsignataria, cstsup.cdconsignacao, cstsup.cdtiposervico,
+      JSON_ARRAYAGG(JSON_OBJECT(
+      cstsup.cdconsignataria, cstsup.cdconsignacao, cstsup.cdtiposervico,
+        'nuCodigoConsignataria'         VALUE cst.nuCodigoConsignataria,
+      --  'nuRubrica'                     VALUE rub.nuRubrica || ' ' || rub.deRubrica,
+        'nmTipoServico'                 VALUE tiposervico.nmTipoServico,
+        'dtInicioSuspensao'             VALUE CASE WHEN cstsup.dtInicioSuspensao IS NULL THEN NULL
+                                              ELSE TO_CHAR(cstsup.dtInicioSuspensao, 'YYYY-DD-MM') END,
+        'nuHoraInicioSuspensao'         VALUE cstsup.nuHoraInicioSuspensao,
+        'dtFimSuspensao'                VALUE CASE WHEN cstsup.dtFimSuspensao IS NULL THEN NULL
+                                               ELSE TO_CHAR(cstsup.dtFimSuspensao, 'YYYY-DD-MM') END,
+        'nuHoraFimSuspensao'            VALUE cstsup.nuHoraFimSuspensao,
+        'deMotivoSuspensao'             VALUE cstsup.deMotivoSuspensao,
+        'Documento' VALUE
+          CASE WHEN doc.nuAnoDocumento IS NULL AND tpdoc.deTipoDocumento IS NULL AND
+            doc.dtDocumento IS NULL AND doc.nuNumeroAtoLegal IS NULL AND doc.deObservacao IS NULL AND
+            meiopub.nmMeioPublicacao IS NULL AND tppub.nmTipoPublicacao IS NULL AND
+            cst.dtPublicacao IS NULL AND cstsup.nuPublicacao IS NULL AND cstsup.nuPagInicial IS NULL AND
+            cstsup.deOutroMeio IS NULL AND doc.nmArquivoDocumento IS NULL AND doc.deCaminhoArquivoDocumento IS NULL
+          THEN NULL
+          ELSE JSON_OBJECT(
+          'nuAnoDocumento'              VALUE doc.nuAnoDocumento,
+          'deTipoDocumento'             VALUE tpdoc.deTipoDocumento,
+          'dtDocumento'                 VALUE CASE WHEN doc.dtDocumento IS NULL THEN NULL
+                                              ELSE TO_CHAR(doc.dtDocumento, 'YYYY-DD-MM') END,
+          'nuNumeroAtoLegal'            VALUE doc.nuNumeroAtoLegal,
+          'deObservacao'                VALUE doc.deObservacao,
+          'nmMeioPublicacao'            VALUE meiopub.nmMeioPublicacao,
+          'nmTipoPublicacao'            VALUE tppub.nmTipoPublicacao,
+          'dtPublicacao'                VALUE CASE WHEN cst.dtPublicacao IS NULL THEN NULL
+                                              ELSE TO_CHAR(cst.dtPublicacao, 'YYYY-DD-MM') END,
+          'nuPublicacao'                VALUE cstsup.nuPublicacao,
+          'nuPagInicial'                VALUE cstsup.nuPagInicial,
+          'deOutroMeio'                 VALUE cstsup.deOutroMeio,
+          'nmArquivoDocumento'          VALUE doc.nmArquivoDocumento,
+          'deCaminhoArquivoDocumento'   VALUE doc.deCaminhoArquivoDocumento
+        ABSENT ON NULL) END
+      ABSENT ON NULL) ORDER BY cstsup.dtInicioSuspensao DESC RETURNING CLOB) AS Suspensao
+      FROM epagConsignatariaSuspensao cstsup
+      LEFT JOIN epagConsignataria cst on cst.cdConsignataria = cstsup.cdConsignataria
+      LEFT JOIN epagConsignacao csg on csg.cdConsignacao = cstsup.cdConsignacao
+      LEFT JOIN RubricaLista rub ON rub.cdRubrica = csg.cdRubrica
+      LEFT JOIN epagTipoServico tiposervico on tiposervico.cdTipoServico = cstsup.cdTipoServico
+      LEFT JOIN eatoDocumento doc ON doc.cdDocumento = cstsup.cdDocumento
+      LEFT JOIN eatoTipoDocumento tpdoc ON tpdoc.cdTipoDocumento = doc.cdTipoDocumento
+      LEFT JOIN ecadMeioPublicacao meiopub ON meiopub.cdMeioPublicacao = cst.cdMeioPublicacao
+      LEFT JOIN ecadTipoPublicacao tppub ON tppub.cdTipoPublicacao = cst.cdTipoPublicacao
+      GROUP BY cstsup.cdconsignataria, cstsup.cdconsignacao, cstsup.cdtiposervico
+      ),
+      -- Consignataria Taxa Servico
+      ConsignatariaTaxaServico AS (
+      SELECT csttaxa.cdconsignataria,
+      JSON_ARRAYAGG(tiposervico.nmTipoServico
+      ORDER BY csttaxa.cdTipoServico DESC ABSENT ON NULL RETURNING CLOB) AS TaxasServicos
+      FROM epagConsignatariaTaxaServico csttaxa
+      LEFT JOIN epagTipoServico tiposervico ON tiposervico.cdTipoServico = csttaxa.cdTipoServico
+      GROUP BY csttaxa.cdconsignataria
+      ),
+      -- Consignataria
+      Consignataria AS (
+      SELECT cst.cdConsignataria,
+      JSON_OBJECT(
+        'nuCodigoConsignataria'           VALUE cst.nuCodigoConsignataria,
+        'sgConsignataria'                 VALUE cst.sgConsignataria,
+        'nmConsignataria'                 VALUE cst.nmConsignataria,
+        'deEmailInstitucional'            VALUE cst.deEmailInstitucional,
+        'deInstrucoesContato'             VALUE cst.deInstrucoesContato,
+        'nuCNPJConsignataria'             VALUE cst.nuCNPJConsignataria,
+        'nmModalidadeConsignataria'       VALUE modcst.nmModalidadeConsignataria,
+        'nuProcessoSGPE'                  VALUE cst.nuProcessoSGPE,
+        'flMargemConsignavel'             VALUE NULLIF(cst.flMargemConsignavel,'N'),
+        'flImpedida'                      VALUE NULLIF(cst.flImpedida,'N'),
+        'TaxasServicos'                   VALUE taxa.TaxasServicos,
+        'Representacao' VALUE
+          CASE WHEN cst.cdagencia IS NULL AND cst.nucontacorrente IS NULL AND cst.nudvcontacorrente IS NULL
+          THEN NULL
+          ELSE JSON_OBJECT(
+          'sgBanco'                       VALUE bcoag.sgBanco,
+          'nmBanco'                       VALUE bcoag.nmBanco,
+          'nmAgencia'                     VALUE bcoag.nmAgencia,
+          'nuBanco'                       VALUE bcoag.nuBanco,
+          'nuAgencia'                     VALUE bcoag.nuAgencia,
+          'nuDvAgencia'                   VALUE bcoag.nuDvAgencia,
+          'nuContaCorrente'               VALUE cst.nuContaCorrente,
+          'nuDVContaCorrente'             VALUE cst.nuDVContaCorrente
+        ABSENT ON NULL) END,
+        'TelefonesEndereco' VALUE
+          CASE WHEN cst.cdEndereco IS NULL AND cst.nuDDD IS NULL AND cst.nuTelefone IS NULL AND 
+            cst.nuRamal IS NULL AND cst.nuDDDFax IS NULL AND cst.nuFax IS NULL AND cst.nuRamalfax IS NULL
+          THEN NULL
+          ELSE JSON_OBJECT(
+          'nuDDD'                         VALUE cst.nuDDD,
+          'nuTelefone'                    VALUE cst.nuTelefone,
+          'nuRamal'                       VALUE cst.nuRamal,
+          'nuDDDFax'                      VALUE cst.nuDDDFax,
+          'nuFax'                         VALUE cst.nuFax,
+          'nuRamalfax'                    VALUE cst.nuRamalfax,
+          'EnderecoRepresentante'         VALUE ed.Endereco
+        ABSENT ON NULL) END,
+        'Representante' VALUE
+          CASE WHEN tpRep.cdTipoRepresentacao IS NULL AND cst.nuCNPJRepresentante IS NULL AND 
+            cst.nmRepresentante IS NULL AND cst.cdEnderecoRepresentante IS NULL AND cst.nuDDDRepresentante IS NULL AND 
+            cst.nuTelefoneRepresentante IS NULL AND cst.nuRamalRepresentante IS NULL AND cst.nuDDDFaxRepresentante IS NULL AND 
+            cst.nuFaxRepresentante IS NULL AND cst.nuRamalFaxRepresentante IS NULL
+          THEN NULL
+          ELSE JSON_OBJECT(
+          'nmTipoRepresentacao'           VALUE tpRep.nmTipoRepresentacao,
+          'nuCNPJRepresentante'           VALUE cst.nuCNPJRepresentante,
+          'nmRepresentante'               VALUE cst.nmRepresentante,
+          'nuDDDRepresentante'            VALUE cst.nuDDDRepresentante,
+          'nuTelefoneRepresentante'       VALUE cst.nuTelefoneRepresentante,
+          'nuRamalRepresentante'          VALUE cst.nuRamalRepresentante,
+          'nuDDDFaxRepresentante'         VALUE cst.nuDDDFaxRepresentante,
+          'nuFaxRepresentante'            VALUE cst.nuFaxRepresentante,
+          'nuRamalFaxRepresentante'       VALUE cst.nuRamalFaxRepresentante,
+          'EnderecoRepresentante'         VALUE edrpt.Endereco
+        ABSENT ON NULL) END,
+        'Documento' VALUE
+          CASE WHEN doc.nuAnoDocumento IS NULL AND tpdoc.deTipoDocumento IS NULL AND
+            doc.dtDocumento IS NULL AND doc.nuNumeroAtoLegal IS NULL AND doc.deObservacao IS NULL AND
+            meiopub.nmMeioPublicacao IS NULL AND tppub.nmTipoPublicacao IS NULL AND
+            cst.dtPublicacao IS NULL AND cst.nuPublicacao IS NULL AND cst.nuPagInicial IS NULL AND
+            cst.deOutroMeio IS NULL AND doc.nmArquivoDocumento IS NULL AND doc.deCaminhoArquivoDocumento IS NULL
+          THEN NULL
+          ELSE JSON_OBJECT(
+          'nuAnoDocumento'                VALUE doc.nuAnoDocumento,
+          'deTipoDocumento'               VALUE tpdoc.deTipoDocumento,
+          'dtDocumento'                   VALUE CASE WHEN doc.dtDocumento IS NULL THEN NULL
+                                                ELSE TO_CHAR(doc.dtDocumento, 'YYYY-DD-MM') END,
+          'nuNumeroAtoLegal'              VALUE doc.nuNumeroAtoLegal,
+          'deObservacao'                  VALUE doc.deObservacao,
+          'nmMeioPublicacao'              VALUE meiopub.nmMeioPublicacao,
+          'nmTipoPublicacao'              VALUE tppub.nmTipoPublicacao,
+          'dtPublicacao'                  VALUE CASE WHEN cst.dtPublicacao IS NULL THEN NULL
+                                                ELSE TO_CHAR(cst.dtPublicacao, 'YYYY-DD-MM') END,
+          'nuPublicacao'                  VALUE cst.nuPublicacao,
+          'nuPagInicial'                  VALUE cst.nuPagInicial,
+          'deOutroMeio'                   VALUE cst.deOutroMeio,
+          'nmArquivoDocumento'            VALUE doc.nmArquivoDocumento,
+          'deCaminhoArquivoDocumento'     VALUE doc.deCaminhoArquivoDocumento
+        ABSENT ON NULL) END
+      ABSENT ON NULL RETURNING CLOB) AS Consignataria
+      FROM epagConsignataria cst
+      LEFT JOIN epagTipoRepresentacao tpRep ON tpRep.cdTipoRepresentacao = cst.cdTipoRepresentacao
+      LEFT JOIN epagModalidadeConsignataria modcst ON modcst.cdModalidadeConsignataria = cst.cdModalidadeConsignataria
+      LEFT JOIN ConsignatariaTaxaServico taxa ON taxa.cdConsignataria = cst.cdConsignataria
+      LEFT JOIN ConsignatariaSuspensao sup ON sup.cdConsignataria = cst.cdConsignataria
+      LEFT JOIN BancoAgencia bcoag ON bcoag.cdAGencia = cst.cdAgencia
+      LEFT JOIN Enderco ed ON ed.cdEndereco = cst.cdEndereco
+      LEFT JOIN Enderco edrpt ON edrpt.cdEndereco = cst.cdEnderecoRepresentante
+      LEFT JOIN eatoDocumento doc ON doc.cdDocumento = cst.cdDocumento
+      LEFT JOIN eatoTipoDocumento tpdoc ON tpdoc.cdTipoDocumento = doc.cdTipoDocumento
+      LEFT JOIN ecadMeioPublicacao meiopub ON meiopub.cdMeioPublicacao = cst.cdMeioPublicacao
+      LEFT JOIN ecadTipoPublicacao tppub ON tppub.cdTipoPublicacao = cst.cdTipoPublicacao
+      ),
+      -- Vigência da Consignação
+      VigenciaConsignacao AS (
+      SELECT vigencia.cdConsignacao,
+      JSON_ARRAYAGG(JSON_OBJECT(
+          'dtInicioVigencia' VALUE CASE WHEN vigencia.dtInicioVigencia IS NULL THEN NULL
+            ELSE TO_CHAR(vigencia.dtInicioVigencia, 'YYYY-DD-MM') END,
+          'dtFimVigencia'    VALUE CASE WHEN vigencia.dtFimVigencia IS NULL THEN NULL
+            ELSE TO_CHAR(vigencia.dtFimVigencia, 'YYYY-DD-MM') END,
+          'Parametros' VALUE
+            CASE WHEN NULLIF(vigencia.nuMaxParcelas, 999) IS NULL AND vigencia.vlMinConsignado IS NULL AND
+              vigencia.vlMinDescontoFolha IS NULL AND NULLIF(vigencia.flMaisDeUmaOcorrencia, 'S') IS NULL AND
+              NULLIF(vigencia.flLancamentoManual, 'N') IS NULL AND NULLIF(vigencia.flDescontoEventual, 'N') IS NULL AND
+              NULLIF(vigencia.flDescontoParcial, 'N') IS NULL AND NULLIF(vigencia.flFormulaCalculo, 'N') IS NULL
+            THEN NULL
+            ELSE JSON_OBJECT(
+            'nuMaxParcelas'               VALUE NULLIF(vigencia.nuMaxParcelas, 999),
+            'vlMinConsignado'             VALUE vigencia.vlMinConsignado,
+            'vlMinDescontoFolha'          VALUE vigencia.vlMinDescontoFolha,
+            'flMaisDeUmaOcorrencia'       VALUE NULLIF(vigencia.flMaisDeUmaOcorrencia, 'S'),
+            'flLancamentoManual'          VALUE NULLIF(vigencia.flLancamentoManual, 'N'),
+            'flDescontoEventual'          VALUE NULLIF(vigencia.flDescontoEventual, 'N'),
+            'flDescontoParcial'           VALUE NULLIF(vigencia.flDescontoParcial, 'N'),
+            'flFormulaCalculo'            VALUE NULLIF(vigencia.flFormulaCalculo, 'N')
+          ABSENT ON NULL) END,
+          'TaxaRetencao' VALUE
+            CASE WHEN vigencia.vlRetencao IS NULL AND vigencia.vlTaxaRetencao IS NULL AND vigencia.vlTaxaIR IS NULL AND
+              vigencia.vlTaxaAdministracao IS NULL AND vigencia.vlTaxaProlabore IS NULL AND vigencia.vlTaxaBescor IS NULL
+            THEN NULL
+            ELSE JSON_OBJECT(
+            'vlRetencao'                  VALUE vigencia.vlRetencao,
+            'vlTaxaRetencao'              VALUE vigencia.vlTaxaRetencao,
+            'vlTaxaIR'                    VALUE vigencia.vlTaxaIR,
+            'vlTaxaAdministracao'         VALUE vigencia.vlTaxaAdministracao,
+            'vlTaxaProlabore'             VALUE vigencia.vlTaxaProlabore,
+            'vlTaxaBescor'                VALUE vigencia.vlTaxaBescor
+          ABSENT ON NULL) END,
+          'Documento' VALUE
+            CASE WHEN doc.nuAnoDocumento IS NULL AND tpdoc.deTipoDocumento IS NULL AND
+              doc.dtDocumento IS NULL AND doc.nuNumeroAtoLegal IS NULL AND doc.deObservacao IS NULL AND
+              vigencia.cdMeioPublicacao IS NULL AND meiopub.nmMeioPublicacao IS NULL AND
+              tppub.nmTipoPublicacao IS NULL AND vigencia.dtPublicacao IS NULL AND
+              vigencia.nuPublicacao IS NULL AND vigencia.nuPagInicial IS NULL AND vigencia.deOutroMeio IS NULL AND
+              doc.nmArquivoDocumento IS NULL AND doc.deCaminhoArquivoDocumento IS NULL
+            THEN NULL
+            ELSE JSON_OBJECT(
+            'nuAnoDocumento'              VALUE doc.nuAnoDocumento,
+            'deTipoDocumento'             VALUE tpdoc.deTipoDocumento,
+            'dtDocumento'                 VALUE CASE WHEN doc.dtDocumento IS NULL THEN NULL
+                                                ELSE TO_CHAR(doc.dtDocumento, 'YYYY-DD-MM') END,
+            'nuNumeroAtoLegal'            VALUE doc.nuNumeroAtoLegal,
+            'deObservacao'                VALUE doc.deObservacao,
+            'nmMeioPublicacao'            VALUE meiopub.nmMeioPublicacao,
+            'nmTipoPublicacao'            VALUE tppub.nmTipoPublicacao,
+            'dtPublicacao'                VALUE CASE WHEN vigencia.dtPublicacao IS NULL THEN NULL
+                                                ELSE TO_CHAR(vigencia.dtPublicacao, 'YYYY-DD-MM') END,
+            'nuPublicacao'                VALUE vigencia.nuPublicacao,
+            'nuPagInicial'                VALUE vigencia.nuPagInicial,
+            'deOutroMeio'                 VALUE vigencia.deOutroMeio,
+            'nmArquivoDocumento'          VALUE doc.nmArquivoDocumento,
+            'deCaminhoArquivoDocumento'   VALUE doc.deCaminhoArquivoDocumento
+          ABSENT ON NULL) END
+      ABSENT ON NULL) ORDER BY vigencia.dtInicioVigencia DESC RETURNING CLOB) AS Vigencias
+      FROM epagHistConsignacao vigencia
+      LEFT JOIN eatoDocumento doc ON doc.cdDocumento = vigencia.cdDocumento
+      LEFT JOIN eatoTipoDocumento tpdoc ON tpdoc.cdTipoDocumento = doc.cdTipoDocumento
+      LEFT JOIN ecadMeioPublicacao meiopub ON meiopub.cdMeioPublicacao = vigencia.cdMeioPublicacao
+      LEFT JOIN ecadTipoPublicacao tppub ON tppub.cdTipoPublicacao = vigencia.cdTipoPublicacao
+      GROUP BY vigencia.cdConsignacao
+      ),
+      Consignacao AS (
+      -- Consignação  
+      SELECT rub.nuRubrica, rub.cdAgrupamento, rub.cdRubricaAgrupamento,
+      JSON_OBJECT(
+        'nuRubrica'               VALUE rub.nuRubrica,
+        'deRubrica'               VALUE rub.deRubrica,
+        'dtInicioConcessao'       VALUE CASE WHEN csg.dtInicioConcessao IS NULL THEN NULL
+                                        ELSE TO_CHAR(csg.dtInicioConcessao, 'YYYY-DD-MM') END,
+        'dtFimConcessao'          VALUE CASE WHEN csg.dtFimConcessao IS NULL THEN NULL
+                                        ELSE TO_CHAR(csg.dtFimConcessao, 'YYYY-DD-MM') END,
+        'flGeridaTerceitos'       VALUE NULLIF(flGeridaSCConsig,'N'),
+        'flRepasse'               VALUE NULLIF(flRepasse,'N'),
+        'Vigencias'               VALUE vigencia.Vigencias,
+        'Consignataria'           VALUE cst.Consignataria,
+        'TipoServico'             VALUE tpServico.TipoServico,
+        'ContratoServico'         VALUE contrato.ContratoServico
+      ABSENT ON NULL RETURNING CLOB) AS Consignacao
+      FROM epagConsignacao csg
+      INNER JOIN RubricaLista rub ON rub.cdRubrica = csg.cdRubrica
+      LEFT JOIN VigenciaConsignacao vigencia ON vigencia.cdConsignacao = csg.cdConsignacao
+      LEFT JOIN Consignataria cst ON cst.cdConsignataria = csg.cdConsignataria
+      LEFT JOIN TipoServicoConsigncao tpServico ON (tpServico.cdAgrupamento = rub.cdAgrupamento OR tpServico.cdAgrupamento IS NULL)
+                                               AND tpServico.cdTipoServico = csg.cdTipoServico
+      LEFT JOIN ContratoServicoConsignacao contrato ON contrato.cdAgrupamento = rub.cdAgrupamento
+                                                   AND contrato.cdConsignataria = csg.cdConsignataria
+                                                   AND contrato.cdContratoServico = csg.cdContratoServico
       ),
 
       --- Informações referente AS Rubricas e Rubricas no Agrupamento
@@ -1501,7 +2059,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
             'flDevCorrecaoMonetaria'        VALUE NULLIF(rubagrup.flDevCorrecaoMonetaria, 'N'),
             'flAbonoPermanencia'            VALUE NULLIF(rubagrup.flAbonoPermanencia, 'N'),
             'flApostilamento'               VALUE NULLIF(rubagrup.flApostilamento, 'N'),
-            'flContribuicaoSindical'        VALUE NULLIF(rubagrup.flContribuicaoSindical, 'N')
+            'flContribuicaoSindical'        VALUE NULLIF(rubagrup.flContribuicaoSindical, 'N'),
+            'ParametroTributacao'           VALUE parm.ParametroTributacao
           ABSENT ON NULL) END,
           'ParametrosAgrupamento'           VALUE JSON_OBJECT(
             'nmModalidadeRubrica'           VALUE modrub.nmModalidadeRubrica,
@@ -1518,6 +2077,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
             'nuOrdemConsad'                 VALUE rubagrup.nuOrdemConsad
           ABSENT ON NULL),
           'VigenciasAgrupamento'            VALUE vigencia.VigenciasAgrupamento,
+          'Consignacao'                     VALUE Consignacao.Consignacao,
           'Eventos'                         VALUE evento.Eventos,
           'Formula'                         VALUE formula.Formula
         ABSENT ON NULL RETURNING CLOB) AS Agrupamento
@@ -1527,8 +2087,10 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
       LEFT JOIN epagModalidadeRubrica modrub ON modrub.cdModalidadeRubrica = rubagrup.cdModalidadeRubrica
       LEFT JOIN epagBaseCalculo baseCalculo ON baseCalculo.cdBaseCalculo = rubagrup.cdBaseCalculo
       LEFT JOIN RubricaAgrupamentoVigencia vigencia ON vigencia.cdRubricaAgrupamento = rubagrup.cdRubricaAgrupamento
+      LEFT JOIN Consignacao consignacao ON consignacao.cdRubricaAgrupamento = rubagrup.cdRubricaAgrupamento
       LEFT JOIN Evento evento ON evento.cdRubricaAgrupamento = rubagrup.cdRubricaAgrupamento
       LEFT JOIN Formula formula ON formula.cdRubricaAgrupamento = rubagrup.cdRubricaAgrupamento
+      LEFT JOIN ParametroTributacao parm ON parm.cdRubricaAgrupamento = rubagrup.cdRubricaAgrupamento
       ),
       -- TipoRubricaVigencia: vigências associadas ao tipo de rubrica
       TipoRubricaVigencia AS (
