@@ -6,6 +6,7 @@ epagConsignatariaSuspensao
 epagConsignatariaTaxaServico
 epagTipoServico
 epagHistTipoServico
+epagParametroBaseConsignacao
 epagContratoServico
 */
 WITH
@@ -96,151 +97,86 @@ LEFT JOIN ecadLocalidade loc ON loc.cdLocalidade = ed.cdLocalidade
 LEFT JOIN ecadTipoLogradouro tpLog ON tpLog.cdTipoLogradouro = ed.cdTipoLogradouro
 ),
 -- ## Consignação
--- Consignataria Suspensao
-ConsignatariaSuspensao AS (
-SELECT cstsup.cdconsignataria, cstsup.cdconsignacao, cstsup.cdtiposervico,
-JSON_ARRAYAGG(JSON_OBJECT(
-cstsup.cdconsignataria, cstsup.cdconsignacao, cstsup.cdtiposervico,
-  'nuCodigoConsignataria'         VALUE cst.nuCodigoConsignataria,
---  'nuRubrica'                     VALUE rub.nuRubrica || ' ' || rub.deRubrica,
-  'nmTipoServico'                 VALUE tiposervico.nmTipoServico,
-  'dtInicioSuspensao'             VALUE CASE WHEN cstsup.dtInicioSuspensao IS NULL THEN NULL
-                                        ELSE TO_CHAR(cstsup.dtInicioSuspensao, 'YYYY-DD-MM') END,
-  'nuHoraInicioSuspensao'         VALUE cstsup.nuHoraInicioSuspensao,
-  'dtFimSuspensao'                VALUE CASE WHEN cstsup.dtFimSuspensao IS NULL THEN NULL
-                                         ELSE TO_CHAR(cstsup.dtFimSuspensao, 'YYYY-DD-MM') END,
-  'nuHoraFimSuspensao'            VALUE cstsup.nuHoraFimSuspensao,
-  'deMotivoSuspensao'             VALUE cstsup.deMotivoSuspensao,
-  'Documento' VALUE
-    CASE WHEN doc.nuAnoDocumento IS NULL AND tpdoc.deTipoDocumento IS NULL AND
-      doc.dtDocumento IS NULL AND doc.nuNumeroAtoLegal IS NULL AND doc.deObservacao IS NULL AND
-      meiopub.nmMeioPublicacao IS NULL AND tppub.nmTipoPublicacao IS NULL AND
-      cst.dtPublicacao IS NULL AND cstsup.nuPublicacao IS NULL AND cstsup.nuPagInicial IS NULL AND
-      cstsup.deOutroMeio IS NULL AND doc.nmArquivoDocumento IS NULL AND doc.deCaminhoArquivoDocumento IS NULL
-    THEN NULL
-    ELSE JSON_OBJECT(
-    'nuAnoDocumento'              VALUE doc.nuAnoDocumento,
-    'deTipoDocumento'             VALUE tpdoc.deTipoDocumento,
-    'dtDocumento'                 VALUE CASE WHEN doc.dtDocumento IS NULL THEN NULL
-                                        ELSE TO_CHAR(doc.dtDocumento, 'YYYY-DD-MM') END,
-    'nuNumeroAtoLegal'            VALUE doc.nuNumeroAtoLegal,
-    'deObservacao'                VALUE doc.deObservacao,
-    'nmMeioPublicacao'            VALUE meiopub.nmMeioPublicacao,
-    'nmTipoPublicacao'            VALUE tppub.nmTipoPublicacao,
-    'dtPublicacao'                VALUE CASE WHEN cst.dtPublicacao IS NULL THEN NULL
-                                        ELSE TO_CHAR(cst.dtPublicacao, 'YYYY-DD-MM') END,
-    'nuPublicacao'                VALUE cstsup.nuPublicacao,
-    'nuPagInicial'                VALUE cstsup.nuPagInicial,
-    'deOutroMeio'                 VALUE cstsup.deOutroMeio,
-    'nmArquivoDocumento'          VALUE doc.nmArquivoDocumento,
-    'deCaminhoArquivoDocumento'   VALUE doc.deCaminhoArquivoDocumento
-  ABSENT ON NULL) END
-ABSENT ON NULL) ORDER BY cstsup.dtInicioSuspensao DESC RETURNING CLOB) AS Suspensao
-FROM epagConsignatariaSuspensao cstsup
-LEFT JOIN epagConsignataria cst on cst.cdConsignataria = cstsup.cdConsignataria
-LEFT JOIN epagConsignacao csg on csg.cdConsignacao = cstsup.cdConsignacao
-LEFT JOIN RubricaLista rub ON rub.cdRubrica = csg.cdRubrica
-LEFT JOIN epagTipoServico tiposervico on tiposervico.cdTipoServico = cstsup.cdTipoServico
-LEFT JOIN eatoDocumento doc ON doc.cdDocumento = cstsup.cdDocumento
-LEFT JOIN eatoTipoDocumento tpdoc ON tpdoc.cdTipoDocumento = doc.cdTipoDocumento
-LEFT JOIN ecadMeioPublicacao meiopub ON meiopub.cdMeioPublicacao = cst.cdMeioPublicacao
-LEFT JOIN ecadTipoPublicacao tppub ON tppub.cdTipoPublicacao = cst.cdTipoPublicacao
-GROUP BY cstsup.cdconsignataria, cstsup.cdconsignacao, cstsup.cdtiposervico
-),
--- Consignataria
-Consignataria AS (
-SELECT cst.cdConsignataria,
+-- Parametros da Base de Consignaçao
+ParametroBaseConsignacao AS (
+SELECT cdParametroBaseConsignacao,
 JSON_OBJECT(
+  'nuOrdemDesconto'                 VALUE parm.cdOrdemDesconto,
+  'vlMinParcela'                    VALUE parm.vlMinParcela,
+  'nuMaxParcelas'                   VALUE parm.nuMaxParcelas,
+  'nuPrazoMaxCarencia'              VALUE parm.nuPrazoMaxCarencia,
+  'nuPrazoReservaAverb'             VALUE parm.nuPrazoReservaAverb,
+  'vlTaxaIOF'                       VALUE parm.vlTaxaIOF,
+  'vlPercentVariacao'               VALUE NULLIF(parm.vlPercentVariacao, 999.9999),
+  'nuDiaCorte'                      VALUE parm.nuDiaCorte,
+  'nmDiaSemana'                     VALUE UPPER(dia.nmDiaSemana),
+  'nuPrazoDefereConcessao'          VALUE NULLIF(parm.nuPrazoDefereConcessao, 999),
+  'nuPrazoDefereAlteracao'          VALUE NULLIF(parm.nuPrazoDefereAlteracao, 999),
+  'nuPrazoDeferereNegociacao'       VALUE NULLIF(parm.nuPrazoDeferereNegociacao, 999),
+  'nuPrazoDefereLiquidacao'         VALUE NULLIF(parm.nuPrazoDefereLiquidacao, 999),
+  'nuPrazoDefereEmprestimo'         VALUE NULLIF(parm.nuPrazoDefereEmprestimo, 999),
+  'blManualConsig'                  VALUE parm.blManualConsig,
+  'blManualServid'                  VALUE parm.blManualServid
+ABSENT ON NULL) AS ParametroBaseConsignacao
+FROM epagParametroBaseConsignacao parm
+LEFT JOIN ecadDiaSemana dia ON dia.cdDiaSemana = parm.cdDiaSemana
+),
+-- Contrato Servico
+ContratoServico AS (
+SELECT ctr.cdcontratoservico, ctr.cdagrupamento, ctr.cdorgao, ctr.cdconsignataria,
+JSON_OBJECT(
+  'nuContrato'                      VALUE ctr.nuContrato,
+  'dtInicioContrato'                VALUE CASE WHEN ctr.dtInicioContrato IS NULL THEN NULL
+                                          ELSE TO_CHAR(ctr.dtInicioContrato, 'YYYY-DD-MM') END,
+  'dtFimContrato'                   VALUE CASE WHEN ctr.dtInicioContrato IS NULL THEN NULL
+                                          ELSE TO_CHAR(ctr.dtInicioContrato, 'YYYY-DD-MM') END,
+  'dtFimProrrogacao'                VALUE CASE WHEN ctr.dtInicioContrato IS NULL THEN NULL
+                                          ELSE TO_CHAR(ctr.dtInicioContrato, 'YYYY-DD-MM') END,
+  'nmTipoServico'                   VALUE tpserv.nmTipoServico,
   'nuCodigoConsignataria'           VALUE cst.nuCodigoConsignataria,
-  'sgConsignataria'                 VALUE cst.sgConsignataria,
-  'nmConsignataria'                 VALUE cst.nmConsignataria,
-  'deEMailInstitucional'            VALUE cst.deEMailInstitucional,
-  'deInstrucoesContato'             VALUE cst.deInstrucoesContato,
-  'nuCNPJConsignataria'             VALUE cst.nuCNPJConsignataria,
-  'nmModalidadeConsignataria'       VALUE modcst.nmModalidadeConsignataria,
-  'nuProcessoSGPE'                  VALUE cst.nuProcessoSGPE,
-  'flMargemConsignavel'             VALUE NULLIF(cst.flMargemConsignavel,'N'),
-  'flImpedida'                      VALUE NULLIF(cst.flImpedida,'N'),
-  'Representacao' VALUE
-    CASE WHEN cst.cdagencia IS NULL AND cst.nucontacorrente IS NULL AND cst.nudvcontacorrente IS NULL
-    THEN NULL
-    ELSE JSON_OBJECT(
-    'sgBanco'                     VALUE bcoag.sgBanco,
-    'nmBanco'                     VALUE bcoag.nmBanco,
-    'nmAgencia'                   VALUE bcoag.nmAgencia,
-    'nuBanco'                     VALUE bcoag.nuBanco,
-    'nuAgencia'                   VALUE bcoag.nuAgencia,
-    'nuDvAgencia'                 VALUE bcoag.nuDvAgencia,
-    'nuContaCorrente'             VALUE cst.nuContaCorrente,
-    'nuDVContaCorrente'           VALUE cst.nuDVContaCorrente
-  ABSENT ON NULL) END,
-  'TelefonesEndereco' VALUE
-    CASE WHEN cst.cdEndereco IS NULL AND cst.nuDDD IS NULL AND cst.nuTelefone IS NULL AND 
-      cst.nuRamal IS NULL AND cst.nuDDDFax IS NULL AND cst.nuFax IS NULL AND cst.nuRamalfax IS NULL
-    THEN NULL
-    ELSE JSON_OBJECT(
-    'nuDDD'                       VALUE cst.nuDDD,
-    'nuTelefone'                  VALUE cst.nuTelefone,
-    'nuRamal'                     VALUE cst.nuRamal,
-    'nuDDDFax'                    VALUE cst.nuDDDFax,
-    'nuFax'                       VALUE cst.nuFax,
-    'nuRamalfax'                  VALUE cst.nuRamalfax,
-    'EnderecoRepresentante'       VALUE ed.Endereco
-  ABSENT ON NULL) END,
-  'Representante' VALUE
-    CASE WHEN tpRep.cdTipoRepresentacao IS NULL AND cst.nuCNPJRepresentante IS NULL AND 
-      cst.nmRepresentante IS NULL AND cst.cdEnderecoRepresentante IS NULL AND cst.nuDDDRepresentante IS NULL AND 
-      cst.nuTelefoneRepresentante IS NULL AND cst.nuRamalRepresentante IS NULL AND cst.nuDDDFaxRepresentante IS NULL AND 
-      cst.nuFaxRepresentante IS NULL AND cst.nuRamalFaxRepresentante IS NULL
-    THEN NULL
-    ELSE JSON_OBJECT(
-    'nmTipoRepresentacao'         VALUE tpRep.nmTipoRepresentacao,
-    'nuCNPJRepresentante'         VALUE cst.nuCNPJRepresentante,
-    'nmRepresentante'             VALUE cst.nmRepresentante,
-    'nuDDDRepresentante'          VALUE cst.nuDDDRepresentante,
-    'nuTelefoneRepresentante'     VALUE cst.nuTelefoneRepresentante,
-    'nuRamalRepresentante'        VALUE cst.nuRamalRepresentante,
-    'nuDDDFaxRepresentante'       VALUE cst.nuDDDFaxRepresentante,
-    'nuFaxRepresentante'          VALUE cst.nuFaxRepresentante,
-    'nuRamalFaxRepresentante'     VALUE cst.nuRamalFaxRepresentante,
-    'EnderecoRepresentante'       VALUE edrpt.Endereco
-  ABSENT ON NULL) END,
-  'Documento' VALUE
-    CASE WHEN doc.nuAnoDocumento IS NULL AND tpdoc.deTipoDocumento IS NULL AND
-      doc.dtDocumento IS NULL AND doc.nuNumeroAtoLegal IS NULL AND doc.deObservacao IS NULL AND
-      meiopub.nmMeioPublicacao IS NULL AND tppub.nmTipoPublicacao IS NULL AND
-      cst.dtPublicacao IS NULL AND cst.nuPublicacao IS NULL AND cst.nuPagInicial IS NULL AND
-      cst.deOutroMeio IS NULL AND doc.nmArquivoDocumento IS NULL AND doc.deCaminhoArquivoDocumento IS NULL
-    THEN NULL
-    ELSE JSON_OBJECT(
-    'nuAnoDocumento'              VALUE doc.nuAnoDocumento,
-    'deTipoDocumento'             VALUE tpdoc.deTipoDocumento,
-    'dtDocumento'                 VALUE CASE WHEN doc.dtDocumento IS NULL THEN NULL
-                                        ELSE TO_CHAR(doc.dtDocumento, 'YYYY-DD-MM') END,
-    'nuNumeroAtoLegal'            VALUE doc.nuNumeroAtoLegal,
-    'deObservacao'                VALUE doc.deObservacao,
-    'nmMeioPublicacao'            VALUE meiopub.nmMeioPublicacao,
-    'nmTipoPublicacao'            VALUE tppub.nmTipoPublicacao,
-    'dtPublicacao'                VALUE CASE WHEN cst.dtPublicacao IS NULL THEN NULL
-                                        ELSE TO_CHAR(cst.dtPublicacao, 'YYYY-DD-MM') END,
-    'nuPublicacao'                VALUE cst.nuPublicacao,
-    'nuPagInicial'                VALUE cst.nuPagInicial,
-    'deOutroMeio'                 VALUE cst.deOutroMeio,
-    'nmArquivoDocumento'          VALUE doc.nmArquivoDocumento,
-    'deCaminhoArquivoDocumento'   VALUE doc.deCaminhoArquivoDocumento
-  ABSENT ON NULL) END
-ABSENT ON NULL RETURNING CLOB) AS Consignataria
-FROM epagConsignataria cst
-LEFT JOIN epagTipoRepresentacao tpRep ON tpRep.cdTipoRepresentacao = cst.cdTipoRepresentacao
-LEFT JOIN epagModalidadeConsignataria modcst ON modcst.cdModalidadeConsignataria = cst.cdModalidadeConsignataria
-LEFT JOIN ConsignatariaSuspensao sup ON sup.cdConsignataria = cst.cdConsignataria
-LEFT JOIN BancoAgencia bcoag ON bcoag.cdAGencia = cst.cdAgencia
-LEFT JOIN Enderco ed ON ed.cdEndereco = cst.cdEndereco
-LEFT JOIN Enderco edrpt ON edrpt.cdEndereco = cst.cdEnderecoRepresentante
-LEFT JOIN eatoDocumento doc ON doc.cdDocumento = cst.cdDocumento
+  'deServico'                       VALUE ctr.deServico,
+  'deObjeto'                        VALUE ctr.deObjeto,
+  'deSitePublicacao'                VALUE ctr.deSitePublicacao,
+  'Seguro' VALUE
+      CASE WHEN ctr.nuApolice IS NULL AND ctr.nuRegistroSUSEP IS NULL AND ctr.vlTaxaAngariamento IS NULL
+      THEN NULL
+      ELSE JSON_OBJECT(
+      'nuApolice'                   VALUE ctr.nuApolice,
+      'nuRegistroSUSEP'             VALUE ctr.nuRegistroSUSEP,
+      'vlTaxaAngariamento'          VALUE ctr.vlTaxaAngariamento
+    ABSENT ON NULL) END,
+    'Documento' VALUE
+      CASE WHEN doc.nuAnoDocumento IS NULL AND tpdoc.deTipoDocumento IS NULL AND
+        doc.dtDocumento IS NULL AND doc.nuNumeroAtoLegal IS NULL AND doc.deObservacao IS NULL AND
+        meiopub.nmMeioPublicacao IS NULL AND tppub.nmTipoPublicacao IS NULL AND
+        ctr.dtPublicacao IS NULL AND ctr.nuPublicacao IS NULL AND ctr.nuPagInicial IS NULL AND
+        ctr.deOutroMeio IS NULL AND doc.nmArquivoDocumento IS NULL AND doc.deCaminhoArquivoDocumento IS NULL
+      THEN NULL
+      ELSE JSON_OBJECT(
+      'nuAnoDocumento'              VALUE doc.nuAnoDocumento,
+      'deTipoDocumento'             VALUE tpdoc.deTipoDocumento,
+      'dtDocumento'                 VALUE CASE WHEN doc.dtDocumento IS NULL THEN NULL
+                                          ELSE TO_CHAR(doc.dtDocumento, 'YYYY-DD-MM') END,
+      'nuNumeroAtoLegal'            VALUE doc.nuNumeroAtoLegal,
+      'deObservacao'                VALUE doc.deObservacao,
+      'nmMeioPublicacao'            VALUE meiopub.nmMeioPublicacao,
+      'nmTipoPublicacao'            VALUE tppub.nmTipoPublicacao,
+      'dtPublicacao'                VALUE CASE WHEN ctr.dtPublicacao IS NULL THEN NULL
+                                          ELSE TO_CHAR(ctr.dtPublicacao, 'YYYY-DD-MM') END,
+      'nuPublicacao'                VALUE ctr.nuPublicacao,
+      'nuPagInicial'                VALUE ctr.nuPagInicial,
+      'deOutroMeio'                 VALUE ctr.deOutroMeio,
+      'nmArquivoDocumento'          VALUE doc.nmArquivoDocumento,
+      'deCaminhoArquivoDocumento'   VALUE doc.deCaminhoArquivoDocumento
+    ABSENT ON NULL) END
+  ABSENT ON NULL) AS ContratoServico
+FROM epagContratoServico ctr
+LEFT JOIN epagTipoServico tpserv On tpserv.cdTipoServico = ctr.cdTipoServico
+LEFT JOIN epagConsignataria cst ON cst.cdConsignataria = ctr.cdConsignataria
+LEFT JOIN eatoDocumento doc ON doc.cdDocumento = ctr.cdDocumento
 LEFT JOIN eatoTipoDocumento tpdoc ON tpdoc.cdTipoDocumento = doc.cdTipoDocumento
-LEFT JOIN ecadMeioPublicacao meiopub ON meiopub.cdMeioPublicacao = cst.cdMeioPublicacao
-LEFT JOIN ecadTipoPublicacao tppub ON tppub.cdTipoPublicacao = cst.cdTipoPublicacao
+LEFT JOIN ecadMeioPublicacao meiopub ON meiopub.cdMeioPublicacao = ctr.cdMeioPublicacao
+LEFT JOIN ecadTipoPublicacao tppub ON tppub.cdTipoPublicacao = ctr.cdTipoPublicacao
 ),
 -- Vigência do Tipo Servico 
 VigenciaTipoServico AS (
@@ -301,10 +237,169 @@ TipoServico AS (
 SELECT tiposervico.cdTipoServico, tiposervico.cdAgrupamento,
 JSON_OBJECT(
   'nmTipoServico'                   VALUE tiposervico.nmTipoServico,
+  'ParametrosPadrao'                VALUE parm.ParametroBaseConsignacao,
   'Vigencias'                       VALUE vigencia.Vigencias
 ABSENT ON NULL RETURNING CLOB) AS TipoServico
 FROM epagTipoServico tiposervico
 LEFT JOIN VigenciaTipoServico vigencia on vigencia.cdtiposervico = tiposervico.cdtiposervico
+LEFT JOIN ParametroBaseConsignacao parm on parm.cdParametroBaseConsignacao = 1
+),
+-- Consignataria Suspensao
+ConsignatariaSuspensao AS (
+SELECT cstsup.cdconsignataria, cstsup.cdconsignacao, cstsup.cdtiposervico,
+JSON_ARRAYAGG(JSON_OBJECT(
+cstsup.cdconsignataria, cstsup.cdconsignacao, cstsup.cdtiposervico,
+  'nuCodigoConsignataria'         VALUE cst.nuCodigoConsignataria,
+--  'nuRubrica'                     VALUE rub.nuRubrica || ' ' || rub.deRubrica,
+  'nmTipoServico'                 VALUE tiposervico.nmTipoServico,
+  'dtInicioSuspensao'             VALUE CASE WHEN cstsup.dtInicioSuspensao IS NULL THEN NULL
+                                        ELSE TO_CHAR(cstsup.dtInicioSuspensao, 'YYYY-DD-MM') END,
+  'nuHoraInicioSuspensao'         VALUE cstsup.nuHoraInicioSuspensao,
+  'dtFimSuspensao'                VALUE CASE WHEN cstsup.dtFimSuspensao IS NULL THEN NULL
+                                         ELSE TO_CHAR(cstsup.dtFimSuspensao, 'YYYY-DD-MM') END,
+  'nuHoraFimSuspensao'            VALUE cstsup.nuHoraFimSuspensao,
+  'deMotivoSuspensao'             VALUE cstsup.deMotivoSuspensao,
+  'Documento' VALUE
+    CASE WHEN doc.nuAnoDocumento IS NULL AND tpdoc.deTipoDocumento IS NULL AND
+      doc.dtDocumento IS NULL AND doc.nuNumeroAtoLegal IS NULL AND doc.deObservacao IS NULL AND
+      meiopub.nmMeioPublicacao IS NULL AND tppub.nmTipoPublicacao IS NULL AND
+      cst.dtPublicacao IS NULL AND cstsup.nuPublicacao IS NULL AND cstsup.nuPagInicial IS NULL AND
+      cstsup.deOutroMeio IS NULL AND doc.nmArquivoDocumento IS NULL AND doc.deCaminhoArquivoDocumento IS NULL
+    THEN NULL
+    ELSE JSON_OBJECT(
+    'nuAnoDocumento'              VALUE doc.nuAnoDocumento,
+    'deTipoDocumento'             VALUE tpdoc.deTipoDocumento,
+    'dtDocumento'                 VALUE CASE WHEN doc.dtDocumento IS NULL THEN NULL
+                                        ELSE TO_CHAR(doc.dtDocumento, 'YYYY-DD-MM') END,
+    'nuNumeroAtoLegal'            VALUE doc.nuNumeroAtoLegal,
+    'deObservacao'                VALUE doc.deObservacao,
+    'nmMeioPublicacao'            VALUE meiopub.nmMeioPublicacao,
+    'nmTipoPublicacao'            VALUE tppub.nmTipoPublicacao,
+    'dtPublicacao'                VALUE CASE WHEN cst.dtPublicacao IS NULL THEN NULL
+                                        ELSE TO_CHAR(cst.dtPublicacao, 'YYYY-DD-MM') END,
+    'nuPublicacao'                VALUE cstsup.nuPublicacao,
+    'nuPagInicial'                VALUE cstsup.nuPagInicial,
+    'deOutroMeio'                 VALUE cstsup.deOutroMeio,
+    'nmArquivoDocumento'          VALUE doc.nmArquivoDocumento,
+    'deCaminhoArquivoDocumento'   VALUE doc.deCaminhoArquivoDocumento
+  ABSENT ON NULL) END
+ABSENT ON NULL) ORDER BY cstsup.dtInicioSuspensao DESC RETURNING CLOB) AS Suspensao
+FROM epagConsignatariaSuspensao cstsup
+LEFT JOIN epagConsignataria cst on cst.cdConsignataria = cstsup.cdConsignataria
+LEFT JOIN epagConsignacao csg on csg.cdConsignacao = cstsup.cdConsignacao
+LEFT JOIN RubricaLista rub ON rub.cdRubrica = csg.cdRubrica
+LEFT JOIN epagTipoServico tiposervico on tiposervico.cdTipoServico = cstsup.cdTipoServico
+LEFT JOIN eatoDocumento doc ON doc.cdDocumento = cstsup.cdDocumento
+LEFT JOIN eatoTipoDocumento tpdoc ON tpdoc.cdTipoDocumento = doc.cdTipoDocumento
+LEFT JOIN ecadMeioPublicacao meiopub ON meiopub.cdMeioPublicacao = cst.cdMeioPublicacao
+LEFT JOIN ecadTipoPublicacao tppub ON tppub.cdTipoPublicacao = cst.cdTipoPublicacao
+GROUP BY cstsup.cdconsignataria, cstsup.cdconsignacao, cstsup.cdtiposervico
+),
+-- Consignataria Taxa Servico
+ConsignatariaTaxaServico AS (
+SELECT csttaxa.cdconsignataria,
+JSON_ARRAYAGG(tiposervico.nmTipoServico
+ORDER BY csttaxa.cdTipoServico DESC ABSENT ON NULL RETURNING CLOB) AS TaxasServicos
+FROM epagConsignatariaTaxaServico csttaxa
+LEFT JOIN epagTipoServico tiposervico ON tiposervico.cdTipoServico = csttaxa.cdTipoServico
+GROUP BY csttaxa.cdconsignataria
+),
+-- Consignataria
+Consignataria AS (
+SELECT cst.cdConsignataria,
+JSON_OBJECT(
+  'nuCodigoConsignataria'           VALUE cst.nuCodigoConsignataria,
+  'sgConsignataria'                 VALUE cst.sgConsignataria,
+  'nmConsignataria'                 VALUE cst.nmConsignataria,
+  'deEmailInstitucional'            VALUE cst.deEmailInstitucional,
+  'deInstrucoesContato'             VALUE cst.deInstrucoesContato,
+  'nuCNPJConsignataria'             VALUE cst.nuCNPJConsignataria,
+  'nmModalidadeConsignataria'       VALUE modcst.nmModalidadeConsignataria,
+  'nuProcessoSGPE'                  VALUE cst.nuProcessoSGPE,
+  'flMargemConsignavel'             VALUE NULLIF(cst.flMargemConsignavel,'N'),
+  'flImpedida'                      VALUE NULLIF(cst.flImpedida,'N'),
+  'TaxasServicos'                   VALUE taxa.TaxasServicos,
+  'Representacao' VALUE
+    CASE WHEN cst.cdagencia IS NULL AND cst.nucontacorrente IS NULL AND cst.nudvcontacorrente IS NULL
+    THEN NULL
+    ELSE JSON_OBJECT(
+    'sgBanco'                       VALUE bcoag.sgBanco,
+    'nmBanco'                       VALUE bcoag.nmBanco,
+    'nmAgencia'                     VALUE bcoag.nmAgencia,
+    'nuBanco'                       VALUE bcoag.nuBanco,
+    'nuAgencia'                     VALUE bcoag.nuAgencia,
+    'nuDvAgencia'                   VALUE bcoag.nuDvAgencia,
+    'nuContaCorrente'               VALUE cst.nuContaCorrente,
+    'nuDVContaCorrente'             VALUE cst.nuDVContaCorrente
+  ABSENT ON NULL) END,
+  'TelefonesEndereco' VALUE
+    CASE WHEN cst.cdEndereco IS NULL AND cst.nuDDD IS NULL AND cst.nuTelefone IS NULL AND 
+      cst.nuRamal IS NULL AND cst.nuDDDFax IS NULL AND cst.nuFax IS NULL AND cst.nuRamalfax IS NULL
+    THEN NULL
+    ELSE JSON_OBJECT(
+    'nuDDD'                         VALUE cst.nuDDD,
+    'nuTelefone'                    VALUE cst.nuTelefone,
+    'nuRamal'                       VALUE cst.nuRamal,
+    'nuDDDFax'                      VALUE cst.nuDDDFax,
+    'nuFax'                         VALUE cst.nuFax,
+    'nuRamalfax'                    VALUE cst.nuRamalfax,
+    'EnderecoRepresentante'         VALUE ed.Endereco
+  ABSENT ON NULL) END,
+  'Representante' VALUE
+    CASE WHEN tpRep.cdTipoRepresentacao IS NULL AND cst.nuCNPJRepresentante IS NULL AND 
+      cst.nmRepresentante IS NULL AND cst.cdEnderecoRepresentante IS NULL AND cst.nuDDDRepresentante IS NULL AND 
+      cst.nuTelefoneRepresentante IS NULL AND cst.nuRamalRepresentante IS NULL AND cst.nuDDDFaxRepresentante IS NULL AND 
+      cst.nuFaxRepresentante IS NULL AND cst.nuRamalFaxRepresentante IS NULL
+    THEN NULL
+    ELSE JSON_OBJECT(
+    'nmTipoRepresentacao'           VALUE tpRep.nmTipoRepresentacao,
+    'nuCNPJRepresentante'           VALUE cst.nuCNPJRepresentante,
+    'nmRepresentante'               VALUE cst.nmRepresentante,
+    'nuDDDRepresentante'            VALUE cst.nuDDDRepresentante,
+    'nuTelefoneRepresentante'       VALUE cst.nuTelefoneRepresentante,
+    'nuRamalRepresentante'          VALUE cst.nuRamalRepresentante,
+    'nuDDDFaxRepresentante'         VALUE cst.nuDDDFaxRepresentante,
+    'nuFaxRepresentante'            VALUE cst.nuFaxRepresentante,
+    'nuRamalFaxRepresentante'       VALUE cst.nuRamalFaxRepresentante,
+    'EnderecoRepresentante'         VALUE edrpt.Endereco
+  ABSENT ON NULL) END,
+  'Documento' VALUE
+    CASE WHEN doc.nuAnoDocumento IS NULL AND tpdoc.deTipoDocumento IS NULL AND
+      doc.dtDocumento IS NULL AND doc.nuNumeroAtoLegal IS NULL AND doc.deObservacao IS NULL AND
+      meiopub.nmMeioPublicacao IS NULL AND tppub.nmTipoPublicacao IS NULL AND
+      cst.dtPublicacao IS NULL AND cst.nuPublicacao IS NULL AND cst.nuPagInicial IS NULL AND
+      cst.deOutroMeio IS NULL AND doc.nmArquivoDocumento IS NULL AND doc.deCaminhoArquivoDocumento IS NULL
+    THEN NULL
+    ELSE JSON_OBJECT(
+    'nuAnoDocumento'                VALUE doc.nuAnoDocumento,
+    'deTipoDocumento'               VALUE tpdoc.deTipoDocumento,
+    'dtDocumento'                   VALUE CASE WHEN doc.dtDocumento IS NULL THEN NULL
+                                          ELSE TO_CHAR(doc.dtDocumento, 'YYYY-DD-MM') END,
+    'nuNumeroAtoLegal'              VALUE doc.nuNumeroAtoLegal,
+    'deObservacao'                  VALUE doc.deObservacao,
+    'nmMeioPublicacao'              VALUE meiopub.nmMeioPublicacao,
+    'nmTipoPublicacao'              VALUE tppub.nmTipoPublicacao,
+    'dtPublicacao'                  VALUE CASE WHEN cst.dtPublicacao IS NULL THEN NULL
+                                          ELSE TO_CHAR(cst.dtPublicacao, 'YYYY-DD-MM') END,
+    'nuPublicacao'                  VALUE cst.nuPublicacao,
+    'nuPagInicial'                  VALUE cst.nuPagInicial,
+    'deOutroMeio'                   VALUE cst.deOutroMeio,
+    'nmArquivoDocumento'            VALUE doc.nmArquivoDocumento,
+    'deCaminhoArquivoDocumento'     VALUE doc.deCaminhoArquivoDocumento
+  ABSENT ON NULL) END
+ABSENT ON NULL RETURNING CLOB) AS Consignataria
+FROM epagConsignataria cst
+LEFT JOIN epagTipoRepresentacao tpRep ON tpRep.cdTipoRepresentacao = cst.cdTipoRepresentacao
+LEFT JOIN epagModalidadeConsignataria modcst ON modcst.cdModalidadeConsignataria = cst.cdModalidadeConsignataria
+LEFT JOIN ConsignatariaTaxaServico taxa ON taxa.cdConsignataria = cst.cdConsignataria
+LEFT JOIN ConsignatariaSuspensao sup ON sup.cdConsignataria = cst.cdConsignataria
+LEFT JOIN BancoAgencia bcoag ON bcoag.cdAGencia = cst.cdAgencia
+LEFT JOIN Enderco ed ON ed.cdEndereco = cst.cdEndereco
+LEFT JOIN Enderco edrpt ON edrpt.cdEndereco = cst.cdEnderecoRepresentante
+LEFT JOIN eatoDocumento doc ON doc.cdDocumento = cst.cdDocumento
+LEFT JOIN eatoTipoDocumento tpdoc ON tpdoc.cdTipoDocumento = doc.cdTipoDocumento
+LEFT JOIN ecadMeioPublicacao meiopub ON meiopub.cdMeioPublicacao = cst.cdMeioPublicacao
+LEFT JOIN ecadTipoPublicacao tppub ON tppub.cdTipoPublicacao = cst.cdTipoPublicacao
 ),
 -- Vigência da Consignação
 VigenciaConsignacao AS (
@@ -375,77 +470,12 @@ LEFT JOIN ecadMeioPublicacao meiopub ON meiopub.cdMeioPublicacao = vigencia.cdMe
 LEFT JOIN ecadTipoPublicacao tppub ON tppub.cdTipoPublicacao = vigencia.cdTipoPublicacao
 GROUP BY vigencia.cdConsignacao
 ),
--- Consignataria Taxa Servico
-ConsignatariaTaxaServico AS (
-SELECT csttaxa.cdconsignataria,
-JSON_ARRAYAGG(tpsrv.TipoServico
-ORDER BY csttaxa.cdTipoServico DESC ABSENT ON NULL RETURNING CLOB) AS TaxasServicos
-FROM epagConsignatariaTaxaServico csttaxa
-LEFT JOIN TipoServico tpsrv ON tpsrv.cdTipoServico = csttaxa.cdTipoServico
-GROUP BY csttaxa.cdconsignataria
-),
--- Contrato Servico
-ContratoServico AS (
-SELECT ctr.cdcontratoservico, ctr.cdagrupamento, ctr.cdorgao, ctr.cdconsignataria,
-JSON_OBJECT(
-  'nuContrato'                      VALUE ctr.nuContrato,
-  'dtInicioContrato'                VALUE CASE WHEN ctr.dtInicioContrato IS NULL THEN NULL
-                                          ELSE TO_CHAR(ctr.dtInicioContrato, 'YYYY-DD-MM') END,
-  'dtFimContrato'                   VALUE CASE WHEN ctr.dtInicioContrato IS NULL THEN NULL
-                                          ELSE TO_CHAR(ctr.dtInicioContrato, 'YYYY-DD-MM') END,
-  'dtFimProrrogacao'                VALUE CASE WHEN ctr.dtInicioContrato IS NULL THEN NULL
-                                          ELSE TO_CHAR(ctr.dtInicioContrato, 'YYYY-DD-MM') END,
-  'nmTipoServico'                   VALUE tpserv.nmTipoServico,
-  'nuCodigoConsignataria'           VALUE cst.nuCodigoConsignataria,
-  'deServico'                       VALUE ctr.deServico,
-  'deObjeto'                        VALUE ctr.deObjeto,
-  'deSitePublicacao'                VALUE ctr.deSitePublicacao,
-  'Seguro' VALUE
-      CASE WHEN ctr.nuApolice IS NULL AND ctr.nuRegistroSUSEP IS NULL AND ctr.vlTaxaAngariamento IS NULL
-      THEN NULL
-      ELSE JSON_OBJECT(
-      'nuApolice'                   VALUE ctr.nuApolice,
-      'nuRegistroSUSEP'             VALUE ctr.nuRegistroSUSEP,
-      'vlTaxaAngariamento'          VALUE ctr.vlTaxaAngariamento
-    ABSENT ON NULL) END,
-    'Documento' VALUE
-      CASE WHEN doc.nuAnoDocumento IS NULL AND tpdoc.deTipoDocumento IS NULL AND
-        doc.dtDocumento IS NULL AND doc.nuNumeroAtoLegal IS NULL AND doc.deObservacao IS NULL AND
-        meiopub.nmMeioPublicacao IS NULL AND tppub.nmTipoPublicacao IS NULL AND
-        ctr.dtPublicacao IS NULL AND ctr.nuPublicacao IS NULL AND ctr.nuPagInicial IS NULL AND
-        ctr.deOutroMeio IS NULL AND doc.nmArquivoDocumento IS NULL AND doc.deCaminhoArquivoDocumento IS NULL
-      THEN NULL
-      ELSE JSON_OBJECT(
-      'nuAnoDocumento'              VALUE doc.nuAnoDocumento,
-      'deTipoDocumento'             VALUE tpdoc.deTipoDocumento,
-      'dtDocumento'                 VALUE CASE WHEN doc.dtDocumento IS NULL THEN NULL
-                                          ELSE TO_CHAR(doc.dtDocumento, 'YYYY-DD-MM') END,
-      'nuNumeroAtoLegal'            VALUE doc.nuNumeroAtoLegal,
-      'deObservacao'                VALUE doc.deObservacao,
-      'nmMeioPublicacao'            VALUE meiopub.nmMeioPublicacao,
-      'nmTipoPublicacao'            VALUE tppub.nmTipoPublicacao,
-      'dtPublicacao'                VALUE CASE WHEN ctr.dtPublicacao IS NULL THEN NULL
-                                          ELSE TO_CHAR(ctr.dtPublicacao, 'YYYY-DD-MM') END,
-      'nuPublicacao'                VALUE ctr.nuPublicacao,
-      'nuPagInicial'                VALUE ctr.nuPagInicial,
-      'deOutroMeio'                 VALUE ctr.deOutroMeio,
-      'nmArquivoDocumento'          VALUE doc.nmArquivoDocumento,
-      'deCaminhoArquivoDocumento'   VALUE doc.deCaminhoArquivoDocumento
-    ABSENT ON NULL) END
-  ABSENT ON NULL) AS ContratoServico
-FROM epagContratoServico ctr
-LEFT JOIN epagTipoServico tpserv On tpserv.cdTipoServico = ctr.cdTipoServico
-LEFT JOIN epagConsignataria cst ON cst.cdConsignataria = ctr.cdConsignataria
-LEFT JOIN eatoDocumento doc ON doc.cdDocumento = ctr.cdDocumento
-LEFT JOIN eatoTipoDocumento tpdoc ON tpdoc.cdTipoDocumento = doc.cdTipoDocumento
-LEFT JOIN ecadMeioPublicacao meiopub ON meiopub.cdMeioPublicacao = ctr.cdMeioPublicacao
-LEFT JOIN ecadTipoPublicacao tppub ON tppub.cdTipoPublicacao = ctr.cdTipoPublicacao
-),
 Consignacao AS (
 -- Consignação  
-SELECT rub.nuRubrica || ' ' || rub.deRubrica as nuRubrica,
+SELECT rub.cdAgrupamento, rub.nuRubrica,
 JSON_OBJECT(
-  'nuRubrica'               VALUE rub.nuRubrica || ' ' || rub.deRubrica,
+  'nuRubrica'               VALUE rub.nuRubrica,
+  'deRubrica'               VALUE rub.deRubrica,
   'dtInicioConcessao'       VALUE CASE WHEN csg.dtInicioConcessao IS NULL THEN NULL
                                   ELSE TO_CHAR(csg.dtInicioConcessao, 'YYYY-DD-MM') END,
   'dtFimConcessao'          VALUE CASE WHEN csg.dtFimConcessao IS NULL THEN NULL
@@ -455,19 +485,22 @@ JSON_OBJECT(
   'Vigencias'               VALUE vigencia.Vigencias,
   'Consignataria'           VALUE cst.Consignataria,
   'TipoServico'             VALUE tpServico.TipoServico,
-  'ContratoServico'         VALUE contrato.ContratoServico,
-  'TaxasServicos'         VALUE taxa.TaxasServicos
+  'ContratoServico'         VALUE contrato.ContratoServico
 ABSENT ON NULL RETURNING CLOB) AS Consignacao
 FROM epagConsignacao csg
-LEFT JOIN RubricaLista rub ON rub.cdRubrica = csg.cdRubrica
+INNER JOIN RubricaLista rub ON rub.cdRubrica = csg.cdRubrica
 LEFT JOIN VigenciaConsignacao vigencia ON vigencia.cdConsignacao = csg.cdConsignacao
 LEFT JOIN Consignataria cst ON cst.cdConsignataria = csg.cdConsignataria
 LEFT JOIN TipoServico tpServico ON tpServico.cdTipoServico = csg.cdTipoServico
 LEFT JOIN ContratoServico contrato ON contrato.cdContratoServico = csg.cdContratoServico
-LEFT JOIN ConsignatariaTaxaServico taxa ON taxa.cdConsignataria = csg.cdConsignataria
 )
 
-SELECT * FROM Consignacao
+--SELECT MAX(LENGTH(Consignacao)) FROM Consignacao;
+SELECT cdAgrupamento, nuRubrica, Consignacao, LENGTH(Consignacao) AS Tamanho  FROM Consignacao
+WHERE SUBSTR(nuRubrica,1,7) IN ('05-0160', '05-0161', '05-0537', '05-0538', '05-0791',
+                    '05-0813', '05-0850', '05-0950', '05-0974', '05-1601', '05-1603')
+--WHERE LENGTH(Consignacao) > 1400
+ORDER BY cdAgrupamento, nuRubrica -- Tamanho DESC
 ;
 /
 
