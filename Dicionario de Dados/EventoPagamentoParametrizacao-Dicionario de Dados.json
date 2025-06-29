@@ -1,0 +1,77 @@
+{
+  "Eventos": [
+    {
+      "nmTipoEventoPagamento": "Tipo do Evento de Pagamento",
+      "deEvento": "Descrição do Evento de Pagamento",
+      "nuRubrica": "Número da Rubrica do Evento de Pagamento",
+      "nuRubAgrupOpRecebCCO": "Número da Rubrica opção do Recebimento Cargo Comissionado",
+      "nuRubricaAgrupAlternativa2": "Número da Rubrica Alternativa 02",
+      "nuRubricaAgrupAlternativa3": "Número da Rubrica Alternativa 03",
+      "Vigencias": [
+        {
+          "nuAnoMesInicioVigencia": "AAAAMM",
+          "nuAnoMesFimVigencia": "AAAAMM",
+          "deDesconto": "Descrição Desconto",
+          "nuRubrica": "Número da Rubrica",
+          "MesPagamento": {
+            "nuMesPagamento": "Mês Pagamento",
+            "nuMesPagamentoInicio": "Mês Inicio Pagamento",
+            "nuMesPagamentoFim": " Mês Fim Pagamento"
+          },
+          "nmRelacaoTrabalho": "Relação de Trabalho Permitidos, sendo que:
+		    EFETIVO,
+			COMISSIONADO,
+			ADMITIDO EM CARÁTER TEMPORÁRIO,
+			MILITAR,
+			RESIDENTE,
+			ESTAGIÁRIO,
+			PESQUISADOR,
+			AGENTE POLÍTICO,
+			CONSELHEIRO,
+			CONSELHEIRO",
+          "flCargaHorariaPadrao": "Indica se utiliza Carga Horaria Padrão, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+          "Orgaos": {
+            "flAbrangeTodosOrgaos": "Indicar a Abrangências dos Órgãos do Agrupamento, sendo que:
+			  S - Todos os Órgãos; e
+			  N - Alguns Órgãos Permitidos.
+			  Padrão S - Todos os Órgãos",
+            "Orgaos": [
+              "Lista de Órgão do AGrupamento para a Abrangência",
+              "ORGAO 01",
+              "ORGAO 02",
+              "ORGAO 03"
+            ]
+          },
+          "Carreiras": {
+            "inAcaoCarreira": "Carreiras que Impedem ou Exigem para o Recebimento, sendo que:
+			  1 - Algumas Impedem - Algumas Carreiras Impedem a geração do evento;
+			  2 - Algumas Exigem - Algumas Carreiras Exigem a geração da evento; e
+			  3 - Todas Permitem - Todas as Carreiras Permitem a geração da evento.
+			  Padrão 3 - Todas Permitem",
+            "EstruturaCarreira": [
+              "Lista de Cargos e Carreiras que Impedem ou Exigem"
+            ]
+          },
+          "FormulaCalculo": {
+            "flUtilizaFormulaCalculo": "Indica se Utiliza Formula de Cálculo, sendo que: 'S' - Sim e 'N' - Não, padrão 'N'",
+            "nuFormulaEspecifica": "Número da Formula Especifica"
+          },
+          "ConquistaPeriodoAquisitivo": {
+            "dtInicioConquistaPerAquis": "AAAA-MM-DD",
+            "dtFimConquistaPerAquis": "AAAA-MM-DD"
+          },
+          "Abrangencia": {
+            "nmTipoComConselhoGrupo": "Tipo da Comissão ou Conselho ou Grupo",
+            "nmTipoPensaoNaoPrev": "Tipo da Pensão não Previdenciária",
+            "nmTipoTempoServico": "Tipo do Adicional de Tempo de Serviço",
+            "nmTipoFuncaoChefia": "Tipo da Função de Chefia",
+            "nmTipoGratAtivFazendaria": "Tipo da GRatificação de Atividade Fazendária",
+            "nmTipoRisco": "Tipo de Risco",
+            "nmTipoFalta": "Tipo de Falta",
+            "nmTipoFaltaParcialAgrup": "Tipo de Falta PArcial do Agrupamento"
+          }
+        }
+      ]
+    }
+  ]
+}

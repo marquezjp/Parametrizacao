@@ -1,0 +1,210 @@
+{
+  "nuRubrica": "05-1601",
+  "deRubrica": "MENS. APROR",
+  "dtInicioConcessao": "1901-01-01",
+  "dtFimConcessao": null,
+  "flGeridaTerceitos": null,
+  "flRepasse": null,
+  "Vigencias": [
+    {
+      "dtInicioVigencia": "2024-01-04",
+      "dtFimVigencia": null,
+      "Parametros": {
+        "nuMaxParcelas": null,
+        "vlMinConsignado": null,
+        "vlMinDescontoFolha": null,
+        "flMaisDeUmaOcorrencia": null,
+        "flLancamentoManual": "S",
+        "flDescontoEventual": null,
+        "flDescontoParcial": null,
+        "flFormulaCalculo": null
+      },
+      "TaxaRetencao": {
+        "vlRetencao": null,
+        "vlTaxaRetencao": null,
+        "vlTaxaIR": null,
+        "vlTaxaAdministracao": null,
+        "vlTaxaProlabore": null,
+        "vlTaxaBescor": null
+      },
+      "Documento": {
+        "nuAnoDocumento": null,
+        "deTipoDocumento": null,
+        "dtDocumento": null,
+        "nuNumeroAtoLegal": null,
+        "deObservacao": null,
+        "nmMeioPublicacao": "DIÁRIO OFICIAL DO ESTADO",
+        "nmTipoPublicacao": "EXTERNA",
+        "dtPublicacao": null,
+        "nuPublicacao": null,
+        "nuPagInicial": null,
+        "deOutroMeio": null,
+        "nmArquivoDocumento": null,
+        "deCaminhoArquivoDocumento": null
+      }
+    }
+  ],
+  "Consignataria": {
+    "nuCodigoConsignataria": 500,
+    "sgConsignataria": "APROR",
+    "nmConsignataria": "APROR - ASSOCIACAO DOS PROCURADORES DO ESTADO DE RORAIMA",
+    "deEmailInstitucional": null,
+    "deInstrucoesContato": null,
+    "nuCNPJConsignataria": "08386065000129",
+    "nmModalidadeConsignataria": null,
+    "nuProcessoSGPE": null,
+    "flMargemConsignavel": null,
+    "flImpedida": null,
+    "TaxasServicos": [
+      "ASSOCIACAO"
+    ],
+    "Representacao": {
+      "sgBanco": null,
+      "nmBanco": null,
+      "nmAgencia": null,
+      "nuBanco": null,
+      "nuAgencia": null,
+      "nuDvAgencia": null,
+      "nuContaCorrente": null,
+      "nuDVContaCorrente": null
+    },
+    "TelefonesEndereco": {
+      "nuDDD": null,
+      "nuTelefone": null,
+      "nuRamal": null,
+      "nuDDDFax": null,
+      "nuFax": null,
+      "nuRamalfax": null,
+      "EnderecoRepresentante": {
+        "nuCEP": "69307053",
+        "nmTipoLogradouro": "AVENIDA",
+        "nmLogradouro": " LUIS CANUTO CHAVES",
+        "deComplLogradouro": null,
+        "nuNumero": "215-B",
+        "deComplemento": null,
+        "nmBairro": "PARAVIANA",
+        "nmUnidade": null,
+        "nmLocalidade": "BOA VISTA",
+        "sgEstado": "RR",
+        "nuCaixaPostal": null,
+        "inTipo": "MUNICIPIO",
+        "flTipoLogradouro": null,
+        "flEnderecoExterior": null,
+        "flInconsistente": null
+      }
+    },
+    "Representante": {
+      "nmTipoRepresentacao": "E A PROPRIA MATRIZ",
+      "nuCNPJRepresentante": null,
+      "nmRepresentante": null,
+      "nuDDDRepresentante": null,
+      "nuTelefoneRepresentante": null,
+      "nuRamalRepresentante": null,
+      "nuDDDFaxRepresentante": null,
+      "nuFaxRepresentante": null,
+      "nuRamalFaxRepresentante": null,
+      "EnderecoRepresentante": null
+    },
+    "Documento": {
+      "nuAnoDocumento": null,
+      "deTipoDocumento": null,
+      "dtDocumento": null,
+      "nuNumeroAtoLegal": null,
+      "deObservacao": null,
+      "nmMeioPublicacao": "DIÁRIO OFICIAL DO ESTADO",
+      "nmTipoPublicacao": "EXTERNA",
+      "dtPublicacao": null,
+      "nuPublicacao": null,
+      "nuPagInicial": null,
+      "deOutroMeio": null,
+      "nmArquivoDocumento": null,
+      "deCaminhoArquivoDocumento": null
+    }
+  },
+  "TipoServico": {
+    "nmTipoServico": "ASSOCIACAO",
+    "ParametrosPadrao": {
+      "nuOrdemDesconto": 2,
+      "vlMinParcela": 8.2,
+      "nuMaxParcelas": 120,
+      "nuPrazoMaxCarencia": 6,
+      "nuPrazoReservaAverb": 10,
+      "vlTaxaIOF": 0,
+      "vlPercentVariacao": null,
+      "nuDiaCorte": 10,
+      "nmDiaSemana": "SEGUNDA-FEIRA",
+      "nuPrazoDefereConcessao": null,
+      "nuPrazoDefereAlteracao": null,
+      "nuPrazoDeferereNegociacao": null,
+      "nuPrazoDefereLiquidacao": null,
+      "nuPrazoDefereEmprestimo": null,
+      "blManualConsig": null,
+      "blManualServid": null
+    },
+    "Vigencias": [
+      {
+        "dtInicioVigencia": "2021-01-05",
+        "dtFimVigencia": null,
+        "nuOrdem": 7,
+        "nmConsigOutroTipo": null,
+        "Parametros": {
+          "flEmprestimo": null,
+          "flSeguro": null,
+          "flCartaoCredito": null,
+          "nuMaxParcelas": null,
+          "vlMinConsignado": null,
+          "vlLimiteTAC": null,
+          "vlLimitePercentReservado": null,
+          "vlLimiteReservado": null,
+          "flTacFinanciada": null,
+          "flVerificaMargemConsig": null,
+          "flIOFFinanciado": null,
+          "flExigeContrato": null,
+          "flExigeValorLiberado": null,
+          "flExigeValorReservado": null,
+          "flExigePedido": null,
+          "flExigeConsigOutroTipo": null
+        },
+        "TaxaRetencao": {
+          "vlRetencao": null,
+          "vlTaxaRetencao": null,
+          "vlTaxaIR": null,
+          "vlTaxaAdministracao": null,
+          "vlTaxaProlabore": null,
+          "vlTaxaBescor": null
+        }
+      }
+    ]
+  },
+  "ContratoServico": {
+    "nuContrato": null,
+    "dtInicioContrato": null,
+    "dtFimContrato": null,
+    "dtFimProrrogacao": null,
+    "nmTipoServico": null,
+    "nuCodigoConsignataria": null,
+    "deServico": null,
+    "deObjeto": null,
+    "deSitePublicacao": null,
+    "Seguro": {
+      "nuApolice": null,
+      "nuRegistroSUSEP": null,
+      "vlTaxaAngariamento": null
+    },
+    "Documento": {
+      "nuAnoDocumento": null,
+      "deTipoDocumento": null,
+      "dtDocumento": null,
+      "nuNumeroAtoLegal": null,
+      "deObservacao": null,
+      "nmMeioPublicacao": null,
+      "nmTipoPublicacao": null,
+      "dtPublicacao": null,
+      "nuPublicacao": null,
+      "nuPagInicial": null,
+      "deOutroMeio": null,
+      "nmArquivoDocumento": null,
+      "deCaminhoArquivoDocumento": null
+    }
+  }
+}
