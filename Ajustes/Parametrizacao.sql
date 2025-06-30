@@ -10,11 +10,26 @@ INDIR-IPEM/RR
 ADM-DIR
 */
 
-/* INDIR-FEMARH INDIR-IPEM/RR */
+/* INDIR-FEMARH */
 SET SERVEROUTPUT ON SIZE UNLIMITED;
-EXEC PKGMIG_Parametrizacao.PImportar('INDIR-FEMARH', 'INDIR-IPEM/RR', 'BASECALCULO');
+EXEC PKGMIG_Parametrizacao.pExportar('MILITAR', 'RUBRICA');
+EXEC PKGMIG_Parametrizacao.pExportar('INDIR-FEMARH', 'RUBRICA');
+EXEC PKGMIG_Parametrizacao.pExportar('INDIR-ADERR', 'RUBRICA');
+EXEC PKGMIG_Parametrizacao.pExportar('INDIR-IATER', 'RUBRICA');
+EXEC PKGMIG_Parametrizacao.pExportar('INDIR-IERR', 'RUBRICA');
+EXEC PKGMIG_Parametrizacao.pExportar('INDIR-IPEM/RR', 'RUBRICA');
+EXEC PKGMIG_Parametrizacao.pExportar('ADM-DIR', 'RUBRICA');
 
---- Log das Operações
+SELECT * FROM TABLE(PKGMIG_Parametrizacao.fnResumo());
+
+SELECT * FROM TABLE(PKGMIG_Parametrizacao.fnListar('MILITAR', 'PAG', 'RUBRICA'));
+
+SELECT * FROM TABLE(PKGMIG_Parametrizacao.fnResumoLog());
+
+SELECT * FROM TABLE(PKGMIG_Parametrizacao.fnResumoLogEntidades('MILITAR', 'PAG', 'VALORREFERENCIA', 'EXPORTACAO'));
+
+SELECT * FROM TABLE(PKGMIG_Parametrizacao.fnListarLog('MILITAR', 'PAG', 'VALORREFERENCIA', 'EXPORTACAO'));
+
 --- Log das Operações
 SELECT tpOperacao, TO_CHAR(dtOperacao, 'YYYY/MM/DD HH24:MI') as dtOperacao, --sgConceito, 
 nmEntidade, cdIdentificacao, nmEvento, nuRegistros, deMensagem, dtInclusao from emigParametrizacaoLog
