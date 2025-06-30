@@ -337,7 +337,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
 -- Resumo das Operações de Exportação das Parametrizações
   FUNCTION fnResumo(
     psgAgrupamento   IN VARCHAR2 DEFAULT NULL,
-    psgOrgao         IN VARCHAR2 DEFAULT NULL,
     psgModulo        IN CHAR     DEFAULT NULL,
     psgConceito      IN VARCHAR2 DEFAULT NULL,
     pdtExportacao    IN VARCHAR2 DEFAULT NULL
@@ -345,13 +344,12 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
   IS
   BEGIN
     FOR r IN (
-      SELECT sgAgrupamento, sgOrgao, sgModulo, sgConceito, TO_CHAR(dtExportacao, 'DD/MM/YYYY HH24:MI:SS') AS dtExportacao, COUNT(*) AS Conteudos
+      SELECT sgAgrupamento, sgOrgao, sgModulo, sgConceito, TO_CHAR(dtExportacao, 'DD/MM/YYYY HH24:MI') AS dtExportacao, COUNT(*) AS Conteudos
       FROM emigParametrizacao
       WHERE (sgAgrupamento LIKE psgAgrupamento OR psgAgrupamento IS NULL)
-        AND (sgOrgao LIKE psgOrgao OR psgOrgao IS NULL)
         AND (sgModulo LIKE psgModulo OR psgModulo IS NULL)
         AND (sgConceito LIKE psgConceito OR psgConceito IS NULL)
-        AND (TO_CHAR(dtExportacao, 'DD/MM/YYYY HH24:MI:SS') LIKE pdtExportacao OR pdtExportacao IS NULL)
+        AND (TO_CHAR(dtExportacao, 'DD/MM/YYYY HH24:MI') LIKE pdtExportacao OR pdtExportacao IS NULL)
       GROUP BY sgAgrupamento, sgOrgao, sgModulo, sgConceito, dtExportacao
       ORDER BY sgAgrupamento, sgOrgao, sgModulo, sgConceito, dtExportacao desc)
     LOOP
@@ -365,7 +363,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
 -- Listar a Exportação das Parametrizações
   FUNCTION fnListar(
     psgAgrupamento   IN VARCHAR2,
-    psgOrgao         IN VARCHAR2,
     psgModulo        IN CHAR,
     psgConceito      IN VARCHAR2,
     pdtExportacao    IN VARCHAR2 DEFAULT NULL
@@ -377,7 +374,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
   BEGIN
 
     IF pdtExportacao IS NULL THEN
-      SELECT TO_CHAR(MAX(dtExportacao), 'DD/MM/YYYY HH24:MI:SS') INTO vdtExportacao
+      SELECT TO_CHAR(MAX(dtExportacao), 'DD/MM/YYYY HH24:MI') INTO vdtExportacao
       FROM emigParametrizacao
       WHERE sgModulo = psgModulo AND psgConceito = psgConceito
         AND sgAgrupamento = psgAgrupamento AND sgOrgao IS NULL;
@@ -386,19 +383,18 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
     END IF;
 
     FOR r IN (
-      SELECT sgAgrupamento, sgOrgao, sgModulo, sgConceito, TO_CHAR(dtExportacao, 'DD/MM/YYYY HH24:MI:SS') AS dtExportacao, cdIdentificacao,
+      SELECT sgAgrupamento, sgOrgao, sgModulo, sgConceito, TO_CHAR(dtExportacao, 'DD/MM/YYYY HH24:MI') AS dtExportacao,
+        cdIdentificacao,
         JSON_SERIALIZE(TO_CLOB(jsconteudo) RETURNING CLOB PRETTY) AS jsConteudo
       FROM emigParametrizacao
       WHERE (sgAgrupamento = psgAgrupamento)
-        AND (NVL(sgOrgao, ' ') = NVL(psgOrgao, ' '))
         AND (sgModulo = psgModulo)
         AND (sgConceito = psgConceito)
-        AND (TO_CHAR(dtExportacao, 'DD/MM/YYYY HH24:MI:SS') = vdtExportacao)
-      ORDER BY sgAgrupamento, sgModulo, sgConceito, sgOrgao,
-        TO_CHAR(dtExportacao, 'YYYYMMDDHH24MISS') DESC, cdIdentificacao)
+        AND (TO_CHAR(dtExportacao, 'DD/MM/YYYY HH24:MI') = vdtExportacao)
+      ORDER BY sgAgrupamento, sgModulo, sgConceito, sgOrgao, dtExportacao DESC, cdIdentificacao)
     LOOP
       PIPE ROW (tpParametrizacaoListar(r.sgAgrupamento, r.sgOrgao,
-          r.sgModulo, r.sgConceito, r.dtExportacao,
+          r.sgModulo, r.sgConceito, r.dtExportacao, 
           r.cdIdentificacao, r.jsConteudo));
     END LOOP;
     RETURN;
@@ -407,7 +403,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
 -- Resumo do Log das Operações de Exportação e Importação das Parametrizações
   FUNCTION fnResumoLog(
     psgAgrupamento   IN VARCHAR2  DEFAULT NULL,
-    psgOrgao         IN VARCHAR2  DEFAULT NULL,
     psgModulo        IN CHAR      DEFAULT NULL,
     psgConceito      IN VARCHAR2  DEFAULT NULL,
     ptpOperacao      IN VARCHAR2  DEFAULT NULL
@@ -415,59 +410,71 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
   IS
   BEGIN
     FOR r IN (
-      SELECT DISTINCT tpOperacao, TO_CHAR(dtOperacao, 'DD/MM/YYYY HH24:MI:SS') AS dtOperacao,
-        sgAgrupamento, sgOrgao, sgModulo, sgConceito
+      SELECT DISTINCT tpOperacao, TO_CHAR(dtOperacao, 'DD/MM/YYYY HH24:MI') AS dtOperacao,
+        sgAgrupamento, sgOrgao, sgModulo, sgConceito,
+        COUNT(*) AS nuEventos, SUM(nuRegistros) AS nuRegistros
       FROM emigParametrizacaoLog
       WHERE (tpOperacao LIKE ptpOperacao OR ptpOperacao IS NULL)
         AND (sgAgrupamento LIKE psgAgrupamento OR psgAgrupamento IS NULL)
-        AND (sgOrgao LIKE psgOrgao OR psgOrgao IS NULL)
         AND (sgModulo LIKE psgModulo OR psgModulo IS NULL)
         AND (sgConceito LIKE psgConceito OR psgConceito IS NULL)
-      ORDER BY tpOperacao, TO_CHAR(dtOperacao, 'YYYYMMDDHH24MISS') DESC,
-        sgAgrupamento, sgModulo, sgConceito, sgOrgao)
+        AND nmEvento NOT IN ('RESUMO', 'SEQUENCE', 'JSON')
+      GROUP BY tpOperacao, dtOperacao, sgAgrupamento, sgOrgao, sgModulo, sgConceito
+      ORDER BY tpOperacao, dtOperacao DESC, sgAgrupamento, sgOrgao, sgModulo, sgConceito)
     LOOP
       PIPE ROW (tpParametrizacaoLogResumo(r.tpOperacao, r.dtOperacao,
-        r.sgAgrupamento, r.sgOrgao, r.sgModulo, r.sgConceito));
+        r.sgAgrupamento, r.sgOrgao, r.sgModulo, r.sgConceito, r.nuEventos, r.nuRegistros));
     END LOOP;
     RETURN;
   END fnResumoLog;
 
 -- Resumo do Log das Operações de Exportação e Importação das Parametrizações
   FUNCTION fnResumoLogEntidades(
-    psgAgrupamento   IN VARCHAR2  DEFAULT NULL,
-    psgOrgao         IN VARCHAR2  DEFAULT NULL,
-    psgModulo        IN CHAR      DEFAULT NULL,
-    psgConceito      IN VARCHAR2  DEFAULT NULL,
-    ptpOperacao      IN VARCHAR2  DEFAULT NULL,
-    pdtOperacao      IN VARCHAR2  DEFAULT NULL
+    psgAgrupamento   IN VARCHAR2,
+    psgModulo        IN CHAR,
+    psgConceito      IN VARCHAR2,
+    ptpOperacao      IN VARCHAR2,
+    pdtOperacao      IN VARCHAR2 DEFAULT NULL
   ) RETURN tpParametrizacaoLogResumoEntidadesTabela PIPELINED
   IS
+    -- Variáveis de controle e contexto
+    vdtOperacao    TIMESTAMP := Null;
+
   BEGIN
+
+    IF pdtOperacao IS NULL THEN
+      SELECT TO_CHAR(MAX(dtExportacao), 'DD/MM/YYYY HH24:MI') INTO vdtOperacao
+      FROM emigParametrizacao
+      WHERE sgModulo = psgModulo AND psgConceito = psgConceito
+        AND sgAgrupamento = psgAgrupamento;
+    ELSE
+      vdtOperacao := pdtOperacao;
+    END IF;
+
     FOR r IN (
-      SELECT tpOperacao, TO_CHAR(dtOperacao, 'DD/MM/YYYY HH24:MI:SS') AS dtOperacao,
-	    sgAgrupamento, sgOrgao, sgModulo, sgConceito, nmEntidade, COUNT(*) as nuEventos, SUM(nuRegistros) as nuRegistros
+      SELECT tpOperacao, TO_CHAR(dtOperacao, 'DD/MM/YYYY HH24:MI') AS dtOperacao,
+	      sgAgrupamento, sgOrgao, sgModulo, sgConceito, nmEntidade,
+        COUNT(*) as nuEventos, SUM(nuRegistros) as nuRegistros
       FROM emigParametrizacaoLog
-      WHERE nmevento != 'RESUMO'
-        AND tpOperacao = ptpOperacao
-        AND TO_CHAR(dtOperacao, 'YYYYMMDDHH24MISS') = pdtOperacao
+      WHERE tpOperacao = ptpOperacao
+        AND TO_CHAR(dtOperacao, 'DD/MM/YYYY HH24:MI') = vdtOperacao
+        AND nmevento != 'RESUMO'
       GROUP BY tpOperacao, dtOperacao, sgAgrupamento, sgOrgao, sgModulo, sgConceito, nmEntidade
-      ORDER BY tpOperacao, TO_CHAR(dtOperacao, 'YYYYMMDDHH24MISS') DESC,
-        sgAgrupamento, sgModulo, sgConceito, sgOrgao, nmEntidade)
+      ORDER BY tpOperacao, dtOperacao DESC, sgAgrupamento, sgModulo, sgConceito, sgOrgao, nmEntidade)
     LOOP
       PIPE ROW (tpParametrizacaoLogResumoEntidades(r.tpOperacao, r.dtOperacao,
 	    r.sgAgrupamento, r.sgOrgao, r.sgModulo, r.sgConceito,
-		r.nmEntidade, r.nuEventos, r.nuRegistros));
+		  r.nmEntidade, r.nuEventos, r.nuRegistros));
     END LOOP;
     RETURN;
   END fnResumoLogEntidades;
 
 -- Listar o Log da Operação de Exportação ou Importação das Parametrizações
   FUNCTION fnListarLog(
-    psgAgrupamento   IN VARCHAR2 DEFAULT NULL,
-    psgOrgao         IN VARCHAR2 DEFAULT NULL,
-    psgModulo        IN CHAR     DEFAULT NULL,
-    psgConceito      IN VARCHAR2 DEFAULT NULL,
-    ptpOperacao      IN VARCHAR2 DEFAULT NULL,
+    psgAgrupamento   IN VARCHAR2,
+    psgModulo        IN CHAR,
+    psgConceito      IN VARCHAR2,
+    ptpOperacao      IN VARCHAR2,
     pdtOperacao      IN VARCHAR2 DEFAULT NULL
   ) RETURN tpParametrizacaoLogListarTabela PIPELINED
   IS
@@ -477,21 +484,21 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
   BEGIN
 
     IF pdtOperacao IS NULL THEN
-      SELECT TO_CHAR(MAX(vdtOperacao), 'DD/MM/YYYY HH24:MI:SS') INTO vdtOperacao
+      SELECT TO_CHAR(MAX(dtExportacao), 'DD/MM/YYYY HH24:MI') INTO vdtOperacao
       FROM emigParametrizacao
       WHERE sgModulo = psgModulo AND psgConceito = psgConceito
-        AND sgAgrupamento = psgAgrupamento AND sgOrgao IS NULL;
+        AND sgAgrupamento = psgAgrupamento;
     ELSE
       vdtOperacao := pdtOperacao;
     END IF;
 
     FOR r IN (
-      SELECT tpOperacao, TO_CHAR(dtOperacao, 'DD/MM/YYYY HH24:MI:SS') AS dtOperacao,
+      SELECT tpOperacao, TO_CHAR(dtOperacao, 'DD/MM/YYYY HH24:MI') AS dtOperacao,
         sgAgrupamento, sgOrgao, sgModulo, sgConceito,
         nmEntidade, cdidentificacao, nmEvento, nuRegistros, deMensagem, dtInclusao
       FROM emigParametrizacaoLog
       WHERE tpOperacao = ptpOperacao
-        AND TO_CHAR(dtOperacao, 'YYYYMMDDHH24MISS') = vdtOperacao
+        AND TO_CHAR(dtOperacao, 'DD/MM/YYYY HH24:MI') = vdtOperacao
       ORDER BY dtInclusao, tpOperacao, dtOperacao,
         sgAgrupamento, sgOrgao, sgModulo, sgConceito,
         cdIdentificacao NULLS FIRST, nmEvento, deMensagem)
@@ -504,17 +511,16 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
   END fnListarLog;
 
   PROCEDURE pExcluirLog(
-    psgAgrupamento IN VARCHAR2 DEFAULT NULL,
-    psgOrgao IN VARCHAR2 DEFAULT NULL,
-    psgModulo IN CHAR DEFAULT NULL,
-    psgConceito IN VARCHAR2 DEFAULT NULL,
-    ptpOperacao IN VARCHAR2 DEFAULT NULL,
-    pdtOperacao IN VARCHAR2 DEFAULT NULL
+    psgAgrupamento    IN VARCHAR2,
+    psgModulo         IN CHAR,
+    psgConceito       IN VARCHAR2,
+    ptpOperacao       IN VARCHAR2,
+    pdtOperacao       IN VARCHAR2
   ) IS
   BEGIN
     DELETE FROM emigParametrizacaoLog
       WHERE tpOperacao = ptpOperacao
-        AND TO_CHAR(dtOperacao, 'DD/MM/YYYY HH24:MI:SS') = pdtOperacao
+        AND TO_CHAR(dtOperacao, 'DD/MM/YYYY HH24:MI') = pdtOperacao
         AND sgAgrupamento = psgAgrupamento
         AND sgModulo = psgModulo AND sgConceito = psgConceito;
     COMMIT;

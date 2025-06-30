@@ -786,7 +786,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
     psgModulo IN CHAR, psgConceito IN VARCHAR2, pdtExportacao IN TIMESTAMP,
     pnuVersao IN CHAR, pflAnulado IN CHAR) RETURN SYS_REFCURSOR IS
     vRefCursor SYS_REFCURSOR;
-    vParametroTributacao VARCAHR2(4000) := '{"ParametroTributacao":[
+    vParametroTributacao VARCHAR2(4000) := '{"ParametroTributacao":[
       {"tpRubAgrupParametro": "cdRubAgrupDescINSS",              "tpTributacao": "INSS"},
       {"tpRubAgrupParametro": "cdRubAgrupDescINSSSobre13",       "tpTributacao": "INSS Gratificacao Natalina"},
       

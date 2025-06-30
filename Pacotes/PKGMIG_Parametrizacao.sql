@@ -1,4 +1,5 @@
 --- Declaração dos Tipos de Objetos e Tabelas para o Pacote de Exportação e Importação das Parametrizações
+DROP TYPE tpParametrizacaoResumoTabela;
 CREATE OR REPLACE TYPE tpParametrizacaoResumo AS OBJECT (
 -- Tipo Objeto: Resumo das Parametrizações
   sgAgrupamento   VARCHAR2(15),
@@ -10,6 +11,7 @@ CREATE OR REPLACE TYPE tpParametrizacaoResumo AS OBJECT (
 );
 CREATE OR REPLACE TYPE tpParametrizacaoResumoTabela AS TABLE OF tpParametrizacaoResumo;
 
+DROP TYPE tpParametrizacaoListarTabela;
 CREATE OR REPLACE TYPE tpParametrizacaoListar AS OBJECT (
 -- Tipo Objeto: Listar Parametrizações
   sgAgrupamento   VARCHAR2(15),
@@ -22,6 +24,7 @@ CREATE OR REPLACE TYPE tpParametrizacaoListar AS OBJECT (
 );
 CREATE OR REPLACE TYPE tpParametrizacaoListarTabela AS TABLE OF tpParametrizacaoListar;
 
+DROP TYPE tpParametrizacaoLogResumoTabela;
 CREATE OR REPLACE TYPE tpParametrizacaoLogResumo AS OBJECT (
 -- Tipo Objeto: Resumo do Log das Operações de Exportação e Importação das Parametrizações
   tpOperacao      VARCHAR2(15),
@@ -29,10 +32,13 @@ CREATE OR REPLACE TYPE tpParametrizacaoLogResumo AS OBJECT (
   sgAgrupamento   VARCHAR2(15),
   sgOrgao         VARCHAR2(15),
   sgModulo        VARCHAR2(3),
-  sgConceito      VARCHAR2(20)
+  sgConceito      VARCHAR2(20),
+  nuEventos       NUMBER,
+  nuRegistros     NUMBER
 );
 CREATE OR REPLACE TYPE tpParametrizacaoLogResumoTabela AS TABLE OF tpParametrizacaoLogResumo;
- 
+
+DROP TYPE tpParametrizacaoLogResumoEntidadesTabela; 
 CREATE OR REPLACE TYPE tpParametrizacaoLogResumoEntidades AS OBJECT (
 -- Tipo Objeto: Resumo do Log das Operações de Exportação e Importação das Parametrizações por Entidades
   tpOperacao      VARCHAR2(15),
@@ -47,6 +53,7 @@ CREATE OR REPLACE TYPE tpParametrizacaoLogResumoEntidades AS OBJECT (
 );
 CREATE OR REPLACE TYPE tpParametrizacaoLogResumoEntidadesTabela AS TABLE OF tpParametrizacaoLogResumoEntidades;
 
+DROP TYPE tpParametrizacaoLogListarTabela; 
 CREATE OR REPLACE TYPE tpParametrizacaoLogListar AS OBJECT (
 -- Tipo Objeto: Listar o Log da Operação de Exportação ou Importação das Parametrizações
   tpOperacao      VARCHAR2(15),
@@ -110,32 +117,34 @@ CREATE OR REPLACE PACKAGE PKGMIG_Parametrizacao AS
     pnuNivelAuditoria IN NUMBER DEFAULT NULL
   );
 
-  FUNCTION fnResumo (psgAgrupamento IN VARCHAR2 DEFAULT NULL, psgOrgao IN VARCHAR2 DEFAULT NULL,
-    psgModulo IN CHAR DEFAULT NULL, psgConceito IN VARCHAR2 DEFAULT NULL, pdtExportacao IN VARCHAR2 DEFAULT NULL
+  FUNCTION fnResumo (psgAgrupamento IN VARCHAR2 DEFAULT NULL,
+    psgModulo IN CHAR DEFAULT NULL, psgConceito IN VARCHAR2 DEFAULT NULL,
+    pdtExportacao IN VARCHAR2 DEFAULT NULL
   ) RETURN tpParametrizacaoResumoTabela PIPELINED;
 
-  FUNCTION fnListar (psgAgrupamento IN VARCHAR2, psgOrgao IN VARCHAR2,
-    psgModulo IN CHAR, psgConceito IN VARCHAR2, pdtExportacao IN VARCHAR2  DEFAULT NULL
+  FUNCTION fnListar (psgAgrupamento IN VARCHAR2,
+    psgModulo IN CHAR, psgConceito IN VARCHAR2,
+    pdtExportacao IN VARCHAR2 DEFAULT NULL
   ) RETURN tpParametrizacaoListarTabela PIPELINED;
 
-  FUNCTION fnResumoLog(psgAgrupamento IN VARCHAR2 DEFAULT NULL, psgOrgao IN VARCHAR2 DEFAULT NULL,
+  FUNCTION fnResumoLog(psgAgrupamento IN VARCHAR2 DEFAULT NULL,
     psgModulo IN CHAR DEFAULT NULL, psgConceito IN VARCHAR2 DEFAULT NULL,
     ptpOperacao IN VARCHAR2 DEFAULT NULL
   ) RETURN tpParametrizacaoLogResumoTabela PIPELINED;
 
-  FUNCTION fnResumoLogEntidades(psgAgrupamento IN VARCHAR2 DEFAULT NULL, psgOrgao IN VARCHAR2 DEFAULT NULL,
-    psgModulo IN CHAR DEFAULT NULL, psgConceito IN VARCHAR2 DEFAULT NULL,
-    ptpOperacao IN VARCHAR2 DEFAULT NULL, pdtOperacao IN VARCHAR2 DEFAULT NULL
+  FUNCTION fnResumoLogEntidades(psgAgrupamento IN VARCHAR2,
+    psgModulo IN CHAR, psgConceito IN VARCHAR2,
+    ptpOperacao IN VARCHAR2, pdtOperacao IN VARCHAR2 DEFAULT NULL
   ) RETURN tpParametrizacaoLogResumoEntidadesTabela PIPELINED;
 
-  FUNCTION fnListarLog(psgAgrupamento IN VARCHAR2 DEFAULT NULL, psgOrgao IN VARCHAR2 DEFAULT NULL,
-    psgModulo IN CHAR DEFAULT NULL, psgConceito IN VARCHAR2 DEFAULT NULL,
-    ptpOperacao IN VARCHAR2 DEFAULT NULL, pdtOperacao IN VARCHAR2 DEFAULT NULL
+  FUNCTION fnListarLog(psgAgrupamento IN VARCHAR2,
+    psgModulo IN CHAR, psgConceito IN VARCHAR2,
+    ptpOperacao IN VARCHAR2, pdtOperacao IN VARCHAR2 DEFAULT NULL
   ) RETURN tpParametrizacaoLogListarTabela PIPELINED;
     
-  PROCEDURE pExcluirLog(psgAgrupamento IN VARCHAR2 DEFAULT NULL, psgOrgao IN VARCHAR2 DEFAULT NULL,
-    psgModulo IN CHAR DEFAULT NULL, psgConceito IN VARCHAR2 DEFAULT NULL,
-    ptpOperacao IN VARCHAR2 DEFAULT NULL, pdtOperacao IN VARCHAR2 DEFAULT NULL
+  PROCEDURE pExcluirLog(psgAgrupamento IN VARCHAR2,
+    psgModulo IN CHAR, psgConceito IN VARCHAR2,
+    ptpOperacao IN VARCHAR2, pdtOperacao IN VARCHAR2
   );
 END PKGMIG_Parametrizacao;
 /
