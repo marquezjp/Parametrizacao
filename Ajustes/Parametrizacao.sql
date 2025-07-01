@@ -54,10 +54,6 @@ GROUP BY sgAgrupamento, sgConceito, tpOperacao
 ORDER BY sgAgrupamento, sgConceito, tpOperacao
 ;
 
-/* INDIR-FEMARH */
-SET SERVEROUTPUT ON SIZE UNLIMITED;
-EXEC PKGMIG_Parametrizacao.PExportar('INDIR-FEMARH', 'BASECALCULO');
-
 --- Parametrizações
 SELECT sgConceito, sgAgrupamento, cdIdentificacao, jsConteudo
 FROM emigParametrizacao
@@ -78,30 +74,6 @@ SELECT DISTINCT sgAgrupamento, sgConceito, TO_CHAR(dtExportacao, 'DD/MM/YYYY HH2
 --DELETE FROM emigParametrizacao
 WHERE sgAgrupamento = 'ADM-DIR' AND sgConceito = 'RUBRICA'
 --  AND TO_CHAR(dtExportacao, 'DD/MM/YYYY HH24:MI:SS') = '15/06/2025 13:23:10'
-;
-
--- ===========================================================================
-select a.sgAgrupamento, 'FORMULA' as Tipo, lpad(r.cdTipoRubrica,2,0) || '-' || lpad(r.nuRubrica,4,0) as nuRubrica, f.deFormulaCalculo as Sigla
-from epagFormulaCalculo f
-inner join epagRubricaAgrupamento ra on ra.cdRubricaAgrupamento = f.cdRubricaAgrupamento
-inner join epagRubrica r on r.cdRubrica = ra.cdRubrica
-inner join ecadAgrupamento a on a.cdAgrupamento = ra.cdAgrupamento
-where f.cdAgrupamento = 1
-union all
-select a.sgAgrupamento, 'EVENTO' as Tipo, lpad(r.cdTipoRubrica,2,0) || '-' || lpad(r.nuRubrica,4,0) as nuRubrica, e.deEvento as Sigla
-from epagEventoPagAgrup e
-inner join epagRubricaAgrupamento ra on ra.cdRubricaAgrupamento = e.cdRubricaAgrupamento
-inner join epagRubrica r on r.cdRubrica = ra.cdRubrica
-inner join ecadAgrupamento a on a.cdAgrupamento = ra.cdAgrupamento
-where ra.cdAgrupamento = 1
-union all
-select a.sgAgrupamento, 'BASE' as Tipo, lpad(r.cdTipoRubrica,2,0) || '-' || lpad(r.nuRubrica,4,0) as nuRubrica, base.nmBaseCalculo as Sigla
-from epagRubricaAgrupamento ra
-inner join epagRubrica r on r.cdRubrica = ra.cdRubrica
-inner join epagBaseCalculo base on base.cdBaseCalculo = ra.cdBaseCalculo
-inner join ecadAgrupamento a on a.cdAgrupamento = ra.cdAgrupamento
-where ra.cdAgrupamento = 1 and ra.cdBaseCalculo is not null
-order by sgAgrupamento, nuRubrica, Tipo, Sigla
 ;
 
 -- ===========================================================================
