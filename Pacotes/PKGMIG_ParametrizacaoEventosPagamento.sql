@@ -18,26 +18,48 @@ CREATE OR REPLACE PACKAGE PKGMIG_ParametrizacaoEventosPagamento AS
   --   pImportarVigencias
   --
   -- ###########################################################################
-  --  PROCEDURE emigpImportar(psgAgrupamentoOrigem IN VARCHAR2, psgAgrupamentoDestino IN VARCHAR2);
   -- Constantes de nível de auditoria
   cAUDITORIA_SILENCIADO CONSTANT PLS_INTEGER := 0;
   cAUDITORIA_ESSENCIAL  CONSTANT PLS_INTEGER := 1;
   cAUDITORIA_DETALHADO  CONSTANT PLS_INTEGER := 2;
   cAUDITORIA_COMPLETO   CONSTANT PLS_INTEGER := 3;
 
-  PROCEDURE pImportar(psgAgrupamentoDestino IN VARCHAR2, psgOrgao IN VARCHAR2,
-    ptpOperacao IN VARCHAR2, pdtOperacao IN TIMESTAMP,
-    psgModulo IN CHAR, psgConceito IN VARCHAR2, pcdIdentificacao IN VARCHAR2,
-    pcdRubricaAgrupamento IN NUMBER, pEventoPagamento IN CLOB, pnuNivelAuditoria IN NUMBER DEFAULT NULL);
+  PROCEDURE pImportar(
+    psgAgrupamentoDestino IN VARCHAR2,
+    psgOrgao              IN VARCHAR2,
+    ptpOperacao           IN VARCHAR2,
+    pdtOperacao           IN TIMESTAMP,
+    psgModulo             IN CHAR,
+    psgConceito           IN VARCHAR2,
+    pcdIdentificacao      IN VARCHAR2,
+    pcdRubricaAgrupamento IN NUMBER,
+    pEventoPagamento      IN CLOB,
+    pnuNivelAuditoria     IN NUMBER DEFAULT NULL
+  );
 
-  PROCEDURE pExcluirEventos(psgAgrupamentoDestino IN VARCHAR2, psgOrgao IN VARCHAR2,
-    ptpOperacao IN VARCHAR2, pdtOperacao IN TIMESTAMP,
-    psgModulo IN CHAR, psgConceito IN VARCHAR2, pcdIdentificacao IN VARCHAR2,
-    pcdRubricaAgrupamento IN NUMBER, pnuNivelAuditoria IN NUMBER DEFAULT NULL);
+  PROCEDURE pExcluirEventos(
+    psgAgrupamentoDestino IN VARCHAR2,
+    psgOrgao              IN VARCHAR2,
+    ptpOperacao           IN VARCHAR2,
+    pdtOperacao           IN TIMESTAMP,
+    psgModulo             IN CHAR,
+    psgConceito           IN VARCHAR2,
+    pcdIdentificacao      IN VARCHAR2,
+    pcdRubricaAgrupamento IN NUMBER,
+    pnuNivelAuditoria     IN NUMBER DEFAULT NULL
+  );
 
-  PROCEDURE pImportarVigencias(psgAgrupamentoDestino IN VARCHAR2, psgOrgao IN VARCHAR2,
-    ptpOperacao IN VARCHAR2, pdtOperacao IN TIMESTAMP,
-    psgModulo IN CHAR, psgConceito IN VARCHAR2, pcdIdentificacao IN VARCHAR2,
-    pcdEventoPagAgrup IN NUMBER, pVigenciasEvento IN CLOB, pnuNivelAuditoria IN NUMBER DEFAULT NULL);
+  PROCEDURE pImportarVigencias(
+    psgAgrupamentoDestino IN VARCHAR2,
+    psgOrgao              IN VARCHAR2,
+    ptpOperacao           IN VARCHAR2,
+    pdtOperacao           IN TIMESTAMP,
+    psgModulo             IN CHAR,
+    psgConceito           IN VARCHAR2,
+    pcdIdentificacao      IN VARCHAR2,
+    pcdEventoPagAgrup     IN NUMBER,
+    pVigenciasEvento      IN CLOB, 
+    pnuNivelAuditoria     IN NUMBER DEFAULT NULL
+  );
 END PKGMIG_ParametrizacaoEventosPagamento;
 /

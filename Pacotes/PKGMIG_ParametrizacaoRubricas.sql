@@ -40,6 +40,19 @@ CREATE OR REPLACE PACKAGE PKGMIG_ParametrizacaoRubricas AS
   --               │    ├── PermissoesRubrica.RubricasImpedem => epagHistRubricaAgrupImpeditiva
   --               │    └── PermissoesRubrica.RubricasExigidas => epagHistRubricaAgrupExigida
   --               │
+  --               ├── Consignacoes => epagConsignacao
+  --               │    ├── Vigencias => epagHistConsignacao
+  --               │    │
+  --               │    ├── Consignataria => epagConsignataria
+  --               │    │    ├── Suspensao => epagConsignatariaSuspensao
+  --               │    │    └── TaxaServico => epagConsignatariaTaxaServico
+  --               │    │
+  --               │    ├── TipoServico => epagTipoServico
+  --               │    │    ├── Vigencias = > epagHistTipoServico
+  --               │    │    └── ParametroBase = > epagParametroBaseConsignacao
+  --               │    │
+  --               │    └── ContratoServico => epagContratoServico
+  --               │
   --               ├── Eventos => epagEventoPagAgrup
   --               │    └── Vigencias => epagHistEventoPagAgrup
   --               │        ├── GrupoOrgao => epagEventoPagAgrupOrgao

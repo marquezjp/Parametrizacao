@@ -12,7 +12,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
   --
   -- Parâmetros:
   --   psgAgrupamento        IN VARCHAR2: Sigla do agrupamento de origem da configuração
-  --   pnuNivelAuditoria              IN NUMBER DEFAULT NULL: Defini o nível das mensagens
+  --   pnuNivelAuditoria     IN NUMBER DEFAULT NULL: Defini o nível das mensagens
   --                         para acompanhar a execução, sendo:
   --                         - Não informado assume 'Desligado' nível mínimo de mensagens;
   --                         - Se informado 'SILENCIADO' omite todas as mensagens;
@@ -58,23 +58,23 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
     -- Referencia para o Cursor que Estrutura o Documento JSON com as parametrizações das Rubricas
     vRefCursor SYS_REFCURSOR;
 
-  BEGIN
+    BEGIN
 
-    vdtOperacao := LOCALTIMESTAMP;
+      vdtOperacao := LOCALTIMESTAMP;
 
-    IF pcdIdentificacao IS NULL THEN
-      vtxMensagem := 'Inicio da Exportação das Parametrizações das Rubricas ';
-    ELSE
-      vtxMensagem := 'Inicio da Exportação da Parametrização da Rubrica "' || pcdIdentificacao || '" ';
-    END IF;
+      IF pcdIdentificacao IS NULL THEN
+        vtxMensagem := 'Inicio da Exportação das Parametrizações das Rubricas ';
+      ELSE
+        vtxMensagem := 'Inicio da Exportação da Parametrização da Rubrica "' || pcdIdentificacao || '" ';
+      END IF;
 
-    PKGMIG_Parametrizacao.pConsoleLog(vtxMensagem ||
-      'do Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
-	    'Data da Exportação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
-      cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      PKGMIG_ParametrizacaoLog.pAlertar(vtxMensagem ||
+        'do Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
+	      'Data da Exportação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-    IF cAUDITORIA_ESSENCIAL != pnuNivelAuditoria THEN
-        PKGMIG_Parametrizacao.pConsoleLog('Nível de Auditoria Habilitado ' ||
+      IF cAUDITORIA_ESSENCIAL != pnuNivelAuditoria THEN
+        PKGMIG_ParametrizacaoLog.pAlertar('Nível de Auditoria Habilitado ' ||
           CASE pnuNivelAuditoria
             WHEN cAUDITORIA_SILENCIADO THEN 'SILENCIADO'
             WHEN cAUDITORIA_ESSENCIAL  THEN 'ESSENCIAL'
@@ -82,75 +82,72 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
             WHEN cAUDITORIA_COMPLETO   THEN 'COMPLETO'
             ELSE 'ESSENCIAL'
           END, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    END IF;
+      END IF;
 
-	  -- Defini o Cursos com a Query que Gera o Documento JSON Rubricas
-	  vRefCursor := fnCursorRubricas(psgAgrupamento, vsgOrgao, vsgModulo, vsgConceito, pcdIdentificacao,
-      vdtOperacao, vnuVersao, vflAnulado);
+	    -- Defini o Cursos com a Query que Gera o Documento JSON Rubricas
+	    vRefCursor := fnCursorRubricas(psgAgrupamento, vsgOrgao, vsgModulo, vsgConceito, pcdIdentificacao,
+        vdtOperacao, vnuVersao, vflAnulado);
 
-	  vnuRegistros := 0;
+	    vnuRegistros := 0;
 
-    -- Loop principal de processamento
-	  LOOP
-      FETCH vRefCursor INTO rsgAgrupamento, rsgOrgao, rsgModulo, rsgConceito, rdtExportacao,
-	      rcdIdentificacao, rjsConteudo, rnuVersao, rflAnulado, rdtInclusao;
-      EXIT WHEN vRefCursor%NOTFOUND;
+      -- Loop principal de processamento
+	    LOOP
+        FETCH vRefCursor INTO rsgAgrupamento, rsgOrgao, rsgModulo, rsgConceito, rdtExportacao,
+	        rcdIdentificacao, rjsConteudo, rnuVersao, rflAnulado, rdtInclusao;
+        EXIT WHEN vRefCursor%NOTFOUND;
 
-      PKGMIG_Parametrizacao.pConsoleLog('Exportação da Rubrica ' || rcdIdentificacao,
+        PKGMIG_ParametrizacaoLog.pAlertar('Exportação da Rubrica ' || rcdIdentificacao,
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+
+        INSERT INTO emigParametrizacao (
+          sgAgrupamento, sgOrgao, sgModulo, sgConceito, dtExportacao,
+		      cdIdentificacao, jsConteudo, dtInclusao, nuVersao, flAnulado
+        ) VALUES (
+          rsgAgrupamento, rsgOrgao, rsgModulo, rsgConceito, rdtExportacao,
+  		    rcdIdentificacao, rjsConteudo, rdtInclusao, rnuVersao, rflAnulado
+        );
+
+	      vnuRegistros := vnuRegistros + 1;
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao, 
+          vsgModulo, vsgConceito, rcdIdentificacao, 1,
+          'RUBRICA', 'INCLUSAO', 'Documento JSON da Rubrica incluído com sucesso',
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+
+      END LOOP;
+
+      CLOSE vRefCursor;
+
+      COMMIT;
+
+      -- Gerar as Estatísticas da Exportação das Rubricas
+      vdtTermino := LOCALTIMESTAMP;
+      vnuTempoExecucao := vdtTermino - vdtOperacao;
+      vtxResumo := 'Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
+        'Data e Hora da Inicio da Exportação  ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS')  || ', ' || CHR(13) || CHR(10) ||
+        'Data e Hora da Termino da Exportação ' || TO_CHAR(vdtTermino, 'DD/MM/YYYY HH24:MI:SS')  || ', ' || CHR(13) || CHR(10) ||
+	      'Tempo de Execução ' ||
+	      LPAD(EXTRACT(HOUR FROM vnuTempoExecucao), 2, '0') || ':' ||
+	      LPAD(EXTRACT(MINUTE FROM vnuTempoExecucao), 2, '0') || ':' ||
+	      LPAD(TRUNC(EXTRACT(SECOND FROM vnuTempoExecucao)), 2, '0') || ', ' || CHR(13) || CHR(10) ||
+	      'Total de Parametrizações de Rubricas Exportadas: ' || vnuRegistros;
+
+      -- Registro de Resumo da Exportação das Rubricas
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,
+        vsgModulo, vsgConceito, NULL, NULL,
+        'RUBRICA', 'RESUMO', 'Exportação das Parametrizações das Rubricas do ' || vtxResumo, 
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-      INSERT INTO emigParametrizacao (
-        sgAgrupamento, sgOrgao, sgModulo, sgConceito, dtExportacao,
-		    cdIdentificacao, jsConteudo, dtInclusao, nuVersao, flAnulado
-      ) VALUES (
-        rsgAgrupamento, rsgOrgao, rsgModulo, rsgConceito, rdtExportacao,
-		    rcdIdentificacao, rjsConteudo, rdtInclusao, rnuVersao, rflAnulado
-      );
+      PKGMIG_ParametrizacaoLog.pAlertar('Termino da Exportação das Parametrizações das Rubricas do ' ||
+        vtxResumo, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-	    vnuRegistros := vnuRegistros + 1;
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao, 
-        vsgModulo, vsgConceito, rcdIdentificacao, 1,
-        'RUBRICA', 'INCLUSAO', 'Documento JSON da Rubrica incluído com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-
-    END LOOP;
-
-    CLOSE vRefCursor;
-
-    COMMIT;
-
-    -- Gerar as Estatísticas da Exportação das Rubricas
-    vdtTermino := LOCALTIMESTAMP;
-    vnuTempoExecucao := vdtTermino - vdtOperacao;
-    vtxResumo := 'Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
-      'Data e Hora da Inicio da Exportação  ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS')  || ', ' || CHR(13) || CHR(10) ||
-      'Data e Hora da Termino da Exportação ' || TO_CHAR(vdtTermino, 'DD/MM/YYYY HH24:MI:SS')  || ', ' || CHR(13) || CHR(10) ||
-	    'Tempo de Execução ' ||
-	    LPAD(EXTRACT(HOUR FROM vnuTempoExecucao), 2, '0') || ':' ||
-	    LPAD(EXTRACT(MINUTE FROM vnuTempoExecucao), 2, '0') || ':' ||
-	    LPAD(TRUNC(EXTRACT(SECOND FROM vnuTempoExecucao)), 2, '0') || ', ' || CHR(13) || CHR(10) ||
-	    'Total de Parametrizações de Rubricas Exportadas: ' || vnuRegistros;
-
-    -- Registro de Resumo da Exportação das Rubricas
-    PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,
-      vsgModulo, vsgConceito, NULL, NULL,
-      'RUBRICA', 'RESUMO', 'Exportação das Parametrizações das Rubricas do ' || vtxResumo, 
-      cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-
-    PKGMIG_Parametrizacao.pConsoleLog('Termino da Exportação das Parametrizações das Rubricas do ' ||
-      vtxResumo, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-
-  EXCEPTION
-    WHEN OTHERS THEN
-      -- Registro e Propagação do Erro
-      PKGMIG_Parametrizacao.pConsoleLog('Exportação de Rubrica ' || vcdIdentificacao ||
-      ' RUBRICA Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,  
-        vsgModulo, vsgConceito, vcdIdentificacao, 1,
-        'RUBRICA', 'ERRO', 'Erro: ' || SQLERRM,
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    ROLLBACK;
-    RAISE;
+    EXCEPTION
+      WHEN OTHERS THEN
+        -- Registro e Propagação do Erro
+        PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,  
+          vsgModulo, vsgConceito, vcdIdentificacao, 'RUBRICA',
+          'Exportação de Rubrica (PKGMIG_ParametrizacaoRubricas.pExportar)', SQLERRM);
+      ROLLBACK;
+      RAISE;
   END pExportar;
 
   PROCEDURE pImportar(
@@ -333,7 +330,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
       vtxMensagem := 'Inicio da Importação da Parametrização da Rubrica "' || pcdIdentificacao || '" ';
     END IF;
 
-    PKGMIG_Parametrizacao.pConsoleLog(vtxMensagem ||
+    PKGMIG_ParametrizacaoLog.pAlertar(vtxMensagem ||
       'do Agrupamento ' || psgAgrupamentoOrigem || ' ' ||
       'para o Agrupamento ' || psgAgrupamentoDestino || ', ' || CHR(13) || CHR(10) ||
       'Data da Exportação ' || TO_CHAR(vdtExportacao, 'DD/MM/YYYY HH24:MI:SS') || ', ' || CHR(13) || CHR(10) ||
@@ -341,7 +338,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
       cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
     IF cAUDITORIA_ESSENCIAL != pnuNivelAuditoria THEN
-        PKGMIG_Parametrizacao.pConsoleLog('Nível de Auditoria Habilitado ' ||
+        PKGMIG_ParametrizacaoLog.pAlertar('Nível de Auditoria Habilitado ' ||
           CASE pnuNivelAuditoria
             WHEN cAUDITORIA_SILENCIADO THEN 'SILENCIADO'
             WHEN cAUDITORIA_ESSENCIAL  THEN 'ESSENCIAL'
@@ -363,7 +360,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
       vcdIdentificacao := SUBSTR(r.cdIdentificacao || ' ' ||
         LPAD(r.cdTipoRubrica,2,0) || '-' || LPAD(r.nuRubrica,4,0),1,70);
   
-      PKGMIG_Parametrizacao.pConsoleLog('Importação da Rubrica - Rubrica ' || vcdIdentificacao,
+      PKGMIG_ParametrizacaoLog.pAlertar('Importação da Rubrica - Rubrica ' || vcdIdentificacao,
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
 
@@ -390,7 +387,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
         );
 
         vnuInseridos := vnuInseridos + 1;
-        PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao, 
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao, 
           vsgModulo, vsgConceito, vcdIdentificacao, 1,
           'RUBRICA', 'INCLUSAO', 'Rubrica Incluídas com sucesso',
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -425,7 +422,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
         WHERE cdRubrica = vcdRubricaNova;
 
         vnuAtualizados := vnuAtualizados + 1;
-        PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao, 
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao, 
           vsgModulo, vsgConceito, vcdIdentificacao, 1,
           'RUBRICA', 'ATUALIZACAO', 'Rubrica atualizada com sucesso',
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -447,7 +444,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
         VALUES (vcdRubricaNova, grrub.cdGrupoRubrica);
       END LOOP;
 */
-      --PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,  
+      --PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,  
       --  vsgModulo, vsgConceito, vcdIdentificacao, vnuRegistros,
       --  'RUBRICA GRUPO DE RUBRICA', 'INCLUSAO', 'Grupo de Rubrica Incluídas com sucesso',
       --  cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -483,32 +480,30 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
 	  'Total de Parametrizações das Rubricas Incluídas: ' || vnuInseridos ||
       ' e Alteradas: ' || vnuAtualizados;
 
-    PKGMIG_Parametrizacao.pGerarResumo(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
+    PKGMIG_ParametrizacaoLog.pGerarResumo(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
       vsgModulo, vsgConceito, vdtTermino, vnuTempoExecucao, pnuNivelAuditoria);
 
     -- Registro de Resumo da Importação das Rubricas
-    PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
+    PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
       vsgModulo, vsgConceito, NULL, 1,
       NULL, 'RESUMO', 'Importação das Parametrizações das Rubricas do ' || vtxResumo, 
       cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
     -- Atualizar a SEQUENCE das Tabela Envolvidas na importação dos Valores de Referencia
-    PKGMIG_Parametrizacao.pAtualizarSequence(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
+    PKGMIG_ParametrizacaoLog.pAtualizarSequence(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
       vsgModulo, vsgConceito, vListaTabelas, pnuNivelAuditoria);
 
-    PKGMIG_Parametrizacao.pConsoleLog('Termino da Importação das Parametrizações das Rubricas do ' ||
+    PKGMIG_ParametrizacaoLog.pAlertar('Termino da Importação das Parametrizações das Rubricas do ' ||
       vtxResumo, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-  EXCEPTION
-    WHEN OTHERS THEN
-      -- Registro e Propagação do Erro
-      PKGMIG_Parametrizacao.pConsoleLog('Importação da Rubrica ' || vcdIdentificacao ||
-        ' RUBRICA Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,  
-        vsgModulo, vsgConceito, vcdIdentificacao, 1, 'RUBRICA', 'ERRO', 'Erro: ' || SQLERRM,
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    ROLLBACK;
-    RAISE;
+    EXCEPTION
+      WHEN OTHERS THEN
+        -- Registro e Propagação do Erro
+        PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,  
+          vsgModulo, vsgConceito, vcdIdentificacao, 'RUBRICA',
+          'Importação de Rubrica (PKGMIG_ParametrizacaoRubricas.pImportar)', SQLERRM);
+      ROLLBACK;
+      RAISE;
   END pImportar;
 
   PROCEDURE pExcluirRubrica(
@@ -547,76 +542,72 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
     vcdIdentificacao      VARCHAR2(70) := Null;
     vnuRegistros          NUMBER := 0;
 
-  BEGIN
+    BEGIN
     
-    vnuRegistros := 0;
+      vnuRegistros := 0;
 
-    -- Excluir Grupo de Rubricas da Rubrica
-	  SELECT COUNT(*) INTO vnuRegistros FROM epagGrupoRubricaPagamento WHERE cdRubrica = pcdRubrica;
+      -- Excluir Grupo de Rubricas da Rubrica
+	    SELECT COUNT(*) INTO vnuRegistros FROM epagGrupoRubricaPagamento WHERE cdRubrica = pcdRubrica;
 
-	  IF vnuRegistros > 0 THEN
+	    IF vnuRegistros > 0 THEN
 /*
-	    DELETE FROM epagGrupoRubricaPagamento WHERE cdRubrica = vcdRubricaNova;
+	      DELETE FROM epagGrupoRubricaPagamento WHERE cdRubrica = vcdRubricaNova;
 */  
-      PKGMIG_Parametrizacao.pConsoleLog('Importação da Rubrica - ' ||
-        'RUBRICA GRUPO EXCLUSAO ' || vcdIdentificacao, cAUDITORIA_COMPLETO, pnuNivelAuditoria);
+        PKGMIG_ParametrizacaoLog.pAlertar('Importação da Rubrica - ' ||
+          'RUBRICA GRUPO EXCLUSAO ' || vcdIdentificacao, cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
-        psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
-        'RUBRICA GRUPO', 'EXCLUSAO', 'Grupo de Rubrica excluidas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    END IF;
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+          psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
+          'RUBRICA GRUPO', 'EXCLUSAO', 'Grupo de Rubrica excluidas com sucesso',
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        END IF;
 
-    -- Excluir os Documentos das Vigências da Rubrica
-    vnuRegistros := 0;
-    FOR d IN (
-      SELECT Vigencia.cdHistRubrica, Vigencia.cdDocumento FROM epagHistRubrica Vigencia
-        WHERE Vigencia.cdRubrica = pcdRubrica AND Vigencia.cdDocumento IS NOT NULL
-    ) LOOP
+        -- Excluir os Documentos das Vigências da Rubrica
+        vnuRegistros := 0;
+        FOR d IN (
+          SELECT Vigencia.cdHistRubrica, Vigencia.cdDocumento FROM epagHistRubrica Vigencia
+            WHERE Vigencia.cdRubrica = pcdRubrica AND Vigencia.cdDocumento IS NOT NULL
+        ) LOOP
 
---      UPDATE epagHistRubrica Vigencia SET Vigencia.cdDocumento = NULL
---        WHERE Vigencia.cdHistRubrica = d.cdHistRubrica;
+--        UPDATE epagHistRubrica Vigencia SET Vigencia.cdDocumento = NULL
+--          WHERE Vigencia.cdHistRubrica = d.cdHistRubrica;
 
---      DELETE FROM eatoDocumento
---        WHERE cdDocumento = d.cdDocumento;
+--        DELETE FROM eatoDocumento
+--          WHERE cdDocumento = d.cdDocumento;
 
-      PKGMIG_Parametrizacao.pConsoleLog('Importação da Rubrica - ' ||
-        'DOCUMENTO EXCLUSAO ' || vcdIdentificacao, cAUDITORIA_COMPLETO, pnuNivelAuditoria);
+          PKGMIG_ParametrizacaoLog.pAlertar('Importação da Rubrica - ' ||
+            'DOCUMENTO EXCLUSAO ' || vcdIdentificacao, cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
-        psgModulo, psgConceito, vcdIdentificacao, 1,
-        'DOCUMENTO', 'EXCLUSAO', 'Documentos de Amparo ao Fato da Rubrica excluidas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    END LOOP;      
+          PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+            psgModulo, psgConceito, vcdIdentificacao, 1,
+            'DOCUMENTO', 'EXCLUSAO', 'Documentos de Amparo ao Fato da Rubrica excluidas com sucesso',
+            cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      END LOOP;      
 
-    -- Excluir Vigencias da Rubrica
-	SELECT COUNT(*) INTO vnuRegistros FROM epagHistRubrica WHERE cdRubrica = pcdRubrica;
+      -- Excluir Vigencias da Rubrica
+	    SELECT COUNT(*) INTO vnuRegistros FROM epagHistRubrica WHERE cdRubrica = pcdRubrica;
 
-	IF vnuRegistros > 0 THEN
+	    IF vnuRegistros > 0 THEN
 /*
-      DELETE FROM epagHistRubrica
-        WHERE cdRubrica = pcdRubrica;
+        DELETE FROM epagHistRubrica
+          WHERE cdRubrica = pcdRubrica;
 */    
-      PKGMIG_Parametrizacao.pConsoleLog('Importação da Rubrica - ' ||
-        'RUBRICA VIGENCIA EXCLUSAO ' || vcdIdentificacao, cAUDITORIA_COMPLETO, pnuNivelAuditoria);
+        PKGMIG_ParametrizacaoLog.pAlertar('Importação da Rubrica - ' ||
+          'RUBRICA VIGENCIA EXCLUSAO ' || vcdIdentificacao, cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
-        psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
-        'RUBRICA VIGENCIA', 'EXCLUSAO', 'Vigência da Rubrica excluidas com sucesso',
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    END IF;
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+          psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
+          'RUBRICA VIGENCIA', 'EXCLUSAO', 'Vigência da Rubrica excluidas com sucesso',
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      END IF;
 
-  EXCEPTION
-    WHEN OTHERS THEN
-      -- Registro e Propagação do Erro
-      PKGMIG_Parametrizacao.pConsoleLog('Importação da Rubrica ' || vcdIdentificacao ||
-        ' RUBRICA VIGENCIA EXCLUIR Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
-        psgModulo, psgConceito, pcdIdentificacao, 1,
-        'RUBRICA VIGENCIA EXCLUIR', 'ERRO', 'Erro: ' || SQLERRM,
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    ROLLBACK;
-    RAISE;
+    EXCEPTION
+      WHEN OTHERS THEN
+        -- Registro e Propagação do Erro
+        PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+          psgModulo, psgConceito, pcdIdentificacao, 'RUBRICA VIGENCIA EXCLUIR',
+          'Importação de Rubrica (PKGMIG_ParametrizacaoRubricas.pExcluirRubrica)', SQLERRM);
+      RAISE;
   END pExcluirRubrica;
 
   PROCEDURE pImportarVigencias(
@@ -725,7 +716,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
       )
       SELECT * FROM epagHistRubricaImportar;
 
-  BEGIN
+    BEGIN
 
       vcdIdentificacao := pcdIdentificacao;
       
@@ -735,7 +726,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
 	      vcdIdentificacao := SUBSTR(pcdIdentificacao || ' ' ||
           LPAD(r.nuanoiniciovigencia,4,0) || LPAD(r.numesiniciovigencia,2,0),1,70);
 
-        PKGMIG_Parametrizacao.pConsoleLog('Importação da Rubrica - ' ||
+        PKGMIG_ParametrizacaoLog.pAlertar('Importação da Rubrica - ' ||
         'Vigências ' || vcdIdentificacao, cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 /*
         -- Incluir Novo Documento se as informações não forem nulas
@@ -756,7 +747,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
             r.nmArquivoDocumento, r.deCaminhoArquivoDocumento
           );
 
-          PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+          PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
             psgModulo, psgConceito, vcdIdentificacao, 1,
             'DOCUMENTO', 'INCLUSAO', 'Documentos de Amparo da Rubrica Incluídas com sucesso',
             cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -779,24 +770,20 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
         );
 */
         vnuRegistros := vnuRegistros + 1;
-        PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
           psgModulo, psgConceito, pcdIdentificacao, 1,
           'RUBRICA VIGENCIA', 'INCLUSAO', 'Vigencia da Rubrica Incluídas com sucesso',
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-    END LOOP;
+      END LOOP;
 
-  EXCEPTION
-    WHEN OTHERS THEN
-      -- Registro e Propagação do Erro
-      PKGMIG_Parametrizacao.pConsoleLog('Importação da Rubrica - Vigências ' || vcdIdentificacao ||
-      ' RUBRICA VIGENCIA Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
-        psgModulo, psgConceito, vcdIdentificacao, 1,
-        'RUBRICA VIGENCIA', 'ERRO', 'Erro: ' || SQLERRM,
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    ROLLBACK;
-    RAISE;
+    EXCEPTION
+      WHEN OTHERS THEN
+        -- Registro e Propagação do Erro
+        PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+          psgModulo, psgConceito, pcdIdentificacao, 'RUBRICA VIGENCIA',
+          'Importação de Rubrica (PKGMIG_ParametrizacaoRubricas.pImportarVigencias)', SQLERRM);
+      RAISE;
   END pImportarVigencias;
 
   -- Função que cria o Cursor que Estrutura o Documento JSON com as Parametrizações das Rubricas

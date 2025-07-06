@@ -40,6 +40,19 @@ CREATE OR REPLACE PACKAGE PKGMIG_ParametrizacaoRubricasAgrupamento AS
   --               │    ├── PermissoesRubrica.RubricasImpedem => epagHistRubricaAgrupImpeditiva
   --               │    └── PermissoesRubrica.RubricasExigidas => epagHistRubricaAgrupExigida
   --               │
+  --               ├── Consignacoes => epagConsignacao
+  --               │    ├── Vigencias => epagHistConsignacao
+  --               │    │
+  --               │    ├── Consignataria => epagConsignataria
+  --               │    │    ├── Suspensao => epagConsignatariaSuspensao
+  --               │    │    └── TaxaServico => epagConsignatariaTaxaServico
+  --               │    │
+  --               │    ├── TipoServico => epagTipoServico
+  --               │    │    ├── Vigencias = > epagHistTipoServico
+  --               │    │    └── ParametroBase = > epagParametroBaseConsignacao
+  --               │    │
+  --               │    └── ContratoServico => epagContratoServico
+  --               │
   --               ├── Eventos => epagEventoPagAgrup
   --               │    └── Vigencias => epagHistEventoPagAgrup
   --               │        ├── GrupoOrgao => epagEventoPagAgrupOrgao
@@ -57,7 +70,8 @@ CREATE OR REPLACE PACKAGE PKGMIG_ParametrizacaoRubricasAgrupamento AS
   --   pImportar
   --   pExcluirRubricaAgrupamento
   --   pImportarVigencias
-  --   pImportarListasRubricaAgrupamento
+  --   pImportarAbrangencias
+  --   PKGMIG_ParametrizacaoConsignacao.pImportar
   --   PKGMIG_ParametrizacaoEventosPagamento.pImportar
   --   PKGMIG_ParametrizacaoFormulasCalculo.pImportar
   --
@@ -68,24 +82,55 @@ CREATE OR REPLACE PACKAGE PKGMIG_ParametrizacaoRubricasAgrupamento AS
   cAUDITORIA_DETALHADO  CONSTANT PLS_INTEGER := 2;
   cAUDITORIA_COMPLETO   CONSTANT PLS_INTEGER := 3;
 
-  PROCEDURE pImportar(psgAgrupamentoDestino IN VARCHAR2, psgOrgao IN VARCHAR2,
-    ptpOperacao IN VARCHAR2, pdtOperacao IN TIMESTAMP,
-    psgModulo IN CHAR, psgConceito IN VARCHAR2, pcdIdentificacao IN VARCHAR2,
-    pcdRubrica IN NUMBER, pAgrupamento IN CLOB, pnuNivelAuditoria IN NUMBER DEFAULT NULL);
+  PROCEDURE pImportar(
+    psgAgrupamentoDestino IN VARCHAR2,
+    psgOrgao              IN VARCHAR2,
+    ptpOperacao           IN VARCHAR2,
+    pdtOperacao           IN TIMESTAMP,
+    psgModulo             IN CHAR, 
+    psgConceito           IN VARCHAR2,
+    pcdIdentificacao      IN VARCHAR2,
+    pcdRubrica            IN NUMBER,
+    pAgrupamento          IN CLOB,
+    pnuNivelAuditoria     IN NUMBER DEFAULT NULL
+  );
 
-  PROCEDURE pExcluirRubricaAgrupamento(psgAgrupamentoDestino IN VARCHAR2, psgOrgao IN VARCHAR2,
-    ptpOperacao IN VARCHAR2, pdtOperacao IN TIMESTAMP,
-    psgModulo IN CHAR, psgConceito IN VARCHAR2, pcdIdentificacao IN VARCHAR2,
-    pcdRubricaAgrupamento IN NUMBER, pnuNivelAuditoria IN NUMBER DEFAULT NULL);
+  PROCEDURE pExcluirRubricaAgrupamento(
+    psgAgrupamentoDestino IN VARCHAR2,
+    psgOrgao              IN VARCHAR2,
+    ptpOperacao           IN VARCHAR2,
+    pdtOperacao           IN TIMESTAMP,
+    psgModulo             IN CHAR,
+    psgConceito           IN VARCHAR2,
+    pcdIdentificacao      IN VARCHAR2,
+    pcdRubricaAgrupamento IN NUMBER,
+    pnuNivelAuditoria     IN NUMBER DEFAULT NULL
+  );
 
-  PROCEDURE pImportarVigencias(psgAgrupamentoDestino IN VARCHAR2, psgOrgao IN VARCHAR2,
-    ptpOperacao IN VARCHAR2, pdtOperacao IN TIMESTAMP,
-    psgModulo IN CHAR, psgConceito IN VARCHAR2, pcdIdentificacao IN VARCHAR2,
-    pcdRubricaAgrupamento IN NUMBER, pVigenciasAgrupamento IN CLOB, pnuNivelAuditoria IN NUMBER DEFAULT NULL);
+  PROCEDURE pImportarVigencias(
+    psgAgrupamentoDestino IN VARCHAR2,
+    psgOrgao              IN VARCHAR2,
+    ptpOperacao           IN VARCHAR2,
+    pdtOperacao           IN TIMESTAMP,
+    psgModulo             IN CHAR,
+    psgConceito           IN VARCHAR2,
+    pcdIdentificacao      IN VARCHAR2,
+    pcdRubricaAgrupamento IN NUMBER,
+    pVigenciasAgrupamento IN CLOB,
+    pnuNivelAuditoria     IN NUMBER DEFAULT NULL
+  );
 
-  PROCEDURE pImportarListasRubricaAgrupamento(psgAgrupamentoDestino IN VARCHAR2, psgOrgao IN VARCHAR2,
-    ptpOperacao IN VARCHAR2, pdtOperacao IN TIMESTAMP,
-    psgModulo IN CHAR, psgConceito IN VARCHAR2, pcdIdentificacao IN VARCHAR2,
-    pcdHistRubricaAgrupamento IN NUMBER, pListasVigenciasAgrupamento IN CLOB, pnuNivelAuditoria IN NUMBER DEFAULT NULL);
+  PROCEDURE pImportarAbrangencias(
+    psgAgrupamentoDestino IN VARCHAR2,
+    psgOrgao              IN VARCHAR2,
+    ptpOperacao           IN VARCHAR2,
+    pdtOperacao           IN TIMESTAMP,
+    psgModulo             IN CHAR,
+    psgConceito           IN VARCHAR2,
+    pcdIdentificacao      IN VARCHAR2,
+    pcdHistRubricaAgrupamento IN NUMBER,
+    pListasVigenciasAgrupamento IN CLOB,
+    pnuNivelAuditoria     IN NUMBER DEFAULT NULL
+  );
 END PKGMIG_ParametrizacaoRubricasAgrupamento;
 /

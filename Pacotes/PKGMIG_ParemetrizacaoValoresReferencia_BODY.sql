@@ -71,13 +71,13 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       vtxMensagem := 'Inicio da Exportação da Parametrização do Valor de Referencia "' || pcdIdentificacao || '" ';
     END IF;
 
-    PKGMIG_Parametrizacao.pConsoleLog(vtxMensagem ||
+    PKGMIG_ParametrizacaoLog.pAlertar(vtxMensagem ||
       'do Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
 	    'Data da Exportação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
       cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
     IF cAUDITORIA_ESSENCIAL != pnuNivelAuditoria THEN
-        PKGMIG_Parametrizacao.PConsoleLog('Nível de Auditoria Habilitado ' ||
+        PKGMIG_ParametrizacaoLog.pAlertar('Nível de Auditoria Habilitado ' ||
           CASE pnuNivelAuditoria
             WHEN cAUDITORIA_SILENCIADO THEN 'SILENCIADO'
             WHEN cAUDITORIA_ESSENCIAL  THEN 'ESSENCIAL'
@@ -103,7 +103,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
 
       vcdIdentificacao := rcdIdentificacao;
       
-      PKGMIG_Parametrizacao.PConsoleLog('Exportação do Valor de Referencia ' || vcdIdentificacao,
+      PKGMIG_ParametrizacaoLog.pAlertar('Exportação do Valor de Referencia ' || vcdIdentificacao,
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
       INSERT INTO emigParametrizacao (
@@ -115,7 +115,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       );
 
       vnuRegistros := vnuRegistros + 1;
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao, 
         vsgModulo, vsgConceito, vcdIdentificacao, 1,
         'VALORES REFERENCIA', 'INCLUSAO', 'Documento JSON ValoresReferencia incluído com sucesso',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -139,22 +139,20 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
 	    'Total de Parametrizações dos Valores de Referencia Exportadas: ' || vnuRegistros;
 
     -- Registro de Resumo da Exportação dos Valores de Referencia
-    PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,
+    PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,
       vsgModulo, vsgConceito, NULL, NULL,
       'VALORES REFERENCIA', 'RESUMO', 'Exportação das Parametrizações dos Valores de Referencia do ' || vtxResumo, 
       cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-    PKGMIG_Parametrizacao.PConsoleLog('Termino da Exportação das Parametrizações dos Valores de Referencia do ' ||
+    PKGMIG_ParametrizacaoLog.pAlertar('Termino da Exportação das Parametrizações dos Valores de Referencia do ' ||
       vtxResumo, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_Parametrizacao.PConsoleLog('Exportação de Valores de Referencia ' || vcdIdentificacao ||
-      ' VALORES REFERENCIA Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,  
-        vsgModulo, vsgConceito, vcdIdentificacao, 1,
-        'VALORES REFERENCIA', 'ERRO', 'Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,  
+        vsgModulo, vsgConceito, vcdIdentificacao, 'VALORES REFERENCIA',
+        'Exportação de Valores de Referencia (PKGMIG_ParemetrizacaoValoresReferencia.pExportar)', SQLERRM);
     ROLLBACK;
     RAISE;
   END pExportar;
@@ -289,14 +287,14 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       vtxMensagem := 'Inicio da Importação da Parametrização do Valor de Referencia "' || pcdIdentificacao || '" ';
     END IF;
 
-    PKGMIG_Parametrizacao.pConsoleLog(vtxMensagem ||
+    PKGMIG_ParametrizacaoLog.pAlertar(vtxMensagem ||
       'do Agrupamento ' || psgAgrupamentoOrigem || ' ' ||
       'para o Agrupamento ' || psgAgrupamentoDestino || ', ' || CHR(13) || CHR(10) ||
       'Data da Operação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
       cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
     IF cAUDITORIA_ESSENCIAL != pnuNivelAuditoria THEN
-        PKGMIG_Parametrizacao.PConsoleLog('Nível de Auditoria Habilitado ' ||
+        PKGMIG_ParametrizacaoLog.pAlertar('Nível de Auditoria Habilitado ' ||
           CASE pnuNivelAuditoria
             WHEN cAUDITORIA_SILENCIADO THEN 'SILENCIADO'
             WHEN cAUDITORIA_ESSENCIAL  THEN 'ESSENCIAL'
@@ -312,7 +310,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       vsgOrgao := r.cdOrgao;
       vcdIdentificacao := r.sgValorReferencia;
   
-      PKGMIG_Parametrizacao.PConsoleLog('Importação do Valor de Referencia ' || vcdIdentificacao,
+      PKGMIG_ParametrizacaoLog.pAlertar('Importação do Valor de Referencia ' || vcdIdentificacao,
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
       IF r.cdValorReferencia IS NULL THEN
@@ -331,7 +329,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
         );
 
         vnuInseridos := vnuInseridos + 1;
-        PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
           vsgModulo, vsgConceito, vcdIdentificacao, 1,
           'VALOR REFERENCIA', 'INCLUSAO', 'Valor de Referencia incluido com sucesso',
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -352,7 +350,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
         WHERE cdValorReferencia = vcdValorReferenciaNova;
 
         vnuAtualizados := vnuAtualizados + 1;
-        PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
           vsgModulo, vsgConceito, vcdIdentificacao, 1,
           'VALOR REFERENCIA', 'ATUALIZACAO', 'Valor de Referencia atualizado com sucesso',
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -385,30 +383,28 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
 	    'Total de Parametrizações dos Valores de Referencia Incluídas: ' || vnuInseridos ||
       ' e Alteradas: ' || vnuAtualizados;
 
-    PKGMIG_Parametrizacao.pGerarResumo(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
+    PKGMIG_ParametrizacaoLog.pGerarResumo(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
       vsgModulo, vsgConceito, vdtTermino, vnuTempoExecucao, pnuNivelAuditoria);
 
     -- Registro de Resumo da Exportação dos Valores de Referencia
-    PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
+    PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
       vsgModulo, vsgConceito, NULL, NULL,
       'VALORES REFERENCIA', 'RESUMO', 'Importação das Parametrizações dos Valores de Referencia do ' || vtxResumo, 
       cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
     -- Atualizar a SEQUENCE das Tabela Envolvidas na importação dos Valores de Referencia
-    PKGMIG_Parametrizacao.pAtualizarSequence(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
+    PKGMIG_ParametrizacaoLog.pAtualizarSequence(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
       vsgModulo, vsgConceito, vListaTabelas, pnuNivelAuditoria);
 
-    PKGMIG_Parametrizacao.PConsoleLog('Termino da Importação das Parametrizações dos Valores de Referencia do ' ||
+    PKGMIG_ParametrizacaoLog.pAlertar('Termino da Importação das Parametrizações dos Valores de Referencia do ' ||
       vtxResumo, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_Parametrizacao.PConsoleLog('Importação do Valor de Referencia ' || vcdIdentificacao ||
-        ' VALOR REFERENCIA Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
-        vsgModulo, vsgConceito, vcdIdentificacao, 1,
-        'VALOR REFERENCIA', 'ERRO', 'Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,  
+        vsgModulo, vsgConceito, vcdIdentificacao, 'VALORES REFERENCIA',
+        'Importação de Valores de Referencia (PKGMIG_ParemetrizacaoValoresReferencia.pImportar)', SQLERRM);
     ROLLBACK;
     RAISE;
   END pImportar;
@@ -460,7 +456,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
 
     vcdIdentificacao := pcdIdentificacao;
 
-    PKGMIG_Parametrizacao.PConsoleLog('Importação do Valor de Referencia - ' ||
+    PKGMIG_ParametrizacaoLog.pAlertar('Importação do Valor de Referencia - ' ||
       'Excluir Versões e Vigencias ' || vcdIdentificacao, cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 
     -- Excluir as Vigências do Valor de Referencia
@@ -475,7 +471,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
           SELECT Versoes.cdValorReferenciaVersao FROM epagValorReferenciaVersao Versoes
             WHERE Versoes.cdValorReferencia = pcdValorReferencia);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
         'VIGENCIA', 'EXCLUSAO', 'Vigências do Valore de Referencia excluidos com sucesso',
         cAUDITORIA_COMPLETO, pnuNivelAuditoria);
@@ -489,7 +485,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       DELETE FROM epagValorReferenciaVersao Versoes
         WHERE Versoes.cdValorReferencia = pcdValorReferencia;
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
         'VERCAO', 'EXCLUSAO', 'Versões do Valore de Referencia excluidos com sucesso',
         cAUDITORIA_COMPLETO, pnuNivelAuditoria);
@@ -498,12 +494,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_Parametrizacao.PConsoleLog('Importação do Valor de Referencia ' || vcdIdentificacao ||
-        ' EXCLUIR VALOR REFERENCIA Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
-        psgModulo, psgConceito, vcdIdentificacao, 1,
-        'VALOR REFERENCIA', 'ERRO', 'Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    ROLLBACK;
+      PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+        psgModulo, psgConceito, pcdIdentificacao, 'VALORES REFERENCIA VIGENCIAS EXCLUIR',
+        'Importação de Valores de Referencia (PKGMIG_ParemetrizacaoValoresReferencia.pExcluirVersoesVigencias)', SQLERRM);
     RAISE;
   END pExcluirVersoesVigencias;
 
@@ -566,7 +559,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
 
     vcdIdentificacao := pcdIdentificacao;
 
-    PKGMIG_Parametrizacao.PConsoleLog('Importação do Valor de Referencia - Versões ' ||
+    PKGMIG_ParametrizacaoLog.pAlertar('Importação do Valor de Referencia - Versões ' ||
       vcdIdentificacao, cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 
     -- Loop principal de processamento para Incluir as Versões do Valor de Referencia
@@ -574,7 +567,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
 
 	    vcdIdentificacao := SUBSTR(pcdIdentificacao || ' ' || r.nuVersao,1,70);
 
-      PKGMIG_Parametrizacao.PConsoleLog('Importação do Valor de Referencia - Versões ' || vcdIdentificacao,
+      PKGMIG_ParametrizacaoLog.pAlertar('Importação do Valor de Referencia - Versões ' || vcdIdentificacao,
         cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 
 	    -- Inserir na tabela epagBaseCalculoVersao
@@ -586,7 +579,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
 		    vcdValorReferenciaVersaoNova, pcdValorReferencia, r.nuVersao
       );
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'VERCAO', 'INCLUSAO', 'Versão do Valor de Referencia incluido com sucesso',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -600,12 +593,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_Parametrizacao.PConsoleLog('Importação do Valor de Referencia ' || vcdIdentificacao ||
-        ' VERCAO Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
-        psgModulo, psgConceito, vcdIdentificacao, 1,
-        'VERCAO', 'ERRO', 'Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    ROLLBACK;
+      PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+        psgModulo, psgConceito, pcdIdentificacao, 'VALORES REFERENCIA VERCAO',
+        'Importação de Valores de Referencia (PKGMIG_ParemetrizacaoValoresReferencia.pImportarVersoes)', SQLERRM);
     RAISE;
   END pImportarVersoes;
 
@@ -722,7 +712,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
 
     vcdIdentificacao := pcdIdentificacao;
 
-    PKGMIG_Parametrizacao.PConsoleLog('Importação do Valor de Referencia - ' ||
+    PKGMIG_ParametrizacaoLog.pAlertar('Importação do Valor de Referencia - ' ||
       'Vigências ' || vcdIdentificacao, cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 
     -- Loop principal de processamento
@@ -731,17 +721,17 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       vcdIdentificacao := SUBSTR(pcdIdentificacao || ' ' ||
         lpad(r.nuAnoInicioVigencia,4,0) || lpad(r.nuMesInicioVigencia,2,0),1,70);
 
-      PKGMIG_Parametrizacao.PConsoleLog('Importação do Valor de Referencia - ' ||
+      PKGMIG_ParametrizacaoLog.pAlertar('Importação do Valor de Referencia - ' ||
         'Vigências ' || vcdIdentificacao, cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 
       -- Verificar se existe a Tabela Geral de Salarios dos Cargos Efetivos no Agrupamento Destino
       IF r.cdValorGeralCEFAgrup IS NULL AND r.sgValorGeralCEFAgrup IS NOT NULL THEN
-        PKGMIG_Parametrizacao.PConsoleLog('Importação do Valor de Referencia  - Vigências ' || vcdIdentificacao ||
+        PKGMIG_ParametrizacaoLog.pAlertar('Importação do Valor de Referencia  - Vigências ' || vcdIdentificacao ||
           ' Sigla da Tabela Geral CEF' || ' (' || r.sgValorGeralCEFAgrup || ') ' ||
           'da Vigência do Valor de Referencia não encontrada no Agrupamento',
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-        PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
           psgModulo, psgConceito, vcdIdentificacao, 1,
           'VIGENCIA', 'INCONSISTENTE',
           'Sigla da Tabela Geral CEF' || ' (' || r.sgValorGeralCEFAgrup || ') ' ||
@@ -751,11 +741,11 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
 
       -- Verificar se vlReferncia é Numerico e formatar para número.
       IF NOT REGEXP_LIKE(TO_CHAR(r.vlReferencia), '^[-+]?\d+(\.\d+)?$') THEN
-        PKGMIG_Parametrizacao.PConsoleLog('Importação do Valor de Referencia - Vigências ' || vcdIdentificacao ||
+        PKGMIG_ParametrizacaoLog.pAlertar('Importação do Valor de Referencia - Vigências ' || vcdIdentificacao ||
           'Valor da Referencia é não numerico ou nulo (' || TO_CHAR(r.vlReferencia) || ')',
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-        PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
           psgModulo, psgConceito, vcdIdentificacao, 1,
           'VIGENCIA', 'INCONSISTENTE',
           ' Valor da Referencia é não numerico ou nulo (' || TO_CHAR(r.vlReferencia) || ')',
@@ -783,7 +773,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
         r.nuCPFCadastrador, r.dtInclusao, r.dtUltAlteracao
       );
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'VIGENCIA', 'INCLUSAO', 'Vigência do Valor de Referencia incluidos com sucesso',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -793,12 +783,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_Parametrizacao.PConsoleLog('Importação do Valor de Referencia ' || vcdIdentificacao ||
-        ' VIGENCIA Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
-        psgModulo, psgConceito, vcdIdentificacao, 1,
-        'VIGENCIA', 'ERRO', 'Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    ROLLBACK;
+      PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+        psgModulo, psgConceito, pcdIdentificacao, 'VALORES REFERENCIA VIGENCIA',
+        'Importação de Valores de Referencia (PKGMIG_ParemetrizacaoValoresReferencia.pImportarVigencias)', SQLERRM);
     RAISE;
   END pImportarVigencias;
 
