@@ -11,9 +11,10 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
   --
   -- Parâmetros:
   --   psgAgrupamento        IN VARCHAR2: Sigla do agrupamento de origem da configuração
-  --   pnuNivelAuditoria              IN NUMBER DEFAULT NULL: Defini o nível das mensagens
+  --   pcdIdentificacao      IN VARCHAR2: Código de Identificação do Conceito
+  --   pnuNivelAuditoria     IN NUMBER DEFAULT NULL: Defini o nível das mensagens
   --                         para acompanhar a execução, sendo:
-  --                         - Não informado assume 'Desligado' nível mínimo de mensagens;
+  --                         - Não informado assume 'ESSENCIAL' nível mínimo de mensagens;
   --                         - Se informado 'SILENCIADO' omite todas as mensagens;
   --                         - Se informado 'ESSENCIAL' inclui as mensagens das
   --                           principais todas entidades, menos as listas;
@@ -21,8 +22,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
   --                           entidades, incluindo as referente as tabelas das listas;
   --
   -- ###########################################################################
-    psgAgrupamento        IN VARCHAR2,
-    pnuNivelAuditoria              IN NUMBER DEFAULT NULL
+    psgAgrupamento      IN VARCHAR2,
+    pcdIdentificacao    IN VARCHAR2 DEFAULT NULL,
+    pnuNivelAuditoria   IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
     vsgOrgao            VARCHAR2(15)          := NULL;
@@ -45,11 +47,12 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
     rflAnulado          CHAR(01)     := NULL;
     rdtInclusao         TIMESTAMP(6) := NULL;
 
+    vtxMensagem         VARCHAR2(100)  := NULL;
     vdtTermino          TIMESTAMP    := LOCALTIMESTAMP;
     vnuTempoExecucao    INTERVAL DAY TO SECOND := NULL;
     vnuRegistros        NUMBER       := 0;
     vtxResumo           VARCHAR2(4000) := NULL;
-    vListaTabelas          CLOB := '[
+    vListaTabelas       CLOB := '[
       "EPAGVALORREFERENCIA",
       "EPAGVALORREFERENCIAVERSAO",
       "EPAGHISTVALORREFERENCIA"
@@ -62,8 +65,14 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
   
     vdtOperacao := LOCALTIMESTAMP;
 
-    PKGMIG_Parametrizacao.PConsoleLog('Inicio da Exportações das Parametrizações dos ' ||
-      'Valores de Referencia do Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
+    IF pcdIdentificacao IS NULL THEN
+      vtxMensagem := 'Inicio da Exportação das Parametrizações dos Valores de Referencia ';
+    ELSE
+      vtxMensagem := 'Inicio da Exportação da Parametrização do Valor de Referencia "' || pcdIdentificacao || '" ';
+    END IF;
+
+    PKGMIG_Parametrizacao.pConsoleLog(vtxMensagem ||
+      'do Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
 	    'Data da Exportação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
       cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
@@ -80,7 +89,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
 
 	  -- Defini o Cursos com a Query que Gera o Documento JSON ValoresReferencia
 	  vRefCursor := fnCursorValoresReferencia(psgAgrupamento, vsgOrgao, vsgModulo, vsgConceito,
-      vdtOperacao, vnuVersao, vflAnulado);
+      pcdIdentificacao, vdtOperacao, vnuVersao, vflAnulado);
 
 	  vnuRegistros := 0;
 
@@ -163,7 +172,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
   -- Parâmetros:
   --   psgAgrupamentoOrigem  IN VARCHAR2: Sigla do agrupamento de origem da configuração
   --   psgAgrupamentoDestino IN VARCHAR2: Sigla do agrupamento de destino para os dados
-  --   pnuNivelAuditoria              IN NUMBER DEFAULT NULL: Defini o nível das mensagens
+  --   pcdIdentificacao      IN VARCHAR2: Código de Identificação do Conceito
+  --   pnuNivelAuditoria     IN NUMBER DEFAULT NULL: Defini o nível das mensagens
   --                         para acompanhar a execução, sendo:
   --                         - Não informado assume 'Desligado' nível mínimo de mensagens;
   --                         - Se informado 'SILENCIADO' omite todas as mensagens;
@@ -175,7 +185,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
   -- ###########################################################################
     psgAgrupamentoOrigem  IN VARCHAR2,
     psgAgrupamentoDestino IN VARCHAR2,
-    pnuNivelAuditoria              IN NUMBER DEFAULT NULL
+    pcdIdentificacao      IN VARCHAR2 DEFAULT NULL,
+    pnuNivelAuditoria     IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
     vsgOrgao               VARCHAR2(15)          := Null;
@@ -186,10 +197,10 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
     vcdIdentificacao       VARCHAR2(50)          := Null;
     vcdValorReferenciaNova NUMBER                := Null;
 
+    vtxMensagem            VARCHAR2(100)  := NULL;
     vnuInseridos           NUMBER         := 0;
     vnuAtualizados         NUMBER         := 0;
     vtxResumo              VARCHAR2(4000) := NULL;
-    vResumoEstatisticas    CLOB           := Null;
     vListaTabelas          CLOB := '[
       "EPAGBASECALCULO",
       "EPAGBASECALCULOVERSAO",
@@ -262,6 +273,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       LEFT JOIN epagValorReferencia vlref on vlref.cdAgrupamento = o.cdAgrupamento AND vlref.sgValorReferencia = js.sgValorReferencia
       WHERE cfg.sgModulo = 'PAG' AND cfg.sgConceito = 'VALORREFERENCIA' AND cfg.flAnulado = 'N'
         AND cfg.sgAgrupamento = psgAgrupamentoOrigem AND nvl(o.sgOrgao,' ') = nvl(vsgOrgao,' ')
+        AND (cfg.cdIdentificacao = pcdIdentificacao OR pcdIdentificacao IS NULL)
       )
       SELECT * FROM ValorReferencia;
 
@@ -271,8 +283,14 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
     vnuInseridos := 0;
     vnuAtualizados := 0;
 
-    PKGMIG_Parametrizacao.PConsoleLog('Inicio da Importação das Parametrizações dos ' ||
-      'Valores de Referencia do Agrupamento ' || psgAgrupamentoOrigem || ' ' ||
+    IF pcdIdentificacao IS NULL THEN
+      vtxMensagem := 'Inicio da Importação das Parametrizações dos Valores de Referencia ';
+    ELSE
+      vtxMensagem := 'Inicio da Importação da Parametrização do Valor de Referencia "' || pcdIdentificacao || '" ';
+    END IF;
+
+    PKGMIG_Parametrizacao.pConsoleLog(vtxMensagem ||
+      'do Agrupamento ' || psgAgrupamentoOrigem || ' ' ||
       'para o Agrupamento ' || psgAgrupamentoDestino || ', ' || CHR(13) || CHR(10) ||
       'Data da Operação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
       cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -785,9 +803,15 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
   END pImportarVigencias;
 
   -- Função que cria o Cursor que Estrutura o Documento JSON com as Parametrizações dos Valores de Referencia
-  FUNCTION fnCursorValoresReferencia(psgAgrupamento IN VARCHAR2, psgOrgao IN VARCHAR2,
-    psgModulo IN CHAR, psgConceito IN VARCHAR2, pdtExportacao IN TIMESTAMP,
-    pnuVersao IN CHAR, pflAnulado IN CHAR
+  FUNCTION fnCursorValoresReferencia(
+    psgAgrupamento   IN VARCHAR2,
+    psgOrgao         IN VARCHAR2,
+    psgModulo        IN CHAR,
+    psgConceito      IN VARCHAR2,
+    pcdIdentificacao IN VARCHAR2,
+    pdtExportacao    IN TIMESTAMP,
+    pnuVersao        IN CHAR,
+    pflAnulado       IN CHAR
     ) RETURN SYS_REFCURSOR IS
 
     vRefCursor SYS_REFCURSOR;
@@ -867,6 +891,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       INNER JOIN ecadAgrupamento a ON a.cdAgrupamento = vlref.cdAgrupamento
       LEFT JOIN VersaoValorReferencia versao ON versao.cdValorReferencia = vlref.cdValorreferencia
 	    WHERE a.sgAgrupamento = psgAgrupamento
+        AND (sgValorReferencia LIKE pcdIdentificacao OR pcdIdentificacao IS NULL)
       )
       SELECT
         sgAgrupamento,
@@ -876,9 +901,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
         pdtExportacao AS dtExportacao,
         sgValorReferencia AS cdIdentificacao,
         vlref.ValorReferencia AS jsConteudo,
-		pnuVersao AS nuVersao,
-		pflAnulado AS flAnulado,
-		SYSTIMESTAMP AS dtInclusao
+        pnuVersao AS nuVersao,
+        pflAnulado AS flAnulado,
+        SYSTIMESTAMP AS dtInclusao
       FROM ValorReferencia vlref
       ORDER BY sgagrupamento, sgorgao, sgModulo, sgConceito, cdIdentificacao;
 
