@@ -12,7 +12,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
   --
   -- Parâmetros:
   --   psgAgrupamento        IN VARCHAR2: Sigla do agrupamento de origem da configuração
-  --   pnuNivelAuditoria              IN NUMBER DEFAULT NULL: Defini o nível das mensagens
+  --   pcdIdentificacao      IN VARCHAR2: Código de Identificação do Conceito
+  --   pnuNivelAuditoria     IN NUMBER DEFAULT NULL: Defini o nível das mensagens
   --                         para acompanhar a execução, sendo:
   --                         - Não informado assume 'Desligado' nível mínimo de mensagens;
   --                         - Se informado 'SILENCIADO' omite todas as mensagens;
@@ -22,8 +23,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
   --                           entidades, incluindo as referente as tabelas das listas;
   --
   -- ###########################################################################
-    psgAgrupamento        IN VARCHAR2,
-    pnuNivelAuditoria              IN NUMBER DEFAULT NULL
+    psgAgrupamento      IN VARCHAR2,
+    pcdIdentificacao    IN VARCHAR2 DEFAULT NULL,
+    pnuNivelAuditoria   IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
     vsgOrgao            VARCHAR2(15)          := Null;
@@ -46,6 +48,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
     rflAnulado          CHAR(01)     := NULL;
     rdtInclusao         TIMESTAMP(6) := NULL;
 
+    vtxMensagem         VARCHAR2(100)  := NULL;
     vdtTermino          TIMESTAMP    := LOCALTIMESTAMP;
     vnuTempoExecucao    INTERVAL DAY TO SECOND := NULL;
     vnuRegistros        NUMBER       := 0;
@@ -58,8 +61,14 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
 
     vdtOperacao := LOCALTIMESTAMP;
 
-    PKGMIG_Parametrizacao.PConsoleLog('Inicio da Exportação das Parametrizações das ' ||
-      'Bases de Cálculo do Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
+    IF pcdIdentificacao IS NULL THEN
+      vtxMensagem := 'Inicio da Exportação das Parametrizações das Bases de Cálculo ';
+    ELSE
+      vtxMensagem := 'Inicio da Exportação da Parametrização da Base de Cálculo "' || pcdIdentificacao || '" ';
+    END IF;
+
+    PKGMIG_Parametrizacao.pConsoleLog(vtxMensagem ||
+      'do Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
 	    'Data da Exportação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
       cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
@@ -75,7 +84,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
     END IF;
 
     -- Defini o Cursos com a Query que Gera o Documento JSON ValoresReferencia
-    vRefCursor := fnCursorBases(psgAgrupamento, vsgOrgao, vsgModulo, vsgConceito,
+    vRefCursor := fnCursorBases(psgAgrupamento, vsgOrgao, vsgModulo, vsgConceito, pcdIdentificacao, 
       vdtOperacao, vnuVersao, vflAnulado);
     
     vnuRegistros := 0;
@@ -167,6 +176,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
   -- ###########################################################################
     psgAgrupamentoOrigem  IN VARCHAR2,
     psgAgrupamentoDestino IN VARCHAR2,
+    pcdIdentificacao      IN VARCHAR2 DEFAULT NULL,
     pnuNivelAuditoria     IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
@@ -178,8 +188,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
     vcdIdentificacao       VARCHAR2(70)          := Null;
     vcdBaseCalculoNova     NUMBER                := Null;
 
-    vnuInseridos           NUMBER       := 0;
-    vnuAtualizados         NUMBER       := 0;
+    vtxMensagem            VARCHAR2(100)  := NULL;
+    vnuInseridos           NUMBER         := 0;
+    vnuAtualizados         NUMBER         := 0;
     vtxResumo              VARCHAR2(4000) := NULL;
     vListaTabelas          CLOB := '[
       "EPAGBASECALCULO",
@@ -252,6 +263,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       LEFT JOIN epagBaseCalculo base on base.cdAgrupamento = o.cdAgrupamento and base.sgBaseCalculo = js.sgBaseCalculo
       WHERE cfg.sgModulo = vsgModulo AND cfg.sgConceito = vsgConceito AND cfg.flAnulado = 'N'
         AND cfg.sgAgrupamento = psgAgrupamentoOrigem AND cfg.sgOrgao IS NULL
+        AND (cfg.cdIdentificacao = pcdIdentificacao OR pcdIdentificacao IS NULL)
       )
       SELECT * FROM BasesCalculo;
       
@@ -1359,9 +1371,15 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
   END pImportarExpressaoBloco;
 
   -- Função que cria o Cursor que Estrutura o Documento JSON com as Parametrizações das Bases de Cálculo
-  FUNCTION fnCursorBases(psgAgrupamento IN VARCHAR2, psgOrgao IN VARCHAR2,
-    psgModulo IN CHAR, psgConceito IN VARCHAR2, pdtExportacao IN TIMESTAMP,
-    pnuVersao IN CHAR, pflAnulado IN CHAR
+  FUNCTION fnCursorBases(
+    psgAgrupamento   IN VARCHAR2,
+    psgOrgao         IN VARCHAR2,
+    psgModulo        IN CHAR,
+    psgConceito      IN VARCHAR2,
+    pcdIdentificacao IN VARCHAR2,
+    pdtExportacao    IN TIMESTAMP,
+    pnuVersao        IN CHAR,
+    pflAnulado       IN CHAR
     ) RETURN SYS_REFCURSOR IS
 
     vRefCursor SYS_REFCURSOR;
@@ -1593,6 +1611,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       INNER JOIN ecadAgrupamento a ON a.cdAgrupamento = base.cdAgrupamento
       LEFT JOIN ecadHistOrgao o ON o.cdOrgao = base.cdOrgao
       WHERE a.sgAgrupamento = psgAgrupamento
+        AND (sgBaseCalculo LIKE pcdIdentificacao OR pcdIdentificacao IS NULL)
       )
       SELECT
         sgAgrupamento,

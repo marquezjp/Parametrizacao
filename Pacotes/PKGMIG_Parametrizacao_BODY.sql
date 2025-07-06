@@ -22,9 +22,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
 
     CASE UPPER(vParm.sgConceito)
       WHEN 'VALORREFERENCIA' THEN
-        PKGMIG_ParemetrizacaoValoresReferencia.pExportar(vParm.sgAgrupamento, vParm.nuNivelAuditoria);
+        PKGMIG_ParemetrizacaoValoresReferencia.pExportar(vParm.sgAgrupamento, vParm.cdIdentificacao, vParm.nuNivelAuditoria);
       WHEN 'BASECALCULO' THEN
-        PKGMIG_ParametrizacaoBasesCalculo.pExportar(vParm.sgAgrupamento, vParm.nuNivelAuditoria);
+        PKGMIG_ParametrizacaoBasesCalculo.pExportar(vParm.sgAgrupamento, vParm.cdIdentificacao, vParm.nuNivelAuditoria);
       WHEN 'RUBRICA' THEN
         PKGMIG_ParametrizacaoRubricas.pExportar(vParm.sgAgrupamento, vParm.cdIdentificacao, vParm.nuNivelAuditoria);
       ELSE
@@ -42,11 +42,14 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
 
     CASE UPPER(vParm.sgConceito)
       WHEN 'VALORREFERENCIA' THEN
-        PKGMIG_ParemetrizacaoValoresReferencia.pImportar(vParm.sgAgrupamento, vParm.sgAgrupamentoDestino, vParm.nuNivelAuditoria);
+        PKGMIG_ParemetrizacaoValoresReferencia.pImportar(vParm.sgAgrupamento, vParm.sgAgrupamentoDestino,
+          vParm.cdIdentificacao, vParm.nuNivelAuditoria);
       WHEN 'BASECALCULO' THEN
-        PKGMIG_ParametrizacaoBasesCalculo.pImportar(vParm.sgAgrupamento, vParm.sgAgrupamentoDestino, vParm.nuNivelAuditoria);
+        PKGMIG_ParametrizacaoBasesCalculo.pImportar(vParm.sgAgrupamento, vParm.sgAgrupamentoDestino,
+          vParm.cdIdentificacao, vParm.nuNivelAuditoria);
       WHEN 'RUBRICA' THEN
-        PKGMIG_ParametrizacaoRubricas.pImportar(vParm.sgAgrupamento, vParm.sgAgrupamentoDestino, vParm.cdIdentificacao, vParm.nuNivelAuditoria);
+        PKGMIG_ParametrizacaoRubricas.pImportar(vParm.sgAgrupamento, vParm.sgAgrupamentoDestino,
+          vParm.cdIdentificacao, vParm.nuNivelAuditoria);
       ELSE
         RAISE_APPLICATION_ERROR(-20002, 'Importação não suportada para o conceito: ' || vParm.sgConceito);
     END CASE;
