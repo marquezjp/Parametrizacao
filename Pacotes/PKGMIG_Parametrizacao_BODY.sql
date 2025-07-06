@@ -1,9 +1,9 @@
 -- Corpo do pacote
 CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
-
+/*
   FUNCTION fnObterNivelAuditoria(pNivelAuditoria IN VARCHAR2) RETURN PLS_INTEGER IS
   BEGIN
-  CASE UPPER(TRIM(NVL(pNivelAuditoria, 'DESLIGADO')))
+  CASE UPPER(TRIM(NVL(pNivelAuditoria, 'ESSENCIAL')))
     WHEN 'SILENCIADO' THEN RETURN cAUDITORIA_SILENCIADO;
     WHEN 'ESSENCIAL'  THEN RETURN cAUDITORIA_ESSENCIAL;
     WHEN 'DETALHADO'  THEN RETURN cAUDITORIA_DETALHADO;
@@ -11,36 +11,47 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
     ELSE RETURN cAUDITORIA_ESSENCIAL;
   END CASE;
   END;
+*/
+  PROCEDURE pExportar(pjsParametros IN VARCHAR2 DEFAULT NULL) IS
+--    vnuNivelAuditoria NUMBER := fnObterNivelAuditoria(pNivelAuditoria);
+    vParm                 tpParametroEntrada;
 
-  PROCEDURE pExportar(pSgAgrupamento IN VARCHAR2,
-    psgConceito IN VARCHAR2, pNivelAuditoria IN VARCHAR2 DEFAULT NULL) IS
-    vnuNivelAuditoria NUMBER := fnObterNivelAuditoria(pNivelAuditoria);
   BEGIN
-    CASE UPPER(psgConceito)
+
+    vParm := PKGMIG_ParametrizacaoLog.fnObterParametro(pjsParametros);
+
+    CASE UPPER(vParm.sgConceito)
       WHEN 'VALORREFERENCIA' THEN
-        PKGMIG_ParemetrizacaoValoresReferencia.pExportar(psgAgrupamento, vnuNivelAuditoria);
+        PKGMIG_ParemetrizacaoValoresReferencia.pExportar(vParm.sgAgrupamento, vParm.cdIdentificacao, vParm.nuNivelAuditoria);
       WHEN 'BASECALCULO' THEN
-        PKGMIG_ParametrizacaoBasesCalculo.pExportar(psgAgrupamento, vnuNivelAuditoria);
+        PKGMIG_ParametrizacaoBasesCalculo.pExportar(vParm.sgAgrupamento, vParm.cdIdentificacao, vParm.nuNivelAuditoria);
       WHEN 'RUBRICA' THEN
-        PKGMIG_ParametrizacaoRubricas.pExportar(psgAgrupamento, vnuNivelAuditoria);
+        PKGMIG_ParametrizacaoRubricas.pExportar(vParm.sgAgrupamento, vParm.cdIdentificacao, vParm.nuNivelAuditoria);
       ELSE
-        RAISE_APPLICATION_ERROR(-20001, 'Conceito não suportado: ' || psgConceito);
+        RAISE_APPLICATION_ERROR(-20001, 'Conceito não suportado: ' || vParm.sgConceito);
     END CASE;
   END pExportar;
 
-  PROCEDURE pImportar(psgAgrupamentoOrigem IN VARCHAR2, psgAgrupamentoDestino IN VARCHAR2,
-    psgConceito IN VARCHAR2, pNivelAuditoria IN VARCHAR2 DEFAULT NULL) IS
-    vnuNivelAuditoria NUMBER := fnObterNivelAuditoria(pNivelAuditoria);
+  PROCEDURE pImportar(pjsParametros IN VARCHAR2 DEFAULT NULL) IS
+--    vnuNivelAuditoria NUMBER := fnObterNivelAuditoria(pNivelAuditoria);
+    vParm                 tpParametroEntrada;
+
   BEGIN
-    CASE UPPER(psgConceito)
+
+    vParm := PKGMIG_ParametrizacaoLog.fnObterParametro(pjsParametros);
+
+    CASE UPPER(vParm.sgConceito)
       WHEN 'VALORREFERENCIA' THEN
-        PKGMIG_ParemetrizacaoValoresReferencia.pImportar(psgAgrupamentoOrigem, psgAgrupamentoDestino, vnuNivelAuditoria);
+        PKGMIG_ParemetrizacaoValoresReferencia.pImportar(vParm.sgAgrupamento, vParm.sgAgrupamentoDestino,
+          vParm.cdIdentificacao, vParm.nuNivelAuditoria);
       WHEN 'BASECALCULO' THEN
-        PKGMIG_ParametrizacaoBasesCalculo.pImportar(psgAgrupamentoOrigem, psgAgrupamentoDestino, vnuNivelAuditoria);
+        PKGMIG_ParametrizacaoBasesCalculo.pImportar(vParm.sgAgrupamento, vParm.sgAgrupamentoDestino,
+          vParm.cdIdentificacao, vParm.nuNivelAuditoria);
       WHEN 'RUBRICA' THEN
-        PKGMIG_ParametrizacaoRubricas.pImportar(psgAgrupamentoOrigem, psgAgrupamentoDestino, vnuNivelAuditoria);
+        PKGMIG_ParametrizacaoRubricas.pImportar(vParm.sgAgrupamento, vParm.sgAgrupamentoDestino,
+          vParm.cdIdentificacao, vParm.nuNivelAuditoria);
       ELSE
-        RAISE_APPLICATION_ERROR(-20002, 'Importação não suportada para o conceito: ' || psgConceito);
+        RAISE_APPLICATION_ERROR(-20002, 'Importação não suportada para o conceito: ' || vParm.sgConceito);
     END CASE;
   END pImportar;
 
@@ -52,7 +63,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
   --
   -- Parâmetros:
   --   pdeMensagem      IN VARCHAR2:  'Mensagem detalhada sobre a operação registrada.'
-  --   pNivelAuditoria           IN VARCHAR2 DEFAULT NULL: Defini o nível das mensagens
+  --   pNivelAuditoria  IN VARCHAR2 DEFAULT NULL: Defini o nível das mensagens
   --                         para acompanhar a execução, sendo:
   --                         - Não informado assume 'Desligado' nível mínimo de mensagens;
   --                         - Se informado 'SILENCIADO' omite todas as mensagens;
@@ -62,8 +73,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
   --                           entidades, incluindo as referente as tabelas das listas;
   --
   -- ###########################################################################
-    pdeMensagem      IN VARCHAR2,
-    pnuNivelLog      IN NUMBER DEFAULT NULL,
+    pdeMensagem       IN VARCHAR2,
+    pnuNivelLog       IN NUMBER DEFAULT NULL,
     pnuNivelAuditoria IN NUMBER DEFAULT NULL
     ) IS
     BEGIN
@@ -333,7 +344,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
     ROLLBACK;
     RAISE;
   END pGerarResumo;
-
+/*
 -- Resumo das Operações de Exportação das Parametrizações
   FUNCTION fnResumo(
     psgAgrupamento   IN VARCHAR2 DEFAULT NULL,
@@ -525,7 +536,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
         AND sgModulo = psgModulo AND sgConceito = psgConceito;
     COMMIT;
   END PExcluirLog;
-
+*/
 END PKGMIG_Parametrizacao;
 /
 

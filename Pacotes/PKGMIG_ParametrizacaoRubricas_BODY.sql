@@ -23,6 +23,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
   --
   -- ###########################################################################
     psgAgrupamento        IN VARCHAR2,
+    pcdIdentificacao      IN VARCHAR2 DEFAULT NULL,
     pnuNivelAuditoria     IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
@@ -47,6 +48,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
     rflAnulado          CHAR(01)     := NULL;
     rdtInclusao         TIMESTAMP(6) := NULL;
 
+    vtxMensagem         VARCHAR2(100) := NULL;
+
     vdtTermino          TIMESTAMP    := LOCALTIMESTAMP;
     vnuTempoExecucao    INTERVAL DAY TO SECOND := NULL;
     vnuRegistros        NUMBER       := 0;
@@ -59,8 +62,14 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
 
     vdtOperacao := LOCALTIMESTAMP;
 
-    PKGMIG_Parametrizacao.pConsoleLog('Inicio da Exportação das Parametrizações das ' ||
-      'Rubricas do Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
+    IF pcdIdentificacao IS NULL THEN
+      vtxMensagem := 'Inicio da Exportação das Parametrizações das Rubricas ';
+    ELSE
+      vtxMensagem := 'Inicio da Exportação da Parametrização da Rubrica "' || pcdIdentificacao || '" ';
+    END IF;
+
+    PKGMIG_Parametrizacao.pConsoleLog(vtxMensagem ||
+      'do Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
 	    'Data da Exportação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
       cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
@@ -76,7 +85,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
     END IF;
 
 	  -- Defini o Cursos com a Query que Gera o Documento JSON Rubricas
-	  vRefCursor := fnCursorRubricas(psgAgrupamento, vsgOrgao, vsgModulo, vsgConceito,
+	  vRefCursor := fnCursorRubricas(psgAgrupamento, vsgOrgao, vsgModulo, vsgConceito, pcdIdentificacao,
       vdtOperacao, vnuVersao, vflAnulado);
 
 	  vnuRegistros := 0;
@@ -170,7 +179,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
   -- ###########################################################################
     psgAgrupamentoOrigem  IN VARCHAR2,
     psgAgrupamentoDestino IN VARCHAR2,
-    pnuNivelAuditoria              IN NUMBER DEFAULT NULL
+    pcdIdentificacao      IN VARCHAR2 DEFAULT NULL,
+    pnuNivelAuditoria     IN NUMBER DEFAULT NULL
   ) IS
     -- Variáveis de controle e contexto
     vsgOrgao               VARCHAR2(15) := NULL;
@@ -181,6 +191,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
     vcdIdentificacao       VARCHAR2(70) := NULL;
     vcdRubricaNova         NUMBER       := NULL;
 
+    vtxMensagem            VARCHAR2(100) := NULL;
     vContador              NUMBER       := 0;
     vCommitLote            CONSTANT NUMBER := 1000;
     vdtExportacao          TIMESTAMP    := LOCALTIMESTAMP;
@@ -303,6 +314,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
         WHERE cfg.sgModulo = vsgModulo AND cfg.sgConceito = vsgConceito AND cfg.flAnulado = 'N'
           AND cfg.sgAgrupamento = psgAgrupamentoOrigem AND cfg.sgOrgao IS NULL
           AND cfg.dtExportacao = vdtExportacao
+          AND (cfg.cdIdentificacao = pcdIdentificacao OR pcdIdentificacao IS NULL)
         ORDER BY cfg.cdIdentificacao
       )
       SELECT * FROM epagRubricaImportar;
@@ -315,8 +327,14 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
     WHERE sgModulo = vsgModulo AND sgConceito = vsgConceito
       AND sgAgrupamento = psgAgrupamentoOrigem AND sgOrgao IS NULL;
 
-    PKGMIG_Parametrizacao.pConsoleLog('Inicio da Importação das Parametrizações das ' ||
-      'Rubricas do Agrupamento ' || psgAgrupamentoOrigem || ' ' ||
+    IF pcdIdentificacao IS NULL THEN
+      vtxMensagem := 'Inicio da Importação das Parametrizações das Rubricas ';
+    ELSE
+      vtxMensagem := 'Inicio da Importação da Parametrização da Rubrica "' || pcdIdentificacao || '" ';
+    END IF;
+
+    PKGMIG_Parametrizacao.pConsoleLog(vtxMensagem ||
+      'do Agrupamento ' || psgAgrupamentoOrigem || ' ' ||
       'para o Agrupamento ' || psgAgrupamentoDestino || ', ' || CHR(13) || CHR(10) ||
       'Data da Exportação ' || TO_CHAR(vdtExportacao, 'DD/MM/YYYY HH24:MI:SS') || ', ' || CHR(13) || CHR(10) ||
       'Data da Operação   ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
@@ -782,9 +800,16 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
   END pImportarVigencias;
 
   -- Função que cria o Cursor que Estrutura o Documento JSON com as Parametrizações das Rubricas
-  FUNCTION fnCursorRubricas(psgAgrupamento IN VARCHAR2, psgOrgao IN VARCHAR2,
-    psgModulo IN CHAR, psgConceito IN VARCHAR2, pdtExportacao IN TIMESTAMP,
-    pnuVersao IN CHAR, pflAnulado IN CHAR) RETURN SYS_REFCURSOR IS
+  FUNCTION fnCursorRubricas(
+    psgAgrupamento   IN VARCHAR2,
+    psgOrgao         IN VARCHAR2,
+    psgModulo        IN CHAR,
+    psgConceito      IN VARCHAR2,
+    pcdIdentificacao IN VARCHAR2,
+    pdtExportacao    IN TIMESTAMP,
+    pnuVersao        IN CHAR,
+    pflAnulado       IN CHAR
+  ) RETURN SYS_REFCURSOR IS
     vRefCursor SYS_REFCURSOR;
     vParametroTributacao VARCHAR2(4000) := '{"ParametroTributacao":[
       {"tpRubAgrupParametro": "cdRubAgrupDescINSS",              "tpTributacao": "INSS"},
@@ -1754,8 +1779,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
                                         ELSE TO_CHAR(csg.dtInicioConcessao, 'YYYY-DD-MM') END,
         'dtFimConcessao'          VALUE CASE WHEN csg.dtFimConcessao IS NULL THEN NULL
                                         ELSE TO_CHAR(csg.dtFimConcessao, 'YYYY-DD-MM') END,
-        'flGeridaTerceitos'       VALUE NULLIF(flGeridaSCConsig,'N'),
-        'flRepasse'               VALUE NULLIF(flRepasse,'N'),
+        'flGeridaTerceitos'       VALUE NULLIF(csg.flGeridaSCConsig,'N'),
+        'flRepasse'               VALUE NULLIF(csg.flRepasse,'N'),
         'Vigencias'               VALUE vigencia.Vigencias,
         'Consignataria'           VALUE cst.Consignataria,
         'TipoServico'             VALUE tpServico.TipoServico,
@@ -2211,7 +2236,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
         FROM TipoRubrica tprub
         INNER JOIN NaturezaRubrica rub ON rub.nuNaturezaRubrica = tprub.nuNaturezaRubrica
                AND rub.nuRubrica = tprub.nuRubrica
-        WHERE tprub.sgAgrupamento = psgAgrupamento
+        WHERE tprub.sgAgrupamento = psgAgrupamento 
+          AND (rub.nuNaturezaRubrica || '-' || rub.nuRubrica LIKE pcdIdentificacao OR pcdIdentificacao IS NULL)
         GROUP BY tprub.sgAgrupamento, tprub.sgOrgao, rub.nuNaturezaRubrica, rub.nuRubrica, rub.nmNaturezaRubrica, rub.deRubrica
       )
       SELECT 
@@ -2220,7 +2246,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
         psgModulo AS sgModulo,
         psgConceito AS sgConceito,
         pdtExportacao AS dtExportacao,
-        nunaturezarubrica || '-' || nurubrica AS cdIdentificacao,
+        nuNaturezaRubrica || '-' || nuRubrica AS cdIdentificacao,
         Rubrica AS jsConteudo,
         pnuVersao AS nuVersao,
         pflAnulado AS flAnulado,
