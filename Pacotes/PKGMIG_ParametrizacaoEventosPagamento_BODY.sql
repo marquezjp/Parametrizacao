@@ -530,18 +530,18 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoEventosPagamento AS
       SYSTIMESTAMP AS dtUltAlteracao,
       
       (SELECT JSON_ARRAYAGG(JSON_OBJECT(
-        'sgOrgao' VALUE orgao.sgOrgao,
-        'cdOrgao' VALUE o.cdOrgao
+        'sgOrgao' VALUE lst.sgOrgao,
+        'cdOrgao' VALUE orgao.cdOrgao
       RETURNING CLOB) RETURNING CLOB) AS GrupoOrgaos
-      FROM JSON_TABLE(js.Orgaos, '$[*]' COLUMNS (sgOrgao PATH '$')) orgao
-      LEFT JOIN OrgaoLista o on o.sgAgrupamento = 'ADM-DIR' and nvl(o.sgOrgao,' ') = nvl(orgao.sgOrgao,' ')
+      FROM JSON_TABLE(js.ListaOrgaos, '$[*]' COLUMNS (sgOrgao PATH '$')) lst
+      LEFT JOIN OrgaoLista orgao on orgao.sgOrgao = lst.sgOrgao
       ) As GrupoOrgaos,
       
       (SELECT JSON_ARRAYAGG(JSON_OBJECT(
         'nmEstruturaCarreira' VALUE carreira.nmEstruturaCarreira,
         'cdEstruturaCarreira' VALUE cef.cdEstruturaCarreira
       RETURNING CLOB) RETURNING CLOB) AS GrupoCarreira
-      FROM JSON_TABLE(js.Carreiras, '$[*]' COLUMNS (nmEstruturaCarreira PATH '$')) carreira
+      FROM JSON_TABLE(js.EstruturaCarreira, '$[*]' COLUMNS (nmEstruturaCarreira PATH '$')) carreira
       INNER JOIN EstruturaCarreiraLista cef ON cef.nmEstruturaCarreira = carreira.nmEstruturaCarreira
       ) As GrupoCarreiras
       
@@ -568,8 +568,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoEventosPagamento AS
         cdTipoRisco               PATH '$.Abrangencia.cdTipoRisco',
         cdTipoFalta               PATH '$.Abrangencia.cdTipoFalta',
         cdTipoFaltaParcialAgrup   PATH '$.Abrangencia.cdTipoFaltaParcialAgrup',
-        Orgaos                    CLOB FORMAT JSON PATH '$.Orgaos',
-        Carreiras                 CLOB FORMAT JSON PATH '$.Carreiras'
+        ListaOrgaos               CLOB FORMAT JSON PATH '$.Orgaos.Orgaos',
+        EstruturaCarreira         CLOB FORMAT JSON PATH '$.Carreiras.EstruturaCarreira'
       )) js
       LEFT JOIN OrgaoLista o on o.sgAgrupamento = psgAgrupamentoDestino and nvl(o.sgOrgao,' ') = nvl(psgOrgao,' ')
       LEFT JOIN RubricaLista rub ON rub.nuRubrica = js.nuRubrica
