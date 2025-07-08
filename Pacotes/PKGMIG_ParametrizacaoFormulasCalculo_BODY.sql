@@ -104,7 +104,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
 
     vcdIdentificacao := pcdIdentificacao;
 
-    PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo - ' ||
+    PKGMIG_ParametrizacaoLog.pAlertar('Importação da Formula de Cálculo - ' ||
       vcdIdentificacao, cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 	
     -- Excluir a Formula de Cálculo e as Entidades Filhas
@@ -125,9 +125,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
 		    vcdFormulaCalculoNova, pcdRubricaAgrupamento, r.sgFormulaCalculo, r.deFormulaCalculo, r.dtUltAlteracao, r.cdAgrupamento, r.cdOrgao
       );
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'FORMULA CÁLCULO', 'INCLUSAO',
+        'FORMULA CALCULO', 'INCLUSAO',
         'Formula de Cálculo incluída com sucesso',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
@@ -137,17 +137,13 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
   
     END LOOP;
 
-  EXCEPTION
-    WHEN OTHERS THEN
+    EXCEPTION
+      WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo ' || vcdIdentificacao ||
-        ' FORMULA CÁLCULO Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
-        psgModulo, psgConceito, vcdIdentificacao, 1,
-        'FORMULA CÁLCULO', 'ERRO', 'Erro: ' || SQLERRM,
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    ROLLBACK;
-    RAISE;
+        PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+          psgModulo, psgConceito, vcdIdentificacao, 'FORMULA CALCULO',
+          'Importação da Formula de Cálculo (PKGMIG_ParametrizacaoFormulasCalculo.pImportar)', SQLERRM);
+      RAISE;
   END pImportar;
 
   PROCEDURE pExcluirFormulaCalculo(
@@ -204,7 +200,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
 
     vcdIdentificacao := pcdIdentificacao;
 
-    PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo - ' ||
+    PKGMIG_ParametrizacaoLog.pAlertar('Importação da Formula de Cálculo - ' ||
       'Excluir Formula de Cálculo ' || vcdIdentificacao, cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 
     -- Excluir as Rubricas do Grupo de Rubricas da Formula de Cálculo
@@ -229,9 +225,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
           INNER JOIN epagFormulaCalculo Formula ON Formula.cdFormulaCalculo = Versoes.cdFormulaCalculo
             WHERE Formula.cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
-        'FORMULA CÁLCULO GRUPO RUBRICAS', 'EXCLUSAO',
+        'FORMULA CALCULO GRUPO RUBRICAS', 'EXCLUSAO',
         'Grupo de Rubricas do Blocos da Formula de Cálculo excluidas com sucesso',
         cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 	  END IF;
@@ -256,9 +252,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
           INNER JOIN epagFormulaCalculo Formula ON Formula.cdFormulaCalculo = Versoes.cdFormulaCalculo
             WHERE Formula.cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
-        'FORMULA CÁLCULO EXPRESSAO BLOCO', 'EXCLUSAO',
+        'FORMULA CALCULO EXPRESSAO BLOCO', 'EXCLUSAO',
         'Expressão do Bloco da Formula de Cálculo excluidos com sucesso',
         cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 	  END IF;
@@ -281,9 +277,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
           INNER JOIN epagFormulaCalculo Formula ON Formula.cdFormulaCalculo = Versoes.cdFormulaCalculo
             WHERE Formula.cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
-        'FORMULA CÁLCULO BLOCOS', 'EXCLUSAO',
+        'FORMULA CALCULO BLOCOS', 'EXCLUSAO',
         'Blocos da Formula de Cálculo excluidas com sucesso',
         cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 	  END IF;
@@ -304,9 +300,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
           INNER JOIN epagFormulaCalculo Formula ON Formula.cdFormulaCalculo = Versoes.cdFormulaCalculo
             WHERE Formula.cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
-        'FORMULA CÁLCULO EXPRESSAO FORMULA', 'EXCLUSAO',
+        'FORMULA CALCULO EXPRESSAO FORMULA', 'EXCLUSAO',
         'Expressão da Formula de Cálculo excluidas com sucesso',
         cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 	  END IF;
@@ -324,7 +320,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
       DELETE FROM eatoDocumento
         WHERE cdDocumento = d.cdDocumento;
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'DOCUMENTO', 'EXCLUSAO',
         'Documentos de Amparo ao Fato da Formula de Cálculo excluídos com sucesso',
@@ -345,9 +341,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
           INNER JOIN epagFormulaCalculo Formula ON Formula.cdFormulaCalculo = Versoes.cdFormulaCalculo
             WHERE Formula.cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
-        'FORMULA CÁLCULO VIGENCIA', 'EXCLUSAO',
+        'FORMULA CALCULO VIGENCIA', 'EXCLUSAO',
         'Vigências da Formula de Cálculo excluidas com sucesso',
         cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 	  END IF;
@@ -364,9 +360,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
           SELECT Formula.cdFormulaCalculo FROM epagFormulaCalculo Formula
             WHERE Formula.cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
-        'FORMULA CÁLCULO VERCAO', 'EXCLUSAO',
+        'FORMULA CALCULO VERCAO', 'EXCLUSAO',
         'Versões da Formula de Cálculo excluidas com sucesso',
         cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 	  END IF;
@@ -379,24 +375,20 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
       DELETE FROM epagFormulaCalculo Formula
         WHERE Formula.cdRubricaAgrupamento = pcdRubricaAgrupamento;
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
-        'FORMULA CÁLCULO', 'EXCLUSAO',
+        'FORMULA CALCULO', 'EXCLUSAO',
         'Formula de Cálculo excluidas com sucesso',
         cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 	  END IF;
 
-  EXCEPTION
-    WHEN OTHERS THEN
+    EXCEPTION
+      WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo ' || vcdIdentificacao ||
-        ' EXCLUIR FORMULA CÁLCULO Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
-        psgModulo, psgConceito, vcdIdentificacao, 1,
-        'FORMULA CÁLCULO', 'ERRO', 'Erro: ' || SQLERRM,
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    ROLLBACK;
-    RAISE;
+        PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+          psgModulo, psgConceito, vcdIdentificacao, 'FORMULA CALCULO EXCLUIR',
+          'Importação da Formula de Cálculo (PKGMIG_ParametrizacaoFormulasCalculo.pExcluirFormulaCalculo)', SQLERRM);
+      RAISE;
   END pExcluirFormulaCalculo;
 
   PROCEDURE pImportarVersoes(
@@ -461,7 +453,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
 
     vcdIdentificacao := pcdIdentificacao;
 
-    PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo ' ||
+    PKGMIG_ParametrizacaoLog.pAlertar('Importação da Formula de Cálculo ' ||
       '- Versões ' || vcdIdentificacao, cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 
     -- Loop principal de processamento para Incluir as Verões da Base
@@ -478,9 +470,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
 		    vcdFormulaVersaoNova, r.nuFormulaVersao, pcdFormulaCalculo, r.dtUltAlteracao
       );
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'FORMULA CÁLCULO VERCAO', 'INCLUSAO',
+        'FORMULA CALCULO VERCAO', 'INCLUSAO',
         'Versão da Formula de Cálculo incluída com sucesso',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
@@ -490,17 +482,13 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
   
     END LOOP;
 
-  EXCEPTION
-    WHEN OTHERS THEN
+    EXCEPTION
+      WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo ' || vcdIdentificacao ||
-        ' VERCAO Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
-        psgModulo, psgConceito, vcdIdentificacao, 1,
-        'FORMULA CÁLCULO VERCAO', 'ERRO', 'Erro: ' || SQLERRM,
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    ROLLBACK;
-    RAISE;
+        PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+          psgModulo, psgConceito, vcdIdentificacao, 'FORMULA CALCULO VERCAO',
+          'Importação da Formula de Cálculo (PKGMIG_ParametrizacaoFormulasCalculo.pImportarVersoes)', SQLERRM);
+      RAISE;
   END pImportarVersoes;
 
   PROCEDURE pImportarVigencias(
@@ -615,7 +603,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
 
     vcdIdentificacao := pcdIdentificacao;
 
-    PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo - ' ||
+    PKGMIG_ParametrizacaoLog.pAlertar('Importação da Formula de Cálculo - ' ||
       'Vigências ' || vcdIdentificacao, cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 
     -- Loop principal de processamento
@@ -642,9 +630,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
           r.nmArquivoDocumento, r.deCaminhoArquivoDocumento
         );
 
-        PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
           psgModulo, psgConceito, vcdIdentificacao, 1,
-          'FORMULA CÁLCULO DOCUMENTO', 'INCLUSAO',
+          'FORMULA CALCULO DOCUMENTO', 'INCLUSAO',
           'Documentos de Amparo ao Fato da Formula de Cálculo incluídas com sucesso',
           cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 	  END IF;
@@ -662,9 +650,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
 	    r.cdDocumento, r.cdTipoPublicacao, r.nuPublicacao, r.dtPublicacao, r.nuPagInicial, r.cdMeioPublicacao, r.deObservacao
       );
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'FORMULA CÁLCULO VIGENCIA', 'INCLUSAO',
+        'FORMULA CALCULO VIGENCIA', 'INCLUSAO',
         'Vigência da Formula de Cálculo incluídas com sucesso',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
@@ -674,17 +662,13 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
 
     END LOOP;
 
-  EXCEPTION
-    WHEN OTHERS THEN
+    EXCEPTION
+      WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo ' || vcdIdentificacao ||
-        ' VIGENCIA Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
-        psgModulo, psgConceito, vcdIdentificacao, 1,
-        'FORMULA CÁLCULO VIGENCIA', 'ERRO', 'Erro: ' || SQLERRM,
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    ROLLBACK;
-    RAISE;
+        PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+          psgModulo, psgConceito, vcdIdentificacao, 'FORMULA CALCULO VIGENCIA',
+          'Importação da Formula de Cálculo (PKGMIG_ParametrizacaoFormulasCalculo.pImportarVigencias)', SQLERRM);
+      RAISE;
   END pImportarVigencias;
     
   PROCEDURE pImportarExpressao(
@@ -813,7 +797,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
 
     vcdIdentificacao := pcdIdentificacao;
 
-    PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo - ' ||
+    PKGMIG_ParametrizacaoLog.pAlertar('Importação da Formula de Cálculo - ' ||
       'Expressão da Formula de Cálculo ' || vcdIdentificacao,
       cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 
@@ -843,9 +827,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
         r.flDesprezaPropCHORubrica, r.flExigeIndice
       );
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'FORMULA CÁLCULO EXPRESSAO FORMULA', 'INCLUSAO',
+        'FORMULA CALCULO EXPRESSAO FORMULA', 'INCLUSAO',
         'Expressão da Formula de Cálculo incluídas com sucesso',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
@@ -855,17 +839,13 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
 
     END LOOP;
 
-  EXCEPTION
-    WHEN OTHERS THEN
+    EXCEPTION
+      WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo ' || vcdIdentificacao ||
-        ' EXPRESSAO FORMULA Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
-        psgModulo, psgConceito, vcdIdentificacao, 1,
-        'FORMULA CÁLCULO EXPRESSAO FORMULA', 'ERRO', 'Erro: ' || SQLERRM,
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    ROLLBACK;
-    RAISE;
+        PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+          psgModulo, psgConceito, vcdIdentificacao, 'FORMULA CALCULO EXPRESSAO',
+          'Importação da Formula de Cálculo (PKGMIG_ParametrizacaoFormulasCalculo.pImportarExpressao)', SQLERRM);
+      RAISE;
   END pImportarExpressao;
     
   PROCEDURE pImportarBlocos(
@@ -933,7 +913,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
 
     vcdIdentificacao := pcdIdentificacao;
 
-    PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo - ' ||
+    PKGMIG_ParametrizacaoLog.pAlertar('Importação da Formula de Cálculo - ' ||
       'Blocos ' || vcdIdentificacao, cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 
     -- Loop principal de processamento para Incluir os Blocos da Formula de Cálculo
@@ -950,9 +930,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
         vcdFormulaCalculoBlocoNova, pcdExpressaoFormCalc, r.sgBloco, r.dtUltAlteracao, r.flLimiteParcial
       );
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'FORMULA CÁLCULO BLOCOS', 'INCLUSAO',
+        'FORMULA CALCULO BLOCOS', 'INCLUSAO',
         'Inclusão dos Blocos da Formula de Cálculo incluídas com sucesso',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
@@ -962,17 +942,13 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
 
     END LOOP;
 
-  EXCEPTION
-    WHEN OTHERS THEN
+    EXCEPTION
+      WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo ' || vcdIdentificacao ||
-        ' BLOCOS Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
-        psgModulo, psgConceito, vcdIdentificacao, 1,
-        'FORMULA CÁLCULO BLOCOS', 'ERRO', 'Erro: ' || SQLERRM,
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    ROLLBACK;
-    RAISE;
+        PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+          psgModulo, psgConceito, vcdIdentificacao, 'FORMULA CALCULO BLOCOS',
+          'Importação da Formula de Cálculo (PKGMIG_ParametrizacaoFormulasCalculo.pImportarBlocos)', SQLERRM);
+      RAISE;
   END pImportarBlocos;
 
   PROCEDURE pImportarExpressaoBloco(
@@ -1212,8 +1188,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
 
     vcdIdentificacao := pcdIdentificacao;
 
-    PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo - ' ||
-      'FORMULA CÁLCULO EXPRESSAO BLOCO ' || pcdIdentificacao,
+    PKGMIG_ParametrizacaoLog.pAlertar('Importação da Formula de Cálculo - ' ||
+      'FORMULA CALCULO EXPRESSAO BLOCO ' || pcdIdentificacao,
       cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 
     -- Loop principal de processamento para Incluir a Expressão do Bloco da Formula de Cálculo
@@ -1235,13 +1211,13 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
 		    r.nuMeses, r.nuValor, r.cdRubricaAgrupamento, r.dtUltAlteracao, r.flValorHoraMinuto, r.nuMesRubrica, r.nuAnoRubrica
       );
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'FORMULA CÁLCULO EXPRESSAO BLOCO', 'INCLUSAO',
+        'FORMULA CALCULO EXPRESSAO BLOCO', 'INCLUSAO',
         'Expressão do Bloco da Formula de Cálculo incluídas com sucesso',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-      PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo - ' ||
+      PKGMIG_ParametrizacaoLog.pAlertar('Importação da Formula de Cálculo - ' ||
         'Grupo de Rubricas ' || vcdIdentificacao, cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 
       -- Incluir Incluir o Grupo de Rubricas do Bloco da Formula de Cálculo
@@ -1261,9 +1237,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
         )) js
         WHERE js.cdRubricaAgrupamento IS NOT NULL;
 
-        PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
           psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
-            'FORMULA CÁLCULO GRUPO RUBRICAS', 'INCLUSAO',
+            'FORMULA CALCULO GRUPO RUBRICAS', 'INCLUSAO',
             'Grupo de Rubricas do Bloco da Formula de Cálculo incluídas com sucesso',
           cAUDITORIA_COMPLETO, pnuNivelAuditoria);
       END IF;
@@ -1277,26 +1253,22 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
         WHERE js.cdRubricaAgrupamento IS NULL
       )
       LOOP
-        PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
           psgModulo, psgConceito, SUBSTR(vcdIdentificacao || ' ' || i.nuRubrica,1,70), 1,
-            'FORMULA CÁLCULO GRUPO RUBRICAS', 'INCONSISTENTE',
+            'FORMULA CALCULO GRUPO RUBRICAS', 'INCONSISTENTE',
             'Rubricas do Grupo do Bloco da Formula de Cálculo Inexistente no Agrupamento',
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
       END LOOP;
 
     END LOOP;
 
-  EXCEPTION
-    WHEN OTHERS THEN
+    EXCEPTION
+      WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_Parametrizacao.pConsoleLog('Importação da Formula de Cálculo ' || vcdIdentificacao ||
-        ' EXPRESSAO BLOCO Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
-        psgModulo, psgConceito, vcdIdentificacao, 1,
-        'FORMULA CÁLCULO EXPRESSAO BLOCO', 'ERRO', 'Erro: ' || SQLERRM,
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    ROLLBACK;
-    RAISE;
+        PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+          psgModulo, psgConceito, vcdIdentificacao, 'FORMULA CALCULO EXPRESSAO BLOCO',
+          'Importação da Formula de Cálculo (PKGMIG_ParametrizacaoFormulasCalculo.pImportarExpressaoBloco)', SQLERRM);
+      RAISE;
   END pImportarExpressaoBloco;
 
 END PKGMIG_ParametrizacaoFormulasCalculo;

@@ -123,14 +123,14 @@ CREATE OR REPLACE PACKAGE PKGMIG_ParametrizacaoLog AS
   FUNCTION fnValidarOrgao(
     psgOrgao          IN VARCHAR2
   ) RETURN VARCHAR2;
-/*
-  PROCEDURE pConsoleLog(
+
+  PROCEDURE pAlertar(
     pdeMensagem       IN VARCHAR2,
     pnuNivelLog       IN NUMBER DEFAULT NULL,
     pnuNivelAuditoria IN NUMBER DEFAULT NULL
   );
 
-  PROCEDURE pRegistrarLog(
+  PROCEDURE pRegistrar(
     psgAgrupamento    IN VARCHAR2,
     psgOrgao          IN VARCHAR2,
     ptpOperacao       IN VARCHAR2,
@@ -146,48 +146,57 @@ CREATE OR REPLACE PACKAGE PKGMIG_ParametrizacaoLog AS
     pnuNivelAuditoria IN NUMBER DEFAULT NULL
   );
 
-  PROCEDURE pGerarResumo(
+  gflErroRegistrado BOOLEAN := FALSE;
+  PROCEDURE pRegistrarErro(
     psgAgrupamento    IN VARCHAR2,
     psgOrgao          IN VARCHAR2,
     ptpOperacao       IN VARCHAR2,
     pdtOperacao       IN TIMESTAMP,
     psgModulo         IN CHAR,
     psgConceito       IN VARCHAR2,
-    pdtTermino        IN TIMESTAMP,
-    pnuTempoExcusao   IN INTERVAL DAY TO SECOND,
-    pnuNivelAuditoria IN NUMBER DEFAULT NULL
+    pcdIdentificacao  IN VARCHAR2,
+    pnmEntidade       IN VARCHAR2,
+    pnmObjeto         IN VARCHAR2,
+    pcdSQLERRM        IN VARCHAR2
+  );
+
+  PROCEDURE pAtualizarSequence(
+    psgAgrupamento        IN VARCHAR2,
+    psgOrgao              IN VARCHAR2,
+    ptpOperacao           IN VARCHAR2,
+    pdtOperacao           IN TIMESTAMP,
+    psgModulo             IN CHAR,
+    psgConceito           IN VARCHAR2,
+    pListaTabelas         IN CLOB,
+    pnuNivelAuditoria     IN NUMBER DEFAULT NULL
+  );
+
+  PROCEDURE pGerarResumo(
+    psgAgrupamento        IN VARCHAR2,
+    psgOrgao              IN VARCHAR2,
+    ptpOperacao           IN VARCHAR2,
+    pdtOperacao           IN TIMESTAMP,
+    psgModulo             IN CHAR,
+    psgConceito           IN VARCHAR2,
+    pdtTermino            IN TIMESTAMP,
+    pnuTempoExcusao       IN INTERVAL DAY TO SECOND,
+    pnuNivelAuditoria     IN NUMBER DEFAULT NULL
   );
 
   FUNCTION fnResumo(
-    psgAgrupamento    IN VARCHAR2 DEFAULT NULL,
-    psgModulo         IN CHAR DEFAULT NULL,
-    psgConceito       IN VARCHAR2 DEFAULT NULL,
-    ptpOperacao       IN VARCHAR2 DEFAULT NULL
+    pjsParametros         IN VARCHAR2 DEFAULT NULL
   ) RETURN tpParametrizacaoLogResumoTabela PIPELINED;
 
   FUNCTION fnResumoEntidades(
-    psgAgrupamento    IN VARCHAR2,
-    psgModulo         IN CHAR,
-    psgConceito       IN VARCHAR2,
-    ptpOperacao       IN VARCHAR2,
-    pdtOperacao       IN VARCHAR2 DEFAULT NULL
+    pjsParametros         IN VARCHAR2 DEFAULT NULL
   ) RETURN tpParametrizacaoLogResumoEntidadesTabela PIPELINED;
 
   FUNCTION fnListar(
-    psgAgrupamento    IN VARCHAR2,
-    psgModulo         IN CHAR,
-    psgConceito       IN VARCHAR2,
-    ptpOperacao       IN VARCHAR2,
-    pdtOperacao       IN VARCHAR2 DEFAULT NULL
+    pjsParametros         IN VARCHAR2 DEFAULT NULL
   ) RETURN tpParametrizacaoLogListarTabela PIPELINED;
     
   PROCEDURE pExcluir(
-    psgAgrupamento    IN VARCHAR2,
-    psgModulo         IN CHAR, 
-    psgConceito       IN VARCHAR2,
-    ptpOperacao       IN VARCHAR2,
-    pdtOperacao       IN VARCHAR2
+    pjsParametros         IN VARCHAR2 DEFAULT NULL
   );
-*/  
 END PKGMIG_ParametrizacaoLog;
 /

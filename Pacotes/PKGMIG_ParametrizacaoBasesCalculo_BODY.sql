@@ -67,13 +67,13 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       vtxMensagem := 'Inicio da Exportação da Parametrização da Base de Cálculo "' || pcdIdentificacao || '" ';
     END IF;
 
-    PKGMIG_Parametrizacao.pConsoleLog(vtxMensagem ||
+    PKGMIG_ParametrizacaoLog.pAlertar(vtxMensagem ||
       'do Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
 	    'Data da Exportação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
       cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
     IF cAUDITORIA_ESSENCIAL != pnuNivelAuditoria THEN
-        PKGMIG_Parametrizacao.PConsoleLog('Nível de Auditoria Habilitado ' ||
+        PKGMIG_ParametrizacaoLog.pAlertar('Nível de Auditoria Habilitado ' ||
           CASE pnuNivelAuditoria
             WHEN cAUDITORIA_SILENCIADO THEN 'SILENCIADO'
             WHEN cAUDITORIA_ESSENCIAL  THEN 'ESSENCIAL'
@@ -95,7 +95,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
 	      rcdIdentificacao, rjsConteudo, rnuVersao, rflAnulado, rdtInclusao;
       EXIT WHEN vRefCursor%NOTFOUND;
 
-      PKGMIG_Parametrizacao.PConsoleLog('Exportação da Base ' || rcdIdentificacao,
+      PKGMIG_ParametrizacaoLog.pAlertar('Exportação da Base ' || rcdIdentificacao,
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
       INSERT INTO emigParametrizacao (
@@ -107,7 +107,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       );
 
       vnuRegistros := vnuRegistros + 1;
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,
         vsgModulo, vsgConceito, rcdIdentificacao, 1,
         'BASECALCULO', 'INCLUSAO', 'Documento JSON Bases incluído com sucesso',
 		    cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -131,25 +131,22 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
 	    'Total de Parametrizações de Bases de Cálculo Exportadas: ' || vnuRegistros;
 
     -- Registro de Resumo da Exportação das Bases de Cálculo
-    PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,
+    PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,
       vsgModulo, vsgConceito, NULL, NULL,
       'BASECALCULO', 'RESUMO', 'Exportação das Parametrizações das Bases de Cálculo do ' || vtxResumo, 
       cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-    PKGMIG_Parametrizacao.PConsoleLog('Termino da Exportação das Parametrizações Bases de Cálculo do ' ||
+    PKGMIG_ParametrizacaoLog.pAlertar('Termino da Exportação das Parametrizações Bases de Cálculo do ' ||
       vtxResumo, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_Parametrizacao.PConsoleLog('Exportação de Bases de Cálculo ' || vcdIdentificacao ||
-      ' BASE Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,  
-        vsgModulo, vsgConceito, vcdIdentificacao, 1,
-        'BASECALCULO', 'ERRO', 'Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    ROLLBACK;
+      PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,  
+        vsgModulo, vsgConceito, vcdIdentificacao, 'BASE CALCULO',
+        'Exportação de Bases de Cálculo (PKGMIG_ParametrizacaoBasesCalculo.pExportar)', SQLERRM);
     RAISE;
-  END PExportar;
+  END pExportar;
 
   PROCEDURE pImportar(
   -- ###########################################################################
@@ -273,14 +270,20 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
     vnuInseridos := 0;
     vnuAtualizados := 0;
 
-    PKGMIG_Parametrizacao.PConsoleLog('Inicio da Importação das Parametrizações das ' ||
-      'Bases de Cálculo do Agrupamento ' || psgAgrupamentoOrigem || ' ' ||
+    IF pcdIdentificacao IS NULL THEN
+      vtxMensagem := 'Inicio da Importação das Parametrizações das Bases de Cálculo ';
+    ELSE
+      vtxMensagem := 'Inicio da Importação da Parametrização da Base de Cálculo "' || pcdIdentificacao || '" ';
+    END IF;
+
+    PKGMIG_ParametrizacaoLog.pAlertar(vtxMensagem ||
+      'do Agrupamento ' || psgAgrupamentoOrigem || ' ' ||
       'para o Agrupamento ' || psgAgrupamentoDestino || ', ' || CHR(13) || CHR(10) ||
       'Data da Operação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
       cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
     IF cAUDITORIA_ESSENCIAL != pnuNivelAuditoria THEN
-        PKGMIG_Parametrizacao.PConsoleLog('Nível de Auditoria Habilitado ' ||
+        PKGMIG_ParametrizacaoLog.pAlertar('Nível de Auditoria Habilitado ' ||
           CASE pnuNivelAuditoria
             WHEN cAUDITORIA_SILENCIADO THEN 'SILENCIADO'
             WHEN cAUDITORIA_ESSENCIAL  THEN 'ESSENCIAL'
@@ -296,7 +299,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       vsgOrgao := r.cdOrgao;
       vcdIdentificacao := r.cdIdentificacao;
   
-      PKGMIG_Parametrizacao.PConsoleLog('Importação da Base de Cálculo - Base ' || vcdIdentificacao,
+      PKGMIG_ParametrizacaoLog.pAlertar('Importação da Base de Cálculo - Base ' || vcdIdentificacao,
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
       IF r.cdBaseCalculo IS NULL THEN
@@ -312,7 +315,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
         );
 
         vnuInseridos := vnuInseridos + 1;
-        PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
           vsgModulo, vsgConceito, vcdIdentificacao, 1,
           'BASE CALCULO', 'INCLUSAO', 'Base de Cálculo incluidas com sucesso',
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -333,7 +336,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
         WHERE cdBaseCalculo = vcdBaseCalculoNova;
 
         vnuAtualizados := vnuAtualizados + 1;
-        PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
           vsgModulo, vsgConceito, vcdIdentificacao, 1,
           'BASE CALCULO', 'ATUALIZACAO', 'Base de Cálculo atualizada com sucesso',
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -366,31 +369,28 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
 	  'Total de Parametrizações das Bases de Cálculo Incluídas: ' || vnuInseridos ||
       ' e Alteradas: ' || vnuAtualizados;
 
-    PKGMIG_Parametrizacao.pGerarResumo(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
+    PKGMIG_ParametrizacaoLog.pGerarResumo(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
       vsgModulo, vsgConceito, vdtTermino, vnuTempoExecucao, pnuNivelAuditoria);
 
     -- Registro de Resumo da Importação dos Valores de Referencia
-    PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
+    PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
       vsgModulo, vsgConceito, NULL, NULL,
       'RESUMO', 'RESUMO', 'Importação das Parametrizações das Bases de Cálculo do ' || vtxResumo, 
       cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
     -- Atualizar a SEQUENCE das Tabela Envolvidas na importação das Bases de Cálculo
-    PKGMIG_Parametrizacao.pAtualizarSequence(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
+    PKGMIG_ParametrizacaoLog.pAtualizarSequence(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
       vsgModulo, vsgConceito, vListaTabelas, pnuNivelAuditoria);
 
-    PKGMIG_Parametrizacao.PConsoleLog('Termino da Importação das Parametrizações das Bases de Cálculo do ' ||
+    PKGMIG_ParametrizacaoLog.pAlertar('Termino da Importação das Parametrizações das Bases de Cálculo do ' ||
       vtxResumo, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_Parametrizacao.PConsoleLog('Importação da Base de Cálculo ' || vcdIdentificacao ||
-        ' BASE CALCULO Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao, 
-        vsgModulo, vsgConceito, vcdIdentificacao, 1,
-        'BASE CALCULO', 'ERRO', 'Erro: ' || SQLERRM,
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,  
+        vsgModulo, vsgConceito, vcdIdentificacao, 'BASE CALCULO',
+        'Importação de Bases de Cálculo (PKGMIG_ParametrizacaoBasesCalculo.pImportar)', SQLERRM);
     ROLLBACK;
     RAISE;
   END pImportar;
@@ -442,7 +442,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
 
     vcdIdentificacao := pcdIdentificacao;
 
-    PKGMIG_Parametrizacao.PConsoleLog('Importação da Base de Cálculo - ' ||
+    PKGMIG_ParametrizacaoLog.pAlertar('Importação da Base de Cálculo - ' ||
       'Excluir Base de Cálculo ' || vcdIdentificacao, cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 
     -- Excluir as Expressões das Rubricas dos Blocos da Base de Cálculo
@@ -464,7 +464,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
           INNER JOIN epagBaseCalculoVersao Versao ON Versao.cdVersaoBaseCalculo = Vigencia.cdVersaoBaseCalculo
             WHERE Versao.cdBaseCalculo = pcdBaseCalculo);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'BASE CALCULO GRUPO RUBRICAS', 'EXCLUSAO', 'Grupo de Rubricas do Blocos da Base de Cálculo excluidas com sucesso',
         cAUDITORIA_COMPLETO, pnuNivelAuditoria);
@@ -487,7 +487,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
           INNER JOIN epagBaseCalculoVersao Versao ON Versao.cdVersaoBaseCalculo = Vigencia.cdVersaoBaseCalculo
             WHERE Versao.cdBaseCalculo = pcdBaseCalculo);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'BASE CALCULO EXPRESSAO BLOCO', 'EXCLUSAO', 'Expressão do Bloco da Base de Cálculo excluidos com sucesso',
         cAUDITORIA_COMPLETO, pnuNivelAuditoria);
@@ -508,7 +508,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
           INNER JOIN epagBaseCalculoVersao Versao ON Versao.cdVersaoBaseCalculo = Vigencia.cdVersaoBaseCalculo
             WHERE Versao.cdBaseCalculo = pcdBaseCalculo);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'BASE CALCULO BLOCOS', 'EXCLUSAO', 'Blocos da Base de Cálculo excluidas com sucesso',
         cAUDITORIA_COMPLETO, pnuNivelAuditoria);
@@ -530,7 +530,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       DELETE FROM eatoDocumento
         WHERE cdDocumento = d.cdDocumento;
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
         'BASE CALCULO DOCUMENTO', 'EXCLUSAO', 'Documentos de Amparo ao Fato da Base de Cálculo excluidas com sucesso',
         cAUDITORIA_COMPLETO, pnuNivelAuditoria);
@@ -549,7 +549,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
           SELECT Versao.cdVersaoBaseCalculo FROM epagBaseCalculoVersao Versao
             WHERE Versao.cdBaseCalculo = pcdBaseCalculo);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'BASE CALCULO VIGENCIA', 'EXCLUSAO', 'Vigências da Base de Cálculo excluidas com sucesso',
         cAUDITORIA_COMPLETO, pnuNivelAuditoria);
@@ -564,7 +564,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       DELETE FROM epagBaseCalculoVersao
         WHERE cdBaseCalculo = pcdBaseCalculo;
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'BASE CALCULO VERCAO', 'EXCLUSAO', 'Versões da Base de Cálculo excluidas com sucesso',
         cAUDITORIA_COMPLETO, pnuNivelAuditoria);
@@ -573,12 +573,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_Parametrizacao.PConsoleLog('Importação da Base de Cálculo ' || vcdIdentificacao ||
-        ' EXCLUIR BASE CALCULO Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
-        psgModulo, psgConceito, vcdIdentificacao, 1,
-        'BASE CALCULO', 'ERRO', 'Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    ROLLBACK;
+      PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+        psgModulo, psgConceito, vcdIdentificacao, 'BASE CALCULO EXCLUIR',
+        'Importação de Bases de Cálculo (PKGMIG_ParametrizacaoBasesCalculo.pExcluirBaseCalculo)', SQLERRM);
     RAISE;
   END pExcluirBaseCalculo;
 
@@ -653,7 +650,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
 
     vcdIdentificacao := pcdIdentificacao;
 
-    PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+    PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
       psgModulo, psgConceito, pcdIdentificacao, 0,
       'BASE CALCULO VERCAO', 'JSON', SUBSTR(pVersoes,1,4000),
       cAUDITORIA_COMPLETO, pnuNivelAuditoria);
@@ -663,7 +660,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
 
    	  vcdIdentificacao := SUBSTR(pcdIdentificacao || ' ' || r.nuversao,1,70);
    
-      PKGMIG_Parametrizacao.PConsoleLog('Importação da Base de Cálculo - Versões ' ||
+      PKGMIG_ParametrizacaoLog.pAlertar('Importação da Base de Cálculo - Versões ' ||
         vcdIdentificacao, cAUDITORIA_DETALHADO, pnuNivelAuditoria);
    
    	  -- Inserir na tabela epagBaseCalculoVersao
@@ -676,7 +673,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       );
 
       vnuRegistros := vnuRegistros + 1;
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'BASE CALCULO VERCAO', 'INCLUSAO', 'Versão da Base incluida com sucesso',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -690,12 +687,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_Parametrizacao.PConsoleLog('Importação da Base de Cálculo ' ||
-        vcdIdentificacao || ' BASE CALCULO VERCAO Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
-        psgModulo, psgConceito, vcdIdentificacao, 1,
-        'BASE CALCULO VERCAO', 'ERRO', 'Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    ROLLBACK;
+      PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+        psgModulo, psgConceito, vcdIdentificacao, 'BASE CALCULO VERCAO',
+        'Importação de Bases de Cálculo (PKGMIG_ParametrizacaoBasesCalculo.pImportarVersoes)', SQLERRM);
     RAISE;
   END pImportarVersoes;
 
@@ -860,7 +854,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
 
     vcdIdentificacao := pcdIdentificacao;
 
-    PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+    PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
       psgModulo, psgConceito, pcdIdentificacao, 0,
       'BASE CALCULO VIGENCIA', 'JSON', SUBSTR(pVigencias,1,4000),
       cAUDITORIA_COMPLETO, pnuNivelAuditoria);
@@ -871,7 +865,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       vcdIdentificacao := SUBSTR(pcdIdentificacao || ' ' ||
         lpad(r.nuAnoInicioVigencia,4,0) || lpad(r.nuMesInicioVigencia,2,0),1,70);
        
-      PKGMIG_Parametrizacao.PConsoleLog('Importação da Base de Cálculo - Vigências ' || vcdIdentificacao,
+      PKGMIG_ParametrizacaoLog.pAlertar('Importação da Base de Cálculo - Vigências ' || vcdIdentificacao,
         cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 
       -- Incluir Novo Documento se as informações não forem nulas
@@ -892,7 +886,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
           r.nmArquivoDocumento, r.deCaminhoArquivoDocumento
         );
 
-        PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
           psgModulo, psgConceito, vcdIdentificacao, 1,
           'BASE CALCULO DOCUMENTO', 'INCLUSAO', 'Documentos de Amparo ao Fato da Base de Cálculo incluidas com sucesso',
           cAUDITORIA_DETALHADO, pnuNivelAuditoria);
@@ -918,7 +912,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       );
 
       vnuRegistros := vnuRegistros + 1;
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'BASE CALCULO VIGENCIA', 'INCLUSAO', 'Vigência da Base incluidas com sucesso',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -932,13 +926,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_Parametrizacao.PConsoleLog('Importação da Base de Cálculo ' || vcdIdentificacao
-      || ' VIGENCIA Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
-        psgModulo, psgConceito, vcdIdentificacao, 1,
-        'VIGENCIA', 'ERRO', 'Erro: ' || SQLERRM,
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    ROLLBACK;
+      PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+        psgModulo, psgConceito, vcdIdentificacao, 'BASE CALCULO VIGENCIA',
+        'Importação de Bases de Cálculo (PKGMIG_ParametrizacaoBasesCalculo.pImportarVigencias)', SQLERRM);
     RAISE;
   END pImportarVigencias;
     
@@ -1004,7 +994,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
 
     vcdIdentificacao := pcdIdentificacao;
 
-    PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+    PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
       psgModulo, psgConceito, pcdIdentificacao, 0,
       'BASE CALCULO BLOCOS', 'JSON', SUBSTR(pBlocos,1,4000),
       cAUDITORIA_COMPLETO, pnuNivelAuditoria);
@@ -1014,7 +1004,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
 
       vcdIdentificacao := SUBSTR(pcdIdentificacao || ' ' || r.sgbloco,1,70);
 
-      PKGMIG_Parametrizacao.PConsoleLog('Importação da Base de Cálculo - Blocos ' || vcdIdentificacao,
+      PKGMIG_ParametrizacaoLog.pAlertar('Importação da Base de Cálculo - Blocos ' || vcdIdentificacao,
         cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 
       SELECT NVL(MAX(cdBaseCalculoBloco), 0) + 1 INTO vcdBaseCalculoBlocoNova FROM epagBaseCalculoBloco;
@@ -1026,12 +1016,12 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       );
 
       vnuRegistros := vnuRegistros + 1;
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'BASE CALCULO BLOCOS', 'INCLUSAO', 'Inclusão dos Blocos da Base incluidas com sucesso',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-      PKGMIG_Parametrizacao.PConsoleLog('Importação da Base de Cálculo - Blocos ' || vcdIdentificacao,
+      PKGMIG_ParametrizacaoLog.pAlertar('Importação da Base de Cálculo - Blocos ' || vcdIdentificacao,
         cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 
       -- Importar Expressão do Bloco da Base de Cálculo
@@ -1043,13 +1033,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_Parametrizacao.PConsoleLog('Importação da Base de Cálculo ' || vcdIdentificacao ||
-        ' BASE CALCULO BLOCOS Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
-        psgModulo, psgConceito, vcdIdentificacao, 1,
-        'BASE CALCULO BLOCOS', 'ERRO', 'Erro: ' || SQLERRM,
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    ROLLBACK;
+      PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+        psgModulo, psgConceito, vcdIdentificacao, 'BASE CALCULO BLOCOS',
+        'Importação de Bases de Cálculo (PKGMIG_ParametrizacaoBasesCalculo.pImportarBlocos)', SQLERRM);
     RAISE;
   END pImportarBlocos;
 
@@ -1284,7 +1270,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
 
     vcdIdentificacao := pcdIdentificacao;
 
-    PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+    PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
       psgModulo, psgConceito, pcdIdentificacao, 0,
       'BASE CALCULO EXPRESSAO BLOCO', 'JSON', SUBSTR(pExpressaoBloco,1,4000),
       cAUDITORIA_COMPLETO, pnuNivelAuditoria);
@@ -1295,7 +1281,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
 
       vcdIdentificacao := SUBSTR(pcdIdentificacao || ' ' || r.sgTipoMneumonico,1,70);
 
-      PKGMIG_Parametrizacao.PConsoleLog('Importação da Base de Cálculo - ' ||
+      PKGMIG_ParametrizacaoLog.pAlertar('Importação da Base de Cálculo - ' ||
         'Expressão do Bloco ' || vcdIdentificacao, cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 
       SELECT NVL(MAX(cdBaseCalculoBlocoExpressao), 0) + 1 INTO vcdBaseCalculoBlocoExpressaoNova FROM epagBaseCalculoBlocoExpressao;
@@ -1314,12 +1300,12 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       );
 
       vnuRegistros := vnuRegistros + 1;
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'BASE CALCULO EXPRESSAO BLOCO', 'INCLUSAO', 'Expressão do Bloco da Base de Cálculo incluidas com sucesso',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-      PKGMIG_Parametrizacao.PConsoleLog('Importação da Base de Cálculo - ' ||
+      PKGMIG_ParametrizacaoLog.pAlertar('Importação da Base de Cálculo - ' ||
         'Grupo de Rubricas ' || vcdIdentificacao, cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 
 	  -- Incluir Incluir o Grupo de Rubricas do Bloco da Base de Cálculo
@@ -1331,23 +1317,23 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
           )) js
       ) LOOP
 
-        PKGMIG_Parametrizacao.PConsoleLog('Importação da Base de Cálculo - ' ||
+        PKGMIG_ParametrizacaoLog.pAlertar('Importação da Base de Cálculo - ' ||
           'Grupo de Rubrica - RUBRICA ' || vcdIdentificacao || ' ' || i.nuRubrica,
           cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 
         IF i.cdRubricaAgrupamento IS NULL THEN
-          PKGMIG_Parametrizacao.PConsoleLog('Importação da Base de Cálculo - ' ||
+          PKGMIG_ParametrizacaoLog.pAlertar('Importação da Base de Cálculo - ' ||
             'Rubrica do Grupo do Bloco da Base de Cálculo Inexistente no Agrupamento ' || vcdIdentificacao || ' ' || i.nuRubrica,
             cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-          PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+          PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
             psgModulo, psgConceito, SUBSTR(vcdIdentificacao || ' ' || i.nuRubrica,1,70), 1,
             'BASE CALCULO GRUPO RUBRICAS', 'INCONSISTENTE', 'Rubrica do Grupo do Bloco da Base de Cálculo Inexistente no Agrupamento',
             cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
         ELSE
           INSERT INTO epagBaseCalcBlocoExprRubAgrup VALUES (vcdBaseCalculoBlocoExpressaoNova, i.cdRubricaAgrupamento);
 
-          PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+          PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
             psgModulo, psgConceito, SUBSTR(vcdIdentificacao || ' ' || i.nuRubrica,1,70), 1,
             'BASE CALCULO GRUPO RUBRICAS', 'INCLUSAO', 'Rubrica do Grupo do Bloco da Base de Cálculo incluidas com sucesso',
             cAUDITORIA_DETALHADO, pnuNivelAuditoria);
@@ -1360,13 +1346,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_Parametrizacao.PConsoleLog('Importação da Base de Cálculo ' || vcdIdentificacao ||
-        ' GRUPO RUBRICAS Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
-        psgModulo, psgConceito, vcdIdentificacao, 1,
-        'GRUPO RUBRICAS', 'ERRO', 'Erro: ' || SQLERRM,
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    ROLLBACK;
+      PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+        psgModulo, psgConceito, vcdIdentificacao, 'BASE CALCULO EXPRESSAO BLOCO',
+        'Importação de Bases de Cálculo (PKGMIG_ParametrizacaoBasesCalculo.pImportarExpressaoBloco)', SQLERRM);
     RAISE;
   END pImportarExpressaoBloco;
 
