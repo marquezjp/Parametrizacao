@@ -161,8 +161,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       )) js
       INNER JOIN OrgaoLista o ON o.sgAgrupamento = psgAgrupamentoDestino AND NVL(o.sgOrgao, ' ') = NVL(psgOrgao, ' ')
       LEFT JOIN epagRubricaAgrupamento rubAgp ON rubAgp.cdAgrupamento = o.cdAgrupamento AND rubAgp.cdRubrica = pcdRubrica
-      LEFT JOIN epagModalidadeRubrica modRub ON modRub.nmModalidadeRubrica = js.nmModalidadeRubrica
-      LEFT JOIN epagBaseCalculo baseCalc ON baseCalc.cdAgrupamento = o.cdAgrupamento AND baseCalc.cdOrgao = o.cdOrgao
+      LEFT JOIN epagModalidadeRubrica modRub ON UPPER(modRub.nmModalidadeRubrica) = UPPER(js.nmModalidadeRubrica)
+      LEFT JOIN epagBaseCalculo baseCalc ON baseCalc.cdAgrupamento = o.cdAgrupamento AND NVL(baseCalc.cdOrgao, 0) = NVL(o.cdOrgao, 0)
                                         AND baseCalc.sgBaseCalculo = js.sgBaseCalculo
       )
       SELECT * FROM epagRubricaAgrupamentoImportar;
@@ -184,6 +184,32 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         PKGMIG_ParametrizacaoLog.pAlertar('Importação da Rubrica - Rubrica Agrupamento ' || vcdIdentificacao,
           cAUDITORIA_DETALHADO, pnuNivelAuditoria);
   
+        IF r.cdModalidadeRubrica IS NULL AND r.nmModalidadeRubrica IS NOT NULL THEN
+          PKGMIG_ParametrizacaoLog.pAlertar('Importação da Rubrica - Rubrica Agrupamento - ' ||
+            vcdIdentificacao || ' ' || r.nmModalidadeRubrica ||
+            'Modalidade da Rubrica do Agrupamento Inexistente ',
+            cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+  
+          PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+            psgModulo, psgConceito, vcdIdentificacao || ' ' || r.nmModalidadeRubrica, 1,
+            'RUBRICA AGRUPAMENTO', 'INCONSISTENTE',
+            'Modalidade da Rubrica do Agrupamento Inexistente',
+            cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        END IF;
+
+        IF r.cdBaseCalculo IS NULL AND r.sgBaseCalculo IS NOT NULL THEN
+          PKGMIG_ParametrizacaoLog.pAlertar('Importação da Rubrica - Rubrica Agrupamento - ' ||
+            vcdIdentificacao || ' ' || r.sgBaseCalculo ||
+            'Base de Cálculo da Rubrica do Agrupamento Inexistente ',
+            cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+  
+          PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+            psgModulo, psgConceito, vcdIdentificacao || ' ' || r.sgBaseCalculo, 1,
+            'RUBRICA AGRUPAMENTO', 'INCONSISTENTE',
+            'Base de Cálculo da Rubrica do Agrupamento Inexistente',
+            cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        END IF;
+
         IF r.cdrubricaagrupamento IS NULL THEN
           -- Incluir Nova Rubrica de Agrupamento
           SELECT NVL(MAX(cdrubricaAgrupamento), 0) + 1 INTO vcdRubricaAgrupamentoNova FROM epagRubricaAgrupamento;
