@@ -161,8 +161,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       )) js
       INNER JOIN OrgaoLista o ON o.sgAgrupamento = psgAgrupamentoDestino AND NVL(o.sgOrgao, ' ') = NVL(psgOrgao, ' ')
       LEFT JOIN epagRubricaAgrupamento rubAgp ON rubAgp.cdAgrupamento = o.cdAgrupamento AND rubAgp.cdRubrica = pcdRubrica
-      LEFT JOIN epagModalidadeRubrica modRub ON modRub.nmModalidadeRubrica = js.nmModalidadeRubrica
-      LEFT JOIN epagBaseCalculo baseCalc ON baseCalc.cdAgrupamento = o.cdAgrupamento AND baseCalc.cdOrgao = o.cdOrgao
+      LEFT JOIN epagModalidadeRubrica modRub ON UPPER(modRub.nmModalidadeRubrica) = UPPER(js.nmModalidadeRubrica)
+      LEFT JOIN epagBaseCalculo baseCalc ON baseCalc.cdAgrupamento = o.cdAgrupamento AND NVL(baseCalc.cdOrgao, 0) = NVL(o.cdOrgao, 0)
                                         AND baseCalc.sgBaseCalculo = js.sgBaseCalculo
       )
       SELECT * FROM epagRubricaAgrupamentoImportar;
@@ -171,7 +171,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
   
       vcdIdentificacao := pcdIdentificacao;
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, pcdIdentificacao, 0,
         'RUBRICA AGRUPAMENTO', 'JSON', SUBSTR(pAgrupamento,1,4000),
         cAUDITORIA_COMPLETO, pnuNivelAuditoria);
@@ -181,9 +181,35 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
   
         vcdIdentificacao := pcdIdentificacao;
          
-        PKGMIG_Parametrizacao.PConsoleLog('Importação da Rubrica - Rubrica Agrupamento ' || vcdIdentificacao,
+        PKGMIG_ParametrizacaoLog.pAlertar('Importação da Rubrica - Rubrica Agrupamento ' || vcdIdentificacao,
           cAUDITORIA_DETALHADO, pnuNivelAuditoria);
   
+        IF r.cdModalidadeRubrica IS NULL AND r.nmModalidadeRubrica IS NOT NULL THEN
+          PKGMIG_ParametrizacaoLog.pAlertar('Importação da Rubrica - Rubrica Agrupamento - ' ||
+            vcdIdentificacao || ' ' || r.nmModalidadeRubrica ||
+            'Modalidade da Rubrica do Agrupamento Inexistente ',
+            cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+  
+          PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+            psgModulo, psgConceito, vcdIdentificacao || ' ' || r.nmModalidadeRubrica, 1,
+            'RUBRICA AGRUPAMENTO', 'INCONSISTENTE',
+            'Modalidade da Rubrica do Agrupamento Inexistente',
+            cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        END IF;
+
+        IF r.cdBaseCalculo IS NULL AND r.sgBaseCalculo IS NOT NULL THEN
+          PKGMIG_ParametrizacaoLog.pAlertar('Importação da Rubrica - Rubrica Agrupamento - ' ||
+            vcdIdentificacao || ' ' || r.sgBaseCalculo ||
+            'Base de Cálculo da Rubrica do Agrupamento Inexistente ',
+            cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+  
+          PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+            psgModulo, psgConceito, vcdIdentificacao || ' ' || r.sgBaseCalculo, 1,
+            'RUBRICA AGRUPAMENTO', 'INCONSISTENTE',
+            'Base de Cálculo da Rubrica do Agrupamento Inexistente',
+            cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        END IF;
+
         IF r.cdrubricaagrupamento IS NULL THEN
           -- Incluir Nova Rubrica de Agrupamento
           SELECT NVL(MAX(cdrubricaAgrupamento), 0) + 1 INTO vcdRubricaAgrupamentoNova FROM epagRubricaAgrupamento;
@@ -208,7 +234,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
             r.flContribuicaoSindical, r.flApostilamento, r.flPropria13 
           );
   
-          PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+          PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
             psgModulo, psgConceito, vcdIdentificacao, 1,
             'RUBRICA AGRUPAMENTO', 'INCLUSAO', 'Rubrica do Agrupamento Incluídas com sucesso',
             cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -249,7 +275,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
             flPropria13 = r.flPropria13
           WHERE cdRubricaAgrupamento = vcdRubricaAgrupamentoNova;
   
-          PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+          PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
             psgModulo, psgConceito, vcdIdentificacao, 1,
             'RUBRICA AGRUPAMENTO', 'ATUALIZACAO', 'Rubrica do Agrupamento atualizada com sucesso',
             cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -276,13 +302,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
     EXCEPTION
       WHEN OTHERS THEN
         -- Registro e Propagação do Erro
-        PKGMIG_Parametrizacao.PConsoleLog('Importação da Rubrica - Rubrica Agrupamento ' || vcdIdentificacao ||
-        ' RUBRICA AGRUPAMENTO Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-        PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
-          psgModulo, psgConceito, vcdIdentificacao, 1,
-          'RUBRICA AGRUPAMENTO', 'ERRO', 'Erro: ' || SQLERRM,
-          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      ROLLBACK;
+      PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+        psgModulo, psgConceito, pcdIdentificacao, 'RUBRICA AGRUPAMENTO',
+        'Importação de Rubrica (PKGMIG_ParametrizacaoRubricasAgrupamento.pImportar)', SQLERRM);
       RAISE;
   END pImportar;
 
@@ -356,7 +378,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         SELECT cdHistRubricaAgrupamento FROM epagHistRubricaAgrupamento
         WHERE cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA CARREIRAS', 'EXCLUSAO',
         'Carreiras na Vigência da Rubrica do Agrupamento excluidas com sucesso',
@@ -375,7 +397,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         SELECT cdHistRubricaAgrupamento FROM epagHistRubricaAgrupamento
         WHERE cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA NIVREF', 'EXCLUSAO',
         'Níveis e Referencias na Vigência da Rubrica do Agrupamento excluidos com sucesso',
@@ -394,7 +416,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         SELECT cdHistRubricaAgrupamento FROM epagHistRubricaAgrupamento
         WHERE cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA COMISSIONADOS', 'EXCLUSAO',
         'Cargos Comissiondos na Vigência da Rubrica do Agrupamento excluidos com sucesso',
@@ -413,7 +435,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         SELECT cdHistRubricaAgrupamento FROM epagHistRubricaAgrupamento
         WHERE cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA UNID. ORG.', 'EXCLUSAO',
         'Unidades Organizacionais na Vigência da Rubrica do Agrupamento excluidas com sucesso',
@@ -432,7 +454,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         SELECT cdHistRubricaAgrupamento FROM epagHistRubricaAgrupamento
         WHERE cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA AFAST. IMPEDEM', 'EXCLUSAO',
         'Motivos Afastamento que Impedem na Vigência da Rubrica do Agrupamento excluidos com sucesso',
@@ -451,7 +473,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         SELECT cdHistRubricaAgrupamento FROM epagHistRubricaAgrupamento
         WHERE cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA AFAST. EXIGIDOS', 'EXCLUSAO',
         'Motivos Afastamento Exigidos na Vigência da Rubrica do Agrupamento excluidos com sucesso',
@@ -470,7 +492,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         SELECT cdHistRubricaAgrupamento FROM epagHistRubricaAgrupamento
         WHERE cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA MOT. MOVIMENTACAO', 'EXCLUSAO',
         'Motivos Movimentação na Vigência da Rubrica do Agrupamento excluidos com sucesso',
@@ -489,7 +511,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         SELECT cdHistRubricaAgrupamento FROM epagHistRubricaAgrupamento
         WHERE cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA CONVOCACAO', 'EXCLUSAO',
         'Motivos Convocação na Vigência da Rubrica do Agrupamento excluidos com sucesso',
@@ -508,7 +530,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         SELECT cdHistRubricaAgrupamento FROM epagHistRubricaAgrupamento
         WHERE cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA ORGAOS', 'EXCLUSAO',
         'Órgãos Permitidas na Vigência da Rubrica do Agrupamento excluidos com sucesso',
@@ -527,7 +549,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         SELECT cdHistRubricaAgrupamento FROM epagHistRubricaAgrupamento
         WHERE cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA RUB. IMPEDEM', 'EXCLUSAO',
         'Rubricas que Impedem na Vigência da Rubrica do Agrupamento excluidas com sucesso',
@@ -546,7 +568,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         SELECT cdHistRubricaAgrupamento FROM epagHistRubricaAgrupamento
         WHERE cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA RUG. EXIGIDAS', 'EXCLUSAO',
         'Rubricas Exigidas na Vigência da Rubrica do Agrupamento excluidas com sucesso',
@@ -565,7 +587,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         SELECT cdHistRubricaAgrupamento FROM epagHistRubricaAgrupamento
         WHERE cdRubricaAgrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA NATVINC', 'EXCLUSAO',
         'Naturezas de Vinculo Permitidas na Vigência da Rubrica do Agrupamento excluidas com sucesso',
@@ -584,7 +606,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         SELECT cdhistrubricaagrupamento FROM epagHistRubricaAgrupamento
         WHERE cdrubricaagrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA REGPREV', 'EXCLUSAO',
         'Regimes Previdenciários Permitidos na Vigência da Rubrica do Agrupamento excluidas com sucesso',
@@ -603,7 +625,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         SELECT cdhistrubricaagrupamento FROM epagHistRubricaAgrupamento
         WHERE cdrubricaagrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA REGTRAB', 'EXCLUSAO',
         'Regimes de Trabalho Permitidos na Vigência da Rubrica do Agrupamento excluidas com sucesso',
@@ -622,7 +644,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         SELECT cdhistrubricaagrupamento FROM epagHistRubricaAgrupamento
         WHERE cdrubricaagrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA RELTRAB', 'EXCLUSAO',
         'Relações de Trabalho Permitidas na Vigência da Rubrica do Agrupamento excluidas com sucesso',
@@ -641,7 +663,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         SELECT cdhistrubricaagrupamento FROM epagHistRubricaAgrupamento
         WHERE cdrubricaagrupamento = pcdRubricaAgrupamento);
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA SITPREV', 'EXCLUSAO',
         'Situações Previdenciárias Permitidas na Vigência da Rubrica do Agrupamento excluidas com sucesso',
@@ -655,24 +677,20 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
     IF vnuRegistros > 0 THEN
       DELETE FROM epagHistRubricaAgrupamento WHERE cdrubricaagrupamento = pcdRubricaAgrupamento;
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'EXCLUSAO',
         'Vigências existentes da Rubrica do Agrupamento excluidas com sucesso',
         cAUDITORIA_COMPLETO, pnuNivelAuditoria);
     END IF;
 
-  EXCEPTION
-    WHEN OTHERS THEN
-      -- Registro e Propagação do Erro
-      PKGMIG_Parametrizacao.PConsoleLog('Importação da Rubrica - Rubrica Agrupamento' || vcdIdentificacao ||
-        ' RUBRICA AGRUPAMENTO VIGENCIA EXCLUIR Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
-        psgModulo, psgConceito, pcdIdentificacao, 1,
-        'RUBRICA AGRUPAMENTO VIGENCIA EXCLUIR', 'ERRO', 'Erro: ' || SQLERRM,
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    ROLLBACK;
-    RAISE;
+    EXCEPTION
+      WHEN OTHERS THEN
+        -- Registro e Propagação do Erro
+        PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+          psgModulo, psgConceito, pcdIdentificacao, 'RUBRICA AGRUPAMENTO VIGENCIA EXCLUIR',
+          'Importação de Rubrica (PKGMIG_ParametrizacaoRubricasAgrupamento.pExcluirRubricaAgrupamento)', SQLERRM);
+      RAISE;
   END pExcluirRubricaAgrupamento;
 
   PROCEDURE pImportarVigencias(
@@ -1208,7 +1226,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
 
     vcdIdentificacao := pcdIdentificacao;
 
-    PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+    PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
       psgModulo, psgConceito, pcdIdentificacao, 0,
       'RUBRICA AGRUPAMENTO VIGENCIA', 'JSON', SUBSTR(pVigenciasAgrupamento,1,4000),
       cAUDITORIA_COMPLETO, pnuNivelAuditoria);
@@ -1218,17 +1236,17 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
 
 	    vcdIdentificacao := pcdIdentificacao || ' ' || LPAD(r.nuanoiniciovigencia,4,0) || LPAD(r.numesiniciovigencia,2,0);
 
-      PKGMIG_Parametrizacao.PConsoleLog('Importação da Rubrica do Agrupamento - Vigências ' || vcdIdentificacao,
+      PKGMIG_ParametrizacaoLog.pAlertar('Importação da Rubrica do Agrupamento - Vigências ' || vcdIdentificacao,
         cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 
       SELECT NVL(MAX(cdhistrubricaagrupamento), 0) + 1 INTO vcdHistRubricaAgrupamentoNova FROM epagHistRubricaAgrupamento;
 
       IF r.cdRelacaoTrabalho IS NULL AND r.nmRelacaoTrabalho IS NOT NULL THEN
-        PKGMIG_Parametrizacao.PConsoleLog('da Rubrica do Agrupamento - ' ||
+        PKGMIG_ParametrizacaoLog.pAlertar('da Rubrica do Agrupamento - ' ||
           'Relação de Trabalho da Vigência da Rubrica do Agrupamento Inexistente ' || vcdIdentificacao || ' ' || r.nmRelacaoTrabalho,
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-        PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
           psgModulo, psgConceito, vcdIdentificacao || ' ' || r.nmRelacaoTrabalho, 1,
           'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
           'Relação de Trabalho da Vigência da Rubrica do Agrupamento Inexistente',
@@ -1236,11 +1254,11 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       END IF;
 
       IF r.cdOutraRubrica IS NULL AND r.nuOutraRubrica IS NOT NULL THEN
-        PKGMIG_Parametrizacao.PConsoleLog('da Rubrica do Agrupamento - ' ||
+        PKGMIG_ParametrizacaoLog.pAlertar('da Rubrica do Agrupamento - ' ||
           'Outra Rubrica da Vigência da Rubrica do Agrupamento Inexistente ' || vcdIdentificacao || ' ' || r.nuOutraRubrica,
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-        PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
           psgModulo, psgConceito, vcdIdentificacao || ' ' || r.nuOutraRubrica, 1,
           'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
           'Outra Rubrica da Vigência da Rubrica do Agrupamento Inexistente',
@@ -1248,11 +1266,11 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       END IF;
 
       IF r.cdTipoIndice IS NULL AND r.deTipoIndice IS NOT NULL THEN
-        PKGMIG_Parametrizacao.PConsoleLog('da Rubrica do Agrupamento - ' ||
+        PKGMIG_ParametrizacaoLog.pAlertar('da Rubrica do Agrupamento - ' ||
           'Tipo de Índice da Vigência da Rubrica do Agrupamento Inexistente ' || vcdIdentificacao || ' ' || r.deTipoIndice,
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-        PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
           psgModulo, psgConceito, vcdIdentificacao || ' ' || r.deTipoIndice, 1,
           'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
           'Tipo de Índice da Vigência da Rubrica do Agrupamento Inexistente',
@@ -1260,12 +1278,12 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       END IF;
 
       IF r.cdRubProporcionalidadeCHO IS NULL AND r.nmRubProporcionalidadeCHO IS NOT NULL THEN
-        PKGMIG_Parametrizacao.PConsoleLog('da Rubrica do Agrupamento - ' ||
+        PKGMIG_ParametrizacaoLog.pAlertar('da Rubrica do Agrupamento - ' ||
           'Rubrica Proporcionlidade de Carga Horária da Vigência da Rubrica do Agrupamento Inexistente ' ||
           vcdIdentificacao || ' ' || r.nmRubProporcionalidadeCHO,
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-        PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
           psgModulo, psgConceito, vcdIdentificacao || ' ' || r.nmRubProporcionalidadeCHO, 1,
           'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
           'Rubrica Proporcionlidade de Carga Horária da Rubrica do Agrupamento Inexistente',
@@ -1307,33 +1325,29 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         r.flSuspensaRetroativoErario, r.flPagaEfetivoOrgao, r.flIgnoraAfastCEFagPolitico, r.flPagAposentadoria
       );
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, vcdIdentificacao, 1,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCLUSAO', 'Vigencia da Rubrica do Agrupamento Incluídas com sucesso',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-      -- Incluir Listas da Vigencia da Rubrica do Agrupamento
-      pImportarListasRubricaAgrupamento(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+      -- Incluir Abrangências da Vigencia da Rubrica do Agrupamento
+      pImportarAbrangencias(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, vcdHistRubricaAgrupamentoNova, r.ListasVigenciasAgrupamento, pnuNivelAuditoria);
 
     END LOOP;
 
-  EXCEPTION
-    WHEN OTHERS THEN
-      -- Registro e Propagação do Erro
-      PKGMIG_Parametrizacao.PConsoleLog('Importação da Rubrica - Rubrica Agrupamento Vigência ' || vcdIdentificacao ||
-        ' RUBRICA AGRUPAMENTO VIGENCIA Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
-        psgModulo, psgConceito, vcdIdentificacao, 1,
-        'RUBRICA AGRUPAMENTO VIGENCIA', 'ERRO', 'Erro: ' || SQLERRM,
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    ROLLBACK;
-    RAISE;
+    EXCEPTION
+      WHEN OTHERS THEN
+        -- Registro e Propagação do Erro
+        PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+          psgModulo, psgConceito, vcdIdentificacao, 'RUBRICA AGRUPAMENTO VIGENCIA',
+          'Importação de Rubrica (PKGMIG_ParametrizacaoRubricasAgrupamento.pImportarVigencias)', SQLERRM);
+      RAISE;
   END pImportarVigencias;
 
-  PROCEDURE pImportarListasRubricaAgrupamento(
+  PROCEDURE pImportarAbrangencias(
   -- ###########################################################################
-  -- PROCEDURE: pIncluirPermissoesRubricaAgrupamento
+  -- PROCEDURE: pImportarAbrangencias
   -- Objetivo:
   --   Excluir as Entidades filhas da Rubrica do Agrupamento
   --     - Incluir a Lista de Carreiras
@@ -1368,7 +1382,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
   --   pcdIdentificacao      IN VARCHAR2: 
   --   pcdRubricaAgrupamentoVigencia IN NUMBER: 
   --   pListasVigenciasAgrupamento IN CLOB,
-  --   pnuNivelAuditoria              IN NUMBER DEFAULT NULL:
+  --   pnuNivelAuditoria     IN NUMBER DEFAULT NULL:
   --
   -- ###########################################################################
     psgAgrupamentoDestino IN VARCHAR2,
@@ -1390,7 +1404,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
     
     vnuRegistros := 0;
 
-    PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
+    PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
       psgModulo, psgConceito, pcdIdentificacao, 0,
       'RUBRICA AGRUPAMENTO VIGENCIA LISTAS', 'JSON', SUBSTR(pListasVigenciasAgrupamento,1,4000),
       cAUDITORIA_COMPLETO, pnuNivelAuditoria);
@@ -1422,7 +1436,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       )) js
       WHERE js.cdMotivoAfastTemporario IS NOT NULL;
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCLUSAO',
 		    'Motivos de Afastamento que Impedem na Vigência da Rubrica do Agrupamento Incluídas com sucesso',
@@ -1438,7 +1452,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       WHERE js.cdMotivoAfastTemporario IS NULL
     )
     LOOP
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, SUBSTR(pcdIdentificacao || ' ' || i.deMotivoAfastTemporario,1,70), 1,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
 		    'Motivos de Afastamento que Impedem da Vigência da Rubrica do Agrupamento Inexistente',
@@ -1461,7 +1475,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       )) js
       WHERE js.cdEstruturaCarreira IS NOT NULL;
 
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCLUSAO',
         'Estruturas de Carreiras na Vigência da Rubrica do Agrupamento Incluídas com sucesso',
@@ -1477,7 +1491,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       WHERE js.cdEstruturaCarreira IS NULL
     )
     LOOP
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, SUBSTR(pcdIdentificacao || ' ' || i.nmEstruturaCarreira,1,70), 1,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
         'Esturura de Carreira da Vigência da Rubrica do Agrupamento Inexistente',
@@ -1502,7 +1516,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       )) js
       WHERE js.nuNivel IS NOT NULL OR js.nuReferencia IS NOT NULL;
       
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCLUSAO',
         'Níveis e Referencia Permitidas na Vigência da Rubrica do Agrupamento Incluídas com sucesso',
@@ -1518,7 +1532,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       WHERE js.nuNivel IS NULL AND js.nuReferencia IS NULL
     )
     LOOP
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, SUBSTR(pcdIdentificacao || ' ' || i.nuNivel || ' ' || i.nuReferencia,1,70), 1,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
         'Níveis e Referencia Permitido da Vigência da Rubrica do Agrupamento Inexistente',
@@ -1552,7 +1566,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         AND (    (js.deCargoComissionado IS NOT NULL AND js.cdCargoComissionado IS NOT NULL)
               OR (js.deCargoComissionado IS NULL     AND js.cdCargoComissionado IS NULL    ));
       
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCLUSAO',
         'Cargos Comissionados na Vigência da Rubrica do Agrupamento Incluídas com sucesso',
@@ -1571,7 +1585,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
          OR (js.deCargoComissionado IS NOT NULL AND js.cdCargoComissionado IS NULL)
     )
     LOOP
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, SUBSTR(pcdIdentificacao || ' ' || SUBSTR(i.nmGrupoOcupacional || ' ' || i.deCargoComissionado,1,30),1,70), 1,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
         'Cargo Comissionado da Vigência da Rubrica do Agrupamento Inexistente',
@@ -1596,7 +1610,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       )) js
       WHERE js.cdOrgao IS NOT NULL;
       
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCLUSAO',
         'Órgãos Permitidas na Vigência da Rubrica do Agrupamento Incluídas com sucesso',
@@ -1612,7 +1626,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       WHERE js.cdOrgao IS NULL
     )
     LOOP
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, SUBSTR(pcdIdentificacao || ' ' || i.sgOrgao,1,70), 1,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
         'Órgao Permitido da Vigência da Rubrica do Agrupamento Inexistente',
@@ -1636,7 +1650,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       )) js
       WHERE js.cdRubricaAgrupamento IS NOT NULL;
       
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA RUBRICAS EXIGIDAS', 'INCLUSAO',
         'Rubricas que Impedem na Vigência da Rubrica do Agrupamento Incluídas com sucesso',
@@ -1652,7 +1666,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       WHERE js.cdRubricaAgrupamento IS NULL
     )
     LOOP
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, SUBSTR(pcdIdentificacao || ' ' || i.nuRubrica,1,70), 1,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
         'Rubrica que Impede na Vigência da Rubrica do Agrupamento Inexistente',
@@ -1675,7 +1689,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       )) js
       WHERE js.cdRubricaAgrupamento IS NOT NULL;
       
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCLUSAO',
         'Rubricas Exigidas na Vigência da Rubrica do Agrupamento Incluídas com sucesso',
@@ -1691,7 +1705,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       WHERE js.cdRubricaAgrupamento IS NULL
     )
     LOOP
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, SUBSTR(pcdIdentificacao || ' ' || i.nuRubrica,1,70), 1,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
         'Rubrica Exigida na Vigência da Rubrica do Agrupamento Inexistente',
@@ -1710,7 +1724,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       FROM JSON_TABLE(pListasVigenciasAgrupamento, '$.NaturezaVinculo[*]' COLUMNS (item PATH '$')) js
       INNER JOIN ecadNaturezaVinculo d ON UPPER(d.nmNaturezaVinculo) = UPPER(js.item);
       
-    PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+    PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
       psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
       'RUBRICA AGRUPAMENTO VIGENCIA NATVINC', 'INCLUSAO', 
       'Naturezas de Vinculo Permitidas na Vigência da Rubrica do Agrupamento Incluídas com sucesso',
@@ -1724,7 +1738,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       WHERE d.cdNaturezaVinculo IS NULL
     )
     LOOP
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, SUBSTR(pcdIdentificacao || ' ' || i.nmNaturezaVinculo,1,70), 1,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
         'Natureza do Vínculo da Vigência da Rubrica do Agrupamento Inexistente',
@@ -1743,7 +1757,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       FROM JSON_TABLE(pListasVigenciasAgrupamento, '$.RegimePrevidenciario[*]' COLUMNS (item PATH '$')) js
       INNER JOIN ecadRegimePrevidenciario d ON UPPER(d.nmRegimePrevidenciario) = UPPER(js.item);
       
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA REGPREV', 'INCLUSAO',
         'Regime Previdenciários Permitidas na Vigência da Rubrica do Agrupamento Incluídas com sucesso',
@@ -1757,7 +1771,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       WHERE d.cdRegimePrevidenciario IS NULL
     )
     LOOP
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, SUBSTR(pcdIdentificacao || ' ' || i.nmRegimepreVidenciario,1,70), 1,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
         'Regime Previdenciário da Vigência da Rubrica do Agrupamento Inexistente',
@@ -1776,7 +1790,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       FROM JSON_TABLE(pListasVigenciasAgrupamento, '$.RegimeTrabalho[*]' COLUMNS (item PATH '$')) js
       INNER JOIN ecadRegimeTrabalho d ON UPPER(d.nmRegimeTrabalho) = UPPER(js.item);
       
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA REGTRAB', 'INCLUSAO',
         'Regimes de Trabalho Permitidas na Vigência da Rubrica do Agrupamento Incluídas com sucesso',
@@ -1790,7 +1804,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       WHERE d.cdRegimeTrabalho IS NULL
     )
     LOOP
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, SUBSTR(pcdIdentificacao || ' ' || i.nmRegimeTrabalho,1,70), 1,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
         'Regime de Trabalho da Vigência da Rubrica do Agrupamento Inexistente',
@@ -1809,7 +1823,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       FROM JSON_TABLE(pListasVigenciasAgrupamento, '$.RelacaoTrabalho[*]' COLUMNS (item PATH '$')) js
       INNER JOIN ecadRelacaoTrabalho d ON UPPER(d.nmRelacaoTrabalho) = UPPER(js.item);
       
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA RELTRAB', 'INCLUSAO',
         'Relaçao de Trabalho Permitidas na Vigência da Rubrica do Agrupamento Incluídas com sucesso',
@@ -1823,7 +1837,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       WHERE d.cdRelacaoTrabalho IS NULL
     )
     LOOP
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, SUBSTR(pcdIdentificacao || ' ' || i.nmRelacaoTrabalho,1,70), 1,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
         'Natureza de Vinculo da Vigência da Rubrica do Agrupamento Inexistente',
@@ -1842,7 +1856,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       FROM JSON_TABLE(pListasVigenciasAgrupamento, '$.SituacaoPrevidenciaria[*]' COLUMNS (item PATH '$')) js
       INNER JOIN ecadSituacaoPrevidenciaria d ON UPPER(d.nmSituacaoPrevidenciaria) = UPPER(js.item);
       
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
         psgModulo, psgConceito, pcdIdentificacao, vnuRegistros,
         'RUBRICA AGRUPAMENTO VIGENCIA SITPREV', 'INCLUSAO',
         'Situações Previdenciárias Permitidas na Vigência da Rubrica do Agrupamento Incluídas com sucesso',
@@ -1856,25 +1870,21 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
       WHERE d.cdSituacaoPrevidenciaria IS NULL
     )
     LOOP
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, SUBSTR(pcdIdentificacao || ' ' || i.nmSituacaoPrevidenciaria,1,70), 1,
         'RUBRICA AGRUPAMENTO VIGENCIA', 'INCONSISTENTE',
         'Situação Previdenciária da Vigência da Rubrica do Agrupamento Inexistente',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
     END LOOP;
 
-  EXCEPTION
-    WHEN OTHERS THEN
-      -- Registro e Propagação do Erro
-      PKGMIG_Parametrizacao.PConsoleLog('Importação da Rubrica - Rubrica Agrupamento Vigência' || pcdIdentificacao ||
-        ' RUBRICA AGRUPAMENTO VIGENCIA Erro: ' || SQLERRM, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      PKGMIG_Parametrizacao.pRegistrarLog(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
-        psgModulo, psgConceito, pcdIdentificacao, 1,
-        'RUBRICA AGRUPAMENTO VIGENCIA', 'ERRO', 'Erro: ' || SQLERRM,
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    ROLLBACK;
-    RAISE;
-  END pImportarListasRubricaAgrupamento;
+    EXCEPTION
+      WHEN OTHERS THEN
+        -- Registro e Propagação do Erro
+        PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,  
+          psgModulo, psgConceito, pcdIdentificacao, 'RUBRICA AGRUPAMENTO VIGENCIA',
+          'Importação de Rubrica (PKGMIG_ParametrizacaoRubricasAgrupamento.pImportarAbrangencias)', SQLERRM);
+      RAISE;
+  END pImportarAbrangencias;
 
 END PKGMIG_ParametrizacaoRubricasAgrupamento;
 /
