@@ -363,7 +363,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
       PKGMIG_ParametrizacaoLog.pAlertar('Importação da Rubrica - Rubrica ' || vcdIdentificacao,
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-
+      vcdRubricaNova := r.cdrubrica;
       IF r.cdrubrica IS NULL THEN
         -- Incluir Nova Rubrica
         SELECT NVL(MAX(cdrubrica), 0) + 1 INTO vcdRubricaNova FROM epagRubrica;
@@ -392,67 +392,30 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
           'RUBRICA', 'INCLUSAO', 'Rubrica Incluídas com sucesso',
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-      ELSE
-        -- Atualizar Rubrica Existente
-        vcdRubricaNova := r.cdrubrica;
+        -- Incluir Grupo de Rubricas na Rubrica
+        vnuRegistros := 0;
+        SELECT COUNT(*) INTO vnuRegistros
+          FROM json_table(r.GruposRubrica, '$[*]' COLUMNS (item VARCHAR2(100) PATH '$')) js
+          INNER JOIN epagGrupoRubrica d ON UPPER(d.nmGrupoRubrica) = UPPER(js.item);
+        
+        IF vnuRegistros > 0 THEN
+          INSERT INTO epagGrupoRubricaPagamento
+          SELECT d.cdGrupoRubrica, vcdRubricaNova AS cdRubrica
+            FROM json_table(r.GruposRubrica, '$[*]' COLUMNS (item VARCHAR2(100) PATH '$')) js
+            INNER JOIN epagGrupoRubrica d ON UPPER(d.nmGrupoRubrica) = UPPER(js.item);
 
-        UPDATE epagRubrica SET
-          cdTipoRubrica           = r.cdTipoRubrica,
-          nuRubrica               = r.nuRubrica,
-          nuElemDespesaAtivo      = r.nuElemDespesaAtivo,
-          nuElemDespesaInativo    = r.nuElemDespesaInativo,
-          cdConsignataria         = r.cdConsignataria,
-          nuOutraConsignataria    = r.nuOutraConsignataria,
-          flExtraOrcamentaria     = r.flExtraOrcamentaria,
-          nuSubAcao               = r.nuSubAcao,
-          nuFonteRecurso          = r.nuFonteRecurso,
-          nuCNPJOutroCredor       = r.nuCNPJOutroCredor,
-          nuUnidadeOrcamentaria   = r.nuUnidadeOrcamentaria,
-          nuElemDespesaAtivoCLT   = r.nuElemDespesaAtivoCLT,
-          nuElemDespesaPensaoEsp  = r.nuElemDespesaPensaoEsp,
-          nuElemDespesaAtivo13    = r.nuElemDespesaAtivo13,
-          nuElemDespesaInativo13  = r.nuElemDespesaInativo13,
-          nuElemDespesaAtivoCLT13 = r.nuElemDespesaAtivoCLT13,
-          nuElemDespesaPensaoEsp13= r.nuElemDespesaPensaoEsp13,
-          nuElemDespesaRegGeral   = r.nuElemDespesaRegGeral,
-          nuElemDespesaRegGeral13 = r.nuElemDespesaRegGeral13,
-          nuElemDespesaCTISP      = r.nuElemDespesaCTISP,
-          nuElemDespesaCTISP13    = r.nuElemDespesaCTISP13,
-          inNaturezaTCE           = r.inNaturezaTCE
-        WHERE cdRubrica = vcdRubricaNova;
+          PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,  
+            vsgModulo, vsgConceito, vcdIdentificacao, vnuRegistros,
+            'RUBRICA GRUPO DE RUBRICA', 'INCLUSAO', 'Grupo de Rubrica Incluídas com sucesso',
+            cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        END IF;
 
-        vnuAtualizados := vnuAtualizados + 1;
-        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao, 
-          vsgModulo, vsgConceito, vcdIdentificacao, 1,
-          'RUBRICA', 'ATUALIZACAO', 'Rubrica atualizada com sucesso',
-          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        -- Importar Vigências da Rubrica
+        pImportarVigencias(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
+          vsgModulo, vsgConceito, vcdIdentificacao, vcdRubricaNova, r.VigenciasTipo, pnuNivelAuditoria);
       END IF;
 
-      -- Excluir Grupo de Rubricas, Documentos de Amparo ao Fato e Vigências da Rubrica
-      --pExcluirRubrica(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
-      --  vsgModulo, vsgConceito, vcdIdentificacao, vcdRubricaNova, pnuNivelAuditoria);
-/*  
-      -- Incluir Grupo de Rubricas na Rubrica
-	    vnuRegistros := 0;
-      FOR grrub IN (
-        SELECT d.cdGrupoRubrica
-          FROM json_table(r.GruposRubrica, '$[*]' COLUMNS (item VARCHAR2(100) PATH '$')) js
-          LEFT JOIN epagGrupoRubrica d ON UPPER(d.nmGrupoRubrica) = UPPER(js.item)
-      ) LOOP
-		    vnuRegistros := vnuRegistros + 1;
-        INSERT INTO epaggruporubricapagamento (cdRubrica, cdGrupoRubrica)
-        VALUES (vcdRubricaNova, grrub.cdGrupoRubrica);
-      END LOOP;
-*/
-      --PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,  
-      --  vsgModulo, vsgConceito, vcdIdentificacao, vnuRegistros,
-      --  'RUBRICA GRUPO DE RUBRICA', 'INCLUSAO', 'Grupo de Rubrica Incluídas com sucesso',
-      --  cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
- 
-      -- Importar Vigências da Rubrica
-      --pImportarVigencias(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
-      --  vsgModulo, vsgConceito, vcdIdentificacao, vcdRubricaNova, r.VigenciasTipo, pnuNivelAuditoria);
-
+      vnuAtualizados := vnuAtualizados + 1;
       -- Importar Rubricas do Agrupamento
       PKGMIG_ParametrizacaoRubricasAgrupamento.pImportar(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
         vsgModulo, vsgConceito, vcdIdentificacao, vcdRubricaNova, r.Agrupamento, pnuNivelAuditoria);
@@ -478,7 +441,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
 	    LPAD(EXTRACT(MINUTE FROM vnuTempoExecucao), 2, '0') || ':' ||
 	    LPAD(TRUNC(EXTRACT(SECOND FROM vnuTempoExecucao)), 2, '0') || ', ' || CHR(13) || CHR(10) ||
 	  'Total de Parametrizações das Rubricas Incluídas: ' || vnuInseridos ||
-      ' e Alteradas: ' || vnuAtualizados;
+      ' e Atualizadas: ' || vnuAtualizados;
 
     PKGMIG_ParametrizacaoLog.pGerarResumo(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
       vsgModulo, vsgConceito, vdtTermino, vnuTempoExecucao, pnuNivelAuditoria);
@@ -728,7 +691,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
 
         PKGMIG_ParametrizacaoLog.pAlertar('Importação da Rubrica - ' ||
         'Vigências ' || vcdIdentificacao, cAUDITORIA_DETALHADO, pnuNivelAuditoria);
-/*
+
         -- Incluir Novo Documento se as informações não forem nulas
         IF  r.nuAnoDocumento IS NULL AND r.cdTipoDocumento IS NULL AND r.dtDocumento IS NULL AND
             r.deObservacao IS NULL AND r.nuNumeroAtoLegal IS NULL AND
@@ -752,23 +715,22 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
             'DOCUMENTO', 'INCLUSAO', 'Documentos de Amparo da Rubrica Incluídas com sucesso',
             cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 	      END IF;
-*/
-/*    
+
         -- Inserir na tabela epagHistRubrica
         INSERT INTO epagHistRubrica (
           cdHistRubrica, cdRubrica, deRubrica, nuAnoInicioVigencia, nuMesInicioVigencia,
           nuAnoFimVigencia, nuMesFimVigencia,
           nuCpfCadastrador, dtInclusao, dtUltAlteracao, 
           cdDocumento, cdMeioPublicacao, cdTipoPublicacao,
-          dtPublicacao, nuPublicacao, nuPaginaInicial, deOutroMeio
+          dtPublicacao, nuPublicacao, nuPagInicial, deOutroMeio
         ) VALUES (
           r.cdHistRubrica, r.cdRubrica, r.deRubrica, r.nuAnoInicioVigencia, r.nuMesInicioVigencia,
           r.nuAnoFimVigencia, r.nuMesFimVigencia,
           r.nuCpfCadastrador, r.dtInclusao, r.dtUltAlteracao,
-          r.cdDocumento, r.cdMeioPublicacao, r.cdTipoPublicacao,
-          r.dtPublicacao, r.nuPublicacao, r.nuPaginaInicial, r.deOutroMeio
+          vcdDocumentoNovo, r.cdMeioPublicacao, r.cdTipoPublicacao,
+          r.dtPublicacao, r.nuPublicacao, r.nuPagInicial, r.deOutroMeio
         );
-*/
+
         vnuRegistros := vnuRegistros + 1;
         PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
           psgModulo, psgConceito, pcdIdentificacao, 1,
