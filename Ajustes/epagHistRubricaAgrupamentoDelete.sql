@@ -171,7 +171,7 @@ SELECT DISTINCT cdRubricaAgrupamento FROM (
         WHERE a.sgAgrupamento = &psgAgrupamento)
   UNION
   -- Rubricas no Contracheque
-ELECT DISTINCT cdRubricaAgrupamento FROM epaghistoricorubricavinculo pag
+SELECT DISTINCT cdRubricaAgrupamento FROM epaghistoricorubricavinculo pag
     INNER JOIN epagfolhapagamento f on f.cdfolhapagamento = pag.cdfolhapagamento
     INNER JOIN ecadhistorgao o on o.cdorgao = f.cdorgao
     INNER JOIN ecadAgrupamento a on a.cdAgrupamento = o.cdAgrupamento
