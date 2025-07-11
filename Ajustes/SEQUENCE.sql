@@ -1,3 +1,4 @@
+SET SERVEROUTPUT ON SIZE UNLIMITED;
 DECLARE
 -- Variáveis de controle e contexto
 vtxSQL VARCHAR2(1000);
