@@ -1171,12 +1171,14 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
         GrupoRubricas           CLOB FORMAT JSON PATH '$.GrupoRubricas'
       )) js
       
-      LEFT JOIN OrgaoLista o on o.sgAgrupamento = psgAgrupamentoDestino and nvl(o.sgOrgao,' ') = nvl(psgOrgao,' ')
+      LEFT JOIN OrgaoLista o ON o.sgAgrupamento = psgAgrupamentoDestino AND nvl(o.sgOrgao,' ') = nvl(psgOrgao,' ')
       LEFT JOIN epagTipoMneumonico mneu ON mneu.sgTipoMneumonico = js.sgTipoMneumonico
-      LEFT JOIN RubricaLista rub on rub.nuRubrica = js.nuRubrica
+      LEFT JOIN RubricaLista rub ON rub.nuRubrica = SUBSTR(js.nuRubrica,1,7)
                                 AND rub.cdAgrupamento = o.cdAgrupamento
-      LEFT JOIN epagValorReferencia vlref ON vlref.cdAgrupamento = o.cdAgrupamento AND vlref.nmValorReferencia = js.nmValorReferencia
-      LEFT JOIN epagBaseCalculo baseexp ON baseexp.cdAgrupamento = o.cdAgrupamento AND baseexp.sgBaseCalculo = js.sgBaseCalculo
+      LEFT JOIN epagValorReferencia vlref ON vlref.cdAgrupamento = o.cdAgrupamento
+                                         AND vlref.nmValorReferencia = js.nmValorReferencia
+      LEFT JOIN epagBaseCalculo baseexp ON baseexp.cdAgrupamento = o.cdAgrupamento
+                                       AND baseexp.sgBaseCalculo = js.sgBaseCalculo
       LEFT JOIN epagValorGeralCEFAgrup tabgeral ON tabgeral.cdAgrupamento = o.cdAgrupamento
                                                AND tabgeral.sgTabelaValorGeralCEF = js.sgTabelaValorGeralCEF
       LEFT JOIN EstruturaCarreiraLista cef ON cef.cdAgrupamento = o.cdAgrupamento
@@ -1196,6 +1198,110 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
     FOR r IN cDados LOOP
 
       vcdIdentificacao := SUBSTR(pcdIdentificacao || ' ' || r.sgTipoMneumonico,1,70);
+
+      IF r.cdTipoMneumonico IS NULL AND r.sgTipoMneumonico IS NOT NULL THEN
+        PKGMIG_ParametrizacaoLog.pAlertar('Importação da Formula de Cálculo - ' ||
+          'Tipo de Mneumonico da Expressão do Bloco da Formula de Cálculo Inexistente ' ||
+          vcdIdentificacao || ' ' || r.sgTipoMneumonico,
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+          psgModulo, psgConceito, vcdIdentificacao || ' ' || r.sgTipoMneumonico, 1,
+          'FORMULA CALCULO EXPRESSAO BLOCO', 'INCONSISTENTE',
+          'Tipo de Mneumonico da Expressão do Bloco da Formula de Cálculo Inexistente',
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      END IF;
+
+      IF r.cdRubricaAgrupamento IS NULL AND r.nuRubrica IS NOT NULL THEN
+        PKGMIG_ParametrizacaoLog.pAlertar('Importação da Formula de Cálculo - ' ||
+          'Rubrica da Expressão do Bloco da Formula de Cálculo Inexistente ' ||
+          vcdIdentificacao || ' ' || r.nuRubrica,
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+          psgModulo, psgConceito, vcdIdentificacao || ' ' || r.nuRubrica, 1,
+          'FORMULA CALCULO EXPRESSAO BLOCO', 'INCONSISTENTE',
+          'Rubrica da Expressão do Bloco da Formula de Cálculo Inexistente',
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      END IF;
+
+      IF r.cdValorReferencia IS NULL AND r.nmValorReferencia IS NOT NULL THEN
+        PKGMIG_ParametrizacaoLog.pAlertar('Importação da Formula de Cálculo - ' ||
+          'Valor de Referencia da Expressão do Bloco da Formula de Cálculo Inexistente ' ||
+          vcdIdentificacao || ' ' || r.nmValorReferencia,
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+          psgModulo, psgConceito, vcdIdentificacao || ' ' || r.nmValorReferencia, 1,
+          'FORMULA CALCULO EXPRESSAO BLOCO', 'INCONSISTENTE',
+          'Valor de Referencia da Expressão do Bloco da Formula de Cálculo Inexistente',
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      END IF;
+
+      IF r.cdBaseCalculo IS NULL AND r.sgBaseCalculo IS NOT NULL THEN
+        PKGMIG_ParametrizacaoLog.pAlertar('Importação da Formula de Cálculo - ' ||
+          'Base de Cálculo da Expressão do Bloco da Formula de Cálculo Inexistente ' ||
+          vcdIdentificacao || ' ' || r.sgBaseCalculo,
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+          psgModulo, psgConceito, vcdIdentificacao || ' ' || r.sgBaseCalculo, 1,
+          'FORMULA CALCULO EXPRESSAO BLOCO', 'INCONSISTENTE',
+          'Base de Cálculo da Expressão do Bloco da Formula de Cálculo Inexistente',
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      END IF;
+
+      IF r.cdValorGeralCEFAgrup IS NULL AND r.sgTabelaValorGeralCEF IS NOT NULL THEN
+        PKGMIG_ParametrizacaoLog.pAlertar('Importação da Formula de Cálculo - ' ||
+          'Tabela de Valor Geral do Cargo Efetivo da Expressão do Bloco da Formula de Cálculo Inexistente ' ||
+          vcdIdentificacao || ' ' || r.sgTabelaValorGeralCEF,
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+          psgModulo, psgConceito, vcdIdentificacao || ' ' || r.sgTabelaValorGeralCEF, 1,
+          'FORMULA CALCULO EXPRESSAO BLOCO', 'INCONSISTENTE',
+          'Tabela de Valor Geral do Cargo Efetivo da Expressão do Bloco da Formula de Cálculo Inexistente',
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      END IF;
+
+      IF r.cdEstruturaCarreira IS NULL AND r.nmEstruturaCarreira IS NOT NULL THEN
+        PKGMIG_ParametrizacaoLog.pAlertar('Importação da Formula de Cálculo - ' ||
+          'Tabela de Valor Geral do Cargo Efetivo da Expressão do Bloco da Formula de Cálculo Inexistente ' ||
+          SUBSTR(vcdIdentificacao || ' ' || r.nmEstruturaCarreira,1,70),
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+          psgModulo, psgConceito, SUBSTR(vcdIdentificacao || ' ' || r.nmEstruturaCarreira,1,70), 1,
+          'FORMULA CALCULO EXPRESSAO BLOCO', 'INCONSISTENTE',
+          'Tabela de Valor Geral do Cargo Efetivo da Expressão do Bloco da Formula de Cálculo Inexistente',
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      END IF;
+
+      IF r.cdFuncaoChefia IS NULL AND r.nmFuncaoChefia IS NOT NULL THEN
+        PKGMIG_ParametrizacaoLog.pAlertar('Importação da Formula de Cálculo - ' ||
+          'Função de Chefia da Expressão do Bloco da Formula de Cálculo Inexistente ' ||
+          SUBSTR(vcdIdentificacao || ' ' || r.nmFuncaoChefia,1,70),
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+          psgModulo, psgConceito, SUBSTR(vcdIdentificacao || ' ' || r.nmFuncaoChefia,1,70), 1,
+          'FORMULA CALCULO EXPRESSAO BLOCO', 'INCONSISTENTE',
+          'Função de Chefia da Expressão do Bloco da Formula de Cálculo Inexistente',
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      END IF;
+
+      IF r.cdTipoAdicionalTempServ IS NULL AND r.deTipoAdicionalTempServ IS NOT NULL THEN
+        PKGMIG_ParametrizacaoLog.pAlertar('Importação da Formula de Cálculo - ' ||
+          'Função de Chefia da Expressão do Bloco da Formula de Cálculo Inexistente ' ||
+          SUBSTR(vcdIdentificacao || ' ' || r.deTipoAdicionalTempServ,1,70),
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
+          psgModulo, psgConceito, SUBSTR(vcdIdentificacao || ' ' || r.deTipoAdicionalTempServ,1,70), 1,
+          'FORMULA CALCULO EXPRESSAO BLOCO', 'INCONSISTENTE',
+          'Função de Chefia da Expressão do Bloco da Formula de Cálculo Inexistente',
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      END IF;
 
       SELECT NVL(MAX(cdFormulaCalcBlocoExpressao), 0) + 1 INTO vcdFormulaCalcBlocoExpressaoNova FROM epagFormulaCalcBlocoExpressao;
 
