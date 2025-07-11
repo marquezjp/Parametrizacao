@@ -1,6 +1,6 @@
 --- Declaração dos Tipos de Objetos e Tabelas para o Pacote de Exportação e Importação das Parametrizações
-DROP TYPE tpParametrizacaoResumoTabela;
-CREATE OR REPLACE TYPE tpParametrizacaoResumo AS OBJECT (
+DROP TYPE tpmigParametrizacaoResumoTabela;
+CREATE OR REPLACE TYPE tpmigParametrizacaoResumo AS OBJECT (
 -- Tipo Objeto: Resumo das Parametrizações
   sgAgrupamento   VARCHAR2(15),
   sgOrgao         VARCHAR2(15),
@@ -9,10 +9,10 @@ CREATE OR REPLACE TYPE tpParametrizacaoResumo AS OBJECT (
   dtExportacao    VARCHAR2(25),
   nuConteudos     NUMBER
 );
-CREATE OR REPLACE TYPE tpParametrizacaoResumoTabela AS TABLE OF tpParametrizacaoResumo;
+CREATE OR REPLACE TYPE tpmigParametrizacaoResumoTabela AS TABLE OF tpmigParametrizacaoResumo;
 
-DROP TYPE tpParametrizacaoListarTabela;
-CREATE OR REPLACE TYPE tpParametrizacaoListar AS OBJECT (
+DROP TYPE tpmigParametrizacaoListarTabela;
+CREATE OR REPLACE TYPE tpmigParametrizacaoListar AS OBJECT (
 -- Tipo Objeto: Listar Parametrizações
   sgAgrupamento   VARCHAR2(15),
   sgOrgao         VARCHAR2(15),
@@ -22,7 +22,7 @@ CREATE OR REPLACE TYPE tpParametrizacaoListar AS OBJECT (
   cdIdentificacao VARCHAR2(20), 
   jsConteudo      CLOB
 );
-CREATE OR REPLACE TYPE tpParametrizacaoListarTabela AS TABLE OF tpParametrizacaoListar;
+CREATE OR REPLACE TYPE tpmigParametrizacaoListarTabela AS TABLE OF tpmigParametrizacaoListar;
 /
 
 --- Pacote de Exportação e Importação das Parametrizações
@@ -44,10 +44,10 @@ CREATE OR REPLACE PACKAGE PKGMIG_Parametrizacao AS
 
   FUNCTION fnResumo (
     pjsParametros         IN VARCHAR2 DEFAULT NULL
-  ) RETURN tpParametrizacaoResumoTabela PIPELINED;
+  ) RETURN tpmigParametrizacaoResumoTabela PIPELINED;
 
   FUNCTION fnListar (
     pjsParametros         IN VARCHAR2 DEFAULT NULL
-  ) RETURN tpParametrizacaoListarTabela PIPELINED;
+  ) RETURN tpmigParametrizacaoListarTabela PIPELINED;
 END PKGMIG_Parametrizacao;
 /

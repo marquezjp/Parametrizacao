@@ -2,7 +2,7 @@
 CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
 
   PROCEDURE pExportar(pjsParametros IN VARCHAR2 DEFAULT NULL) IS
-    vParm                 tpParametroEntrada;
+    vParm                 tpmigParametroEntrada;
   BEGIN
     vParm := PKGMIG_ParametrizacaoLog.fnObterParametro(pjsParametros);
 
@@ -19,7 +19,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
   END pExportar;
 
   PROCEDURE pImportar(pjsParametros IN VARCHAR2 DEFAULT NULL) IS
-    vParm                 tpParametroEntrada;
+    vParm                 tpmigParametroEntrada;
   BEGIN
     vParm := PKGMIG_ParametrizacaoLog.fnObterParametro(pjsParametros);
 
@@ -40,9 +40,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
 
 -- Resumo das Operações de Exportação das Parametrizações
   FUNCTION fnResumo(pjsParametros IN VARCHAR2 DEFAULT NULL
-  ) RETURN tpParametrizacaoResumoTabela PIPELINED IS
+  ) RETURN tpmigParametrizacaoResumoTabela PIPELINED IS
     -- Variáveis de controle e contexto
-    vParm                 tpParametroEntrada;
+    vParm                 tpmigParametroEntrada;
 
   BEGIN
     vParm := PKGMIG_ParametrizacaoLog.fnObterParametro(pjsParametros);
@@ -57,7 +57,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
       GROUP BY sgAgrupamento, sgOrgao, sgModulo, sgConceito, dtExportacao
       ORDER BY sgAgrupamento, sgOrgao, sgModulo, sgConceito, dtExportacao desc)
     LOOP
-      PIPE ROW (tpParametrizacaoResumo(r.sgAgrupamento, r.sgOrgao,
+      PIPE ROW (tpmigParametrizacaoResumo(r.sgAgrupamento, r.sgOrgao,
         r.sgModulo, r.sgConceito, r.dtExportacao,
         r.Conteudos));
     END LOOP;
@@ -66,9 +66,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
 
 -- Listar a Exportação das Parametrizações
   FUNCTION fnListar(pjsParametros IN VARCHAR2 DEFAULT NULL
-  ) RETURN tpParametrizacaoListarTabela PIPELINED IS
+  ) RETURN tpmigParametrizacaoListarTabela PIPELINED IS
     -- Variáveis de controle e contexto
-    vParm                 tpParametroEntrada;
+    vParm                 tpmigParametroEntrada;
     vdtExportacao    TIMESTAMP := Null;
 
   BEGIN
@@ -94,7 +94,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
         AND (TO_CHAR(dtExportacao, 'DD/MM/YYYY HH24:MI') = vdtExportacao)
       ORDER BY sgAgrupamento, sgModulo, sgConceito, sgOrgao, dtExportacao DESC, cdIdentificacao)
     LOOP
-      PIPE ROW (tpParametrizacaoListar(r.sgAgrupamento, r.sgOrgao,
+      PIPE ROW (tpmigParametrizacaoListar(r.sgAgrupamento, r.sgOrgao,
           r.sgModulo, r.sgConceito, r.dtExportacao, 
           r.cdIdentificacao, r.jsConteudo));
     END LOOP;

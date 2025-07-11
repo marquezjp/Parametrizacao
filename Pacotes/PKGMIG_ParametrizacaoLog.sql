@@ -1,5 +1,5 @@
 --- Declaração dos Tipos de Objetos e Tabelas para o Pacote de Logs das Parametrizações
-CREATE OR REPLACE TYPE tpParametroEntrada AS OBJECT (
+CREATE OR REPLACE TYPE tpmigParametroEntrada AS OBJECT (
 -- Tipo Objeto: Parametrizações
   sgAgrupamento        VARCHAR2(15),
   sgAgrupamentoDestino VARCHAR2(15),
@@ -12,7 +12,7 @@ CREATE OR REPLACE TYPE tpParametroEntrada AS OBJECT (
   nuNivelAuditoria     NUMBER
 );
 
-CREATE OR REPLACE TYPE tpRetorno AS OBJECT (
+CREATE OR REPLACE TYPE tpmigRetorno AS OBJECT (
   deStatus             VARCHAR2(20),
   cdStatus             NUMBER,
   txMensagem           VARCHAR2(100),
@@ -20,8 +20,8 @@ CREATE OR REPLACE TYPE tpRetorno AS OBJECT (
   jsDados              CLOB
 );
 
-DROP TYPE tpParametrizacaoLogResumoTabela;
-CREATE OR REPLACE TYPE tpParametrizacaoLogResumo AS OBJECT (
+DROP TYPE tpmigParametrizacaoLogResumoTabela;
+CREATE OR REPLACE TYPE tpmigParametrizacaoLogResumo AS OBJECT (
 -- Tipo Objeto: Resumo do Log das Operações de Exportação e Importação das Parametrizações
   tpOperacao      VARCHAR2(15),
   dtOperacao      VARCHAR2(25),
@@ -32,10 +32,10 @@ CREATE OR REPLACE TYPE tpParametrizacaoLogResumo AS OBJECT (
   nuEventos       NUMBER,
   nuRegistros     NUMBER
 );
-CREATE OR REPLACE TYPE tpParametrizacaoLogResumoTabela AS TABLE OF tpParametrizacaoLogResumo;
+CREATE OR REPLACE TYPE tpmigParametrizacaoLogResumoTabela AS TABLE OF tpmigParametrizacaoLogResumo;
 
-DROP TYPE tpParametrizacaoLogResumoEntidadesTabela; 
-CREATE OR REPLACE TYPE tpParametrizacaoLogResumoEntidades AS OBJECT (
+DROP TYPE tpmigParametrizacaoLogResumoEntidadesTabela; 
+CREATE OR REPLACE TYPE tpmigParametrizacaoLogResumoEntidades AS OBJECT (
 -- Tipo Objeto: Resumo do Log das Operações de Exportação e Importação das Parametrizações por Entidades
   tpOperacao      VARCHAR2(15),
   dtOperacao      VARCHAR2(25),
@@ -47,10 +47,10 @@ CREATE OR REPLACE TYPE tpParametrizacaoLogResumoEntidades AS OBJECT (
   nuEventos       NUMBER,
   nuRegistros     NUMBER
 );
-CREATE OR REPLACE TYPE tpParametrizacaoLogResumoEntidadesTabela AS TABLE OF tpParametrizacaoLogResumoEntidades;
+CREATE OR REPLACE TYPE tpmigParametrizacaoLogResumoEntidadesTabela AS TABLE OF tpmigParametrizacaoLogResumoEntidades;
 
-DROP TYPE tpParametrizacaoLogListarTabela; 
-CREATE OR REPLACE TYPE tpParametrizacaoLogListar AS OBJECT (
+DROP TYPE tpmigParametrizacaoLogListarTabela; 
+CREATE OR REPLACE TYPE tpmigParametrizacaoLogListar AS OBJECT (
 -- Tipo Objeto: Listar o Log da Operação de Exportação ou Importação das Parametrizações
   tpOperacao      VARCHAR2(15),
   dtOperacao      VARCHAR2(25),
@@ -65,7 +65,7 @@ CREATE OR REPLACE TYPE tpParametrizacaoLogListar AS OBJECT (
   deMensagem      VARCHAR2(4000),
   dtInclusao      TIMESTAMP(6)
  );
-CREATE OR REPLACE TYPE tpParametrizacaoLogListarTabela AS TABLE OF tpParametrizacaoLogListar;
+CREATE OR REPLACE TYPE tpmigParametrizacaoLogListarTabela AS TABLE OF tpmigParametrizacaoLogListar;
 /
 
 --- Pacote de Log das Parametrizações
@@ -103,7 +103,7 @@ CREATE OR REPLACE PACKAGE PKGMIG_ParametrizacaoLog AS
 
   FUNCTION fnObterParametro(
     pjsParametros     IN VARCHAR2 DEFAULT NULL
-  ) RETURN tpParametroEntrada;
+  ) RETURN tpmigParametroEntrada;
 
   FUNCTION fnObterChave(
     pjsParametros     IN VARCHAR2 DEFAULT NULL,
@@ -185,15 +185,15 @@ CREATE OR REPLACE PACKAGE PKGMIG_ParametrizacaoLog AS
 
   FUNCTION fnResumo(
     pjsParametros         IN VARCHAR2 DEFAULT NULL
-  ) RETURN tpParametrizacaoLogResumoTabela PIPELINED;
+  ) RETURN tpmigParametrizacaoLogResumoTabela PIPELINED;
 
   FUNCTION fnResumoEntidades(
     pjsParametros         IN VARCHAR2 DEFAULT NULL
-  ) RETURN tpParametrizacaoLogResumoEntidadesTabela PIPELINED;
+  ) RETURN tpmigParametrizacaoLogResumoEntidadesTabela PIPELINED;
 
   FUNCTION fnListar(
     pjsParametros         IN VARCHAR2 DEFAULT NULL
-  ) RETURN tpParametrizacaoLogListarTabela PIPELINED;
+  ) RETURN tpmigParametrizacaoLogListarTabela PIPELINED;
     
   PROCEDURE pExcluir(
     pjsParametros         IN VARCHAR2 DEFAULT NULL

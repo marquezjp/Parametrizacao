@@ -3,9 +3,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
 
   FUNCTION fnObterParametro(
     pjsParametros     IN VARCHAR2 DEFAULT NULL
-  ) RETURN tpParametroEntrada IS
+  ) RETURN tpmigParametroEntrada IS
 
-    vParm tpParametroEntrada := NEW tpParametroEntrada(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+    vParm tpmigParametroEntrada := NEW tpmigParametroEntrada(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
     vtxParametroFormato CONSTANT VARCHAR2(4000) := '
       {
@@ -546,9 +546,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
 
 -- Resumo do Log das Operações de Exportação e Importação das Parametrizações
   FUNCTION fnResumo(pjsParametros IN VARCHAR2 DEFAULT NULL
-  ) RETURN tpParametrizacaoLogResumoTabela PIPELINED IS
+  ) RETURN tpmigParametrizacaoLogResumoTabela PIPELINED IS
     -- Variáveis de controle e contexto
-    vParm                 tpParametroEntrada;
+    vParm                 tpmigParametroEntrada;
 
   BEGIN
     vParm := PKGMIG_ParametrizacaoLog.fnObterParametro(pjsParametros);
@@ -566,7 +566,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
       GROUP BY tpOperacao, dtOperacao, sgAgrupamento, sgOrgao, sgModulo, sgConceito
       ORDER BY tpOperacao, dtOperacao DESC, sgAgrupamento, sgOrgao, sgModulo, sgConceito)
     LOOP
-      PIPE ROW (tpParametrizacaoLogResumo(r.tpOperacao, r.dtOperacao,
+      PIPE ROW (tpmigParametrizacaoLogResumo(r.tpOperacao, r.dtOperacao,
         r.sgAgrupamento, r.sgOrgao, r.sgModulo, r.sgConceito, r.nuEventos, r.nuRegistros));
     END LOOP;
     RETURN;
@@ -574,9 +574,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
 
 -- Resumo do Log das Operações de Exportação e Importação das Parametrizações
   FUNCTION fnResumoEntidades(pjsParametros IN VARCHAR2 DEFAULT NULL
-  ) RETURN tpParametrizacaoLogResumoEntidadesTabela PIPELINED IS
+  ) RETURN tpmigParametrizacaoLogResumoEntidadesTabela PIPELINED IS
     -- Variáveis de controle e contexto
-    vParm                 tpParametroEntrada;
+    vParm                 tpmigParametroEntrada;
     vdtOperacao    TIMESTAMP := Null;
 
   BEGIN
@@ -602,7 +602,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
       GROUP BY tpOperacao, dtOperacao, sgAgrupamento, sgOrgao, sgModulo, sgConceito, nmEntidade
       ORDER BY tpOperacao, dtOperacao DESC, sgAgrupamento, sgModulo, sgConceito, sgOrgao, nmEntidade)
     LOOP
-      PIPE ROW (tpParametrizacaoLogResumoEntidades(r.tpOperacao, r.dtOperacao,
+      PIPE ROW (tpmigParametrizacaoLogResumoEntidades(r.tpOperacao, r.dtOperacao,
 	    r.sgAgrupamento, r.sgOrgao, r.sgModulo, r.sgConceito,
 		  r.nmEntidade, r.nuEventos, r.nuRegistros));
     END LOOP;
@@ -611,9 +611,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
 
 -- Listar o Log da Operação de Exportação ou Importação das Parametrizações
   FUNCTION fnListar(pjsParametros IN VARCHAR2 DEFAULT NULL
-  ) RETURN tpParametrizacaoLogListarTabela PIPELINED IS
+  ) RETURN tpmigParametrizacaoLogListarTabela PIPELINED IS
     -- Variáveis de controle e contexto
-    vParm                 tpParametroEntrada;
+    vParm                 tpmigParametroEntrada;
     vdtOperacao    TIMESTAMP := Null;
 
   BEGIN
@@ -639,7 +639,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
         sgAgrupamento, sgOrgao, sgModulo, sgConceito,
         cdIdentificacao NULLS FIRST, nmEvento, deMensagem)
     LOOP
-      PIPE ROW (tpParametrizacaoLogListar(r.tpOperacao, r.dtOperacao,
+      PIPE ROW (tpmigParametrizacaoLogListar(r.tpOperacao, r.dtOperacao,
         r.sgAgrupamento, r.sgOrgao, r.sgModulo, r.sgConceito,
         r.nmEntidade, r.cdidentificacao, r.nmEvento, r.nuRegistros, r.deMensagem, r.dtInclusao));
     END LOOP;
@@ -648,7 +648,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
 
   PROCEDURE pExcluir(pjsParametros IN VARCHAR2 DEFAULT NULL) IS
     -- Variáveis de controle e contexto
-    vParm                 tpParametroEntrada;
+    vParm                 tpmigParametroEntrada;
   BEGIN
     vParm := PKGMIG_ParametrizacaoLog.fnObterParametro(pjsParametros);
 
