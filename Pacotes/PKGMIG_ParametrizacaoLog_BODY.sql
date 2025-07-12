@@ -28,7 +28,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
         'Deveria ser informado da seguinte forma:' || vtxParametroFormato);
     END IF;
 
-    vParm.nuNivelAuditoria := fnObterNivelAuditoria(fnObterChave(pjsParametros, 'pNivelAuditoria'));
+    vParm.nuNivelAuditoria := fnObterNivelAuditoria(fnObterChave(pjsParametros, 'nmNivelAuditoria'));
 
     vParm.sgAgrupamento := UPPER(TRIM(fnObterChave(pjsParametros, 'sgAgrupamento')));
     IF vParm.sgAgrupamento IS NULL THEN
@@ -112,7 +112,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
     END IF;
 
     CASE UPPER(pnmChave)
-      WHEN 'NUNIVELAUDITORIA'     THEN vnmChave := 'nuNivelAuditoria';
+      WHEN 'NMNIVELAUDITORIA'     THEN vnmChave := 'nmNivelAuditoria';
       WHEN 'SGAGRUPAMENTO'        THEN vnmChave := 'sgAgrupamento';
       WHEN 'SGAGRUPAMENTODESTINO' THEN vnmChave := 'sgAgrupamentoDestino';
       WHEN 'SGORGAO'              THEN vnmChave := 'sgOrgao';

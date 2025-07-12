@@ -2142,7 +2142,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
                 'flExtraOrcamentaria'        VALUE NULLIF(rub.flExtraOrcamentaria, 'N')
              ABSENT ON NULL) END
           ABSENT ON NULL RETURNING CLOB),
-          rubagrup.Agrupamento
+          'Agrupamento'                      VALUE rubagrup.Agrupamento
         ABSENT ON NULL RETURNING CLOB) AS Tipo
       FROM epagRubrica rub
       INNER JOIN epagTipoRubrica tp ON tp.cdTipoRubrica = rub.cdTipoRubrica
