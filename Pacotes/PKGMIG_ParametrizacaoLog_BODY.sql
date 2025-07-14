@@ -466,7 +466,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
         END AS dtInclusaoAjustada
       FROM emigParametrizacaoLog
       WHERE sgModulo = psgModulo AND sgConceito = psgConceito AND nmEvento != 'RESUMO'
-      AND tpOperacao = ptpOperacao --AND dtOperacao = pdtOperacao
+      AND tpOperacao = ptpOperacao AND dtOperacao = pdtOperacao
       AND sgAgrupamento = psgAgrupamento
       ),
       OrdemEntidade AS (

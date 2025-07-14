@@ -1282,9 +1282,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
       		      THEN NULL
               ELSE JSON_OBJECT(
                 'dtInicioConquistaPerAquis' VALUE CASE WHEN vigencia.dtInicioConquistaPerAquis IS NULL THEN NULL
-                                                  ELSE TO_CHAR(vigencia.dtInicioConquistaPerAquis, 'YYYY-DD-MM') END,
+                                                  ELSE TO_CHAR(vigencia.dtInicioConquistaPerAquis, 'YYYY-MM-DD') END,
                 'dtFimConquistaPerAquis'    VALUE CASE WHEN vigencia.dtFimConquistaPerAquis IS NULL THEN NULL
-                                                  ELSE TO_CHAR(vigencia.dtFimConquistaPerAquis, 'YYYY-DD-MM') END
+                                                  ELSE TO_CHAR(vigencia.dtFimConquistaPerAquis, 'YYYY-MM-DD') END
               ABSENT ON NULL) END,
             'Abrangencia'                   VALUE
       		    CASE WHEN vigencia.cdTipoComConselhoGrupo   IS NULL AND vigencia.cdTipoPensaoNaoPrev     IS NULL 
@@ -1375,11 +1375,11 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
       JSON_OBJECT(
         'nuContrato'                      VALUE ctr.nuContrato,
         'dtInicioContrato'                VALUE CASE WHEN ctr.dtInicioContrato IS NULL THEN NULL
-                                                ELSE TO_CHAR(ctr.dtInicioContrato, 'YYYY-DD-MM') END,
+                                                ELSE TO_CHAR(ctr.dtInicioContrato, 'YYYY-MM-DD') END,
         'dtFimContrato'                   VALUE CASE WHEN ctr.dtFimContrato IS NULL THEN NULL
-                                                ELSE TO_CHAR(ctr.dtFimContrato, 'YYYY-DD-MM') END,
+                                                ELSE TO_CHAR(ctr.dtFimContrato, 'YYYY-MM-DD') END,
         'dtFimProrrogacao'                VALUE CASE WHEN ctr.dtFimProrrogacao IS NULL THEN NULL
-                                                ELSE TO_CHAR(ctr.dtFimProrrogacao, 'YYYY-DD-MM') END,
+                                                ELSE TO_CHAR(ctr.dtFimProrrogacao, 'YYYY-MM-DD') END,
         'nmTipoServico'                   VALUE tpserv.nmTipoServico,
         'nuCodigoConsignataria'           VALUE cst.nuCodigoConsignataria,
         'deServico'                       VALUE ctr.deServico,
@@ -1404,13 +1404,13 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
             'nuAnoDocumento'              VALUE doc.nuAnoDocumento,
             'deTipoDocumento'             VALUE tpdoc.deTipoDocumento,
             'dtDocumento'                 VALUE CASE WHEN doc.dtDocumento IS NULL THEN NULL
-                                                ELSE TO_CHAR(doc.dtDocumento, 'YYYY-DD-MM') END,
+                                                ELSE TO_CHAR(doc.dtDocumento, 'YYYY-MM-DD') END,
             'nuNumeroAtoLegal'            VALUE doc.nuNumeroAtoLegal,
             'deObservacao'                VALUE doc.deObservacao,
             'nmMeioPublicacao'            VALUE meiopub.nmMeioPublicacao,
             'nmTipoPublicacao'            VALUE tppub.nmTipoPublicacao,
             'dtPublicacao'                VALUE CASE WHEN ctr.dtPublicacao IS NULL THEN NULL
-                                                ELSE TO_CHAR(ctr.dtPublicacao, 'YYYY-DD-MM') END,
+                                                ELSE TO_CHAR(ctr.dtPublicacao, 'YYYY-MM-DD') END,
             'nuPublicacao'                VALUE ctr.nuPublicacao,
             'nuPagInicial'                VALUE ctr.nuPagInicial,
             'deOutroMeio'                 VALUE ctr.deOutroMeio,
@@ -1431,9 +1431,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
       SELECT vgtpserv.cdtiposervico,
       JSON_ARRAYAGG(JSON_OBJECT(
           'dtInicioVigencia'              VALUE CASE WHEN vgtpserv.dtInicioVigencia IS NULL THEN NULL
-                                                ELSE TO_CHAR(vgtpserv.dtInicioVigencia, 'YYYY-DD-MM') END,
+                                                ELSE TO_CHAR(vgtpserv.dtInicioVigencia, 'YYYY-MM-DD') END,
           'dtFimVigencia'                 VALUE CASE WHEN vgtpserv.dtFimVigencia IS NULL THEN NULL
-                                                ELSE TO_CHAR(vgtpserv.dtFimVigencia, 'YYYY-DD-MM') END,
+                                                ELSE TO_CHAR(vgtpserv.dtFimVigencia, 'YYYY-MM-DD') END,
           'nuOrdem'                       VALUE vgtpserv.nuOrdem,
           'nmConsigOutroTipo'             VALUE vgtpserv.cdConsigOutroTipo,
           'Parametros' VALUE
@@ -1501,10 +1501,10 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
       --  'nuRubrica'                     VALUE rub.nuRubrica || ' ' || rub.deRubrica,
         'nmTipoServico'                 VALUE tiposervico.nmTipoServico,
         'dtInicioSuspensao'             VALUE CASE WHEN cstsup.dtInicioSuspensao IS NULL THEN NULL
-                                              ELSE TO_CHAR(cstsup.dtInicioSuspensao, 'YYYY-DD-MM') END,
+                                              ELSE TO_CHAR(cstsup.dtInicioSuspensao, 'YYYY-MM-DD') END,
         'nuHoraInicioSuspensao'         VALUE cstsup.nuHoraInicioSuspensao,
         'dtFimSuspensao'                VALUE CASE WHEN cstsup.dtFimSuspensao IS NULL THEN NULL
-                                               ELSE TO_CHAR(cstsup.dtFimSuspensao, 'YYYY-DD-MM') END,
+                                               ELSE TO_CHAR(cstsup.dtFimSuspensao, 'YYYY-MM-DD') END,
         'nuHoraFimSuspensao'            VALUE cstsup.nuHoraFimSuspensao,
         'deMotivoSuspensao'             VALUE cstsup.deMotivoSuspensao,
         'Documento' VALUE
@@ -1518,13 +1518,13 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
           'nuAnoDocumento'              VALUE doc.nuAnoDocumento,
           'deTipoDocumento'             VALUE tpdoc.deTipoDocumento,
           'dtDocumento'                 VALUE CASE WHEN doc.dtDocumento IS NULL THEN NULL
-                                              ELSE TO_CHAR(doc.dtDocumento, 'YYYY-DD-MM') END,
+                                              ELSE TO_CHAR(doc.dtDocumento, 'YYYY-MM-DD') END,
           'nuNumeroAtoLegal'            VALUE doc.nuNumeroAtoLegal,
           'deObservacao'                VALUE doc.deObservacao,
           'nmMeioPublicacao'            VALUE meiopub.nmMeioPublicacao,
           'nmTipoPublicacao'            VALUE tppub.nmTipoPublicacao,
           'dtPublicacao'                VALUE CASE WHEN cst.dtPublicacao IS NULL THEN NULL
-                                              ELSE TO_CHAR(cst.dtPublicacao, 'YYYY-DD-MM') END,
+                                              ELSE TO_CHAR(cst.dtPublicacao, 'YYYY-MM-DD') END,
           'nuPublicacao'                VALUE cstsup.nuPublicacao,
           'nuPagInicial'                VALUE cstsup.nuPagInicial,
           'deOutroMeio'                 VALUE cstsup.deOutroMeio,
@@ -1622,13 +1622,13 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
           'nuAnoDocumento'                VALUE doc.nuAnoDocumento,
           'deTipoDocumento'               VALUE tpdoc.deTipoDocumento,
           'dtDocumento'                   VALUE CASE WHEN doc.dtDocumento IS NULL THEN NULL
-                                                ELSE TO_CHAR(doc.dtDocumento, 'YYYY-DD-MM') END,
+                                                ELSE TO_CHAR(doc.dtDocumento, 'YYYY-MM-DD') END,
           'nuNumeroAtoLegal'              VALUE doc.nuNumeroAtoLegal,
           'deObservacao'                  VALUE doc.deObservacao,
           'nmMeioPublicacao'              VALUE meiopub.nmMeioPublicacao,
           'nmTipoPublicacao'              VALUE tppub.nmTipoPublicacao,
           'dtPublicacao'                  VALUE CASE WHEN cst.dtPublicacao IS NULL THEN NULL
-                                                ELSE TO_CHAR(cst.dtPublicacao, 'YYYY-DD-MM') END,
+                                                ELSE TO_CHAR(cst.dtPublicacao, 'YYYY-MM-DD') END,
           'nuPublicacao'                  VALUE cst.nuPublicacao,
           'nuPagInicial'                  VALUE cst.nuPagInicial,
           'deOutroMeio'                   VALUE cst.deOutroMeio,
@@ -1654,9 +1654,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
       SELECT vigencia.cdConsignacao,
       JSON_ARRAYAGG(JSON_OBJECT(
           'dtInicioVigencia' VALUE CASE WHEN vigencia.dtInicioVigencia IS NULL THEN NULL
-            ELSE TO_CHAR(vigencia.dtInicioVigencia, 'YYYY-DD-MM') END,
+            ELSE TO_CHAR(vigencia.dtInicioVigencia, 'YYYY-MM-DD') END,
           'dtFimVigencia'    VALUE CASE WHEN vigencia.dtFimVigencia IS NULL THEN NULL
-            ELSE TO_CHAR(vigencia.dtFimVigencia, 'YYYY-DD-MM') END,
+            ELSE TO_CHAR(vigencia.dtFimVigencia, 'YYYY-MM-DD') END,
           'Parametros' VALUE
             CASE WHEN NULLIF(vigencia.nuMaxParcelas, 999) IS NULL AND vigencia.vlMinConsignado IS NULL AND
               vigencia.vlMinDescontoFolha IS NULL AND NULLIF(vigencia.flMaisDeUmaOcorrencia, 'S') IS NULL AND
@@ -1697,13 +1697,13 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
             'nuAnoDocumento'              VALUE doc.nuAnoDocumento,
             'deTipoDocumento'             VALUE tpdoc.deTipoDocumento,
             'dtDocumento'                 VALUE CASE WHEN doc.dtDocumento IS NULL THEN NULL
-                                                ELSE TO_CHAR(doc.dtDocumento, 'YYYY-DD-MM') END,
+                                                ELSE TO_CHAR(doc.dtDocumento, 'YYYY-MM-DD') END,
             'nuNumeroAtoLegal'            VALUE doc.nuNumeroAtoLegal,
             'deObservacao'                VALUE doc.deObservacao,
             'nmMeioPublicacao'            VALUE meiopub.nmMeioPublicacao,
             'nmTipoPublicacao'            VALUE tppub.nmTipoPublicacao,
             'dtPublicacao'                VALUE CASE WHEN vigencia.dtPublicacao IS NULL THEN NULL
-                                                ELSE TO_CHAR(vigencia.dtPublicacao, 'YYYY-DD-MM') END,
+                                                ELSE TO_CHAR(vigencia.dtPublicacao, 'YYYY-MM-DD') END,
             'nuPublicacao'                VALUE vigencia.nuPublicacao,
             'nuPagInicial'                VALUE vigencia.nuPagInicial,
             'deOutroMeio'                 VALUE vigencia.deOutroMeio,
@@ -1725,9 +1725,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
         'nuRubrica'               VALUE rub.nuRubrica,
         'deRubrica'               VALUE rub.deRubrica,
         'dtInicioConcessao'       VALUE CASE WHEN csg.dtInicioConcessao IS NULL THEN NULL
-                                        ELSE TO_CHAR(csg.dtInicioConcessao, 'YYYY-DD-MM') END,
+                                        ELSE TO_CHAR(csg.dtInicioConcessao, 'YYYY-MM-DD') END,
         'dtFimConcessao'          VALUE CASE WHEN csg.dtFimConcessao IS NULL THEN NULL
-                                        ELSE TO_CHAR(csg.dtFimConcessao, 'YYYY-DD-MM') END,
+                                        ELSE TO_CHAR(csg.dtFimConcessao, 'YYYY-MM-DD') END,
         'flGeridaTerceitos'       VALUE NULLIF(csg.flGeridaSCConsig,'N'),
         'flRepasse'               VALUE NULLIF(csg.flRepasse,'N'),
         'Vigencias'               VALUE vigencia.Vigencias,
