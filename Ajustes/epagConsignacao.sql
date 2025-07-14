@@ -1,4 +1,8 @@
 /*
+0249, 0903, 0532, 0556, 0747, 0267, 0590, 1101, 1821, 0254
+
+Tipo Servico 5, 7 
+
 epagConsignacao
 epagHistConsignacao
 epagConsignataria
@@ -127,11 +131,11 @@ SELECT ctr.cdcontratoservico, ctr.cdagrupamento, ctr.cdorgao, ctr.cdconsignatari
 JSON_OBJECT(
   'nuContrato'                      VALUE ctr.nuContrato,
   'dtInicioContrato'                VALUE CASE WHEN ctr.dtInicioContrato IS NULL THEN NULL
-                                          ELSE TO_CHAR(ctr.dtInicioContrato, 'YYYY-DD-MM') END,
+                                          ELSE TO_CHAR(ctr.dtInicioContrato, 'YYYY-MM-DD') END,
   'dtFimContrato'                   VALUE CASE WHEN ctr.dtFimContrato IS NULL THEN NULL
-                                          ELSE TO_CHAR(ctr.dtFimContrato, 'YYYY-DD-MM') END,
+                                          ELSE TO_CHAR(ctr.dtFimContrato, 'YYYY-MM-DD') END,
   'dtFimProrrogacao'                VALUE CASE WHEN ctr.dtFimProrrogacao IS NULL THEN NULL
-                                          ELSE TO_CHAR(ctr.dtFimProrrogacao, 'YYYY-DD-MM') END,
+                                          ELSE TO_CHAR(ctr.dtFimProrrogacao, 'YYYY-MM-DD') END,
   'nmTipoServico'                   VALUE tpserv.nmTipoServico,
   'nuCodigoConsignataria'           VALUE cst.nuCodigoConsignataria,
   'deServico'                       VALUE ctr.deServico,
@@ -156,13 +160,13 @@ JSON_OBJECT(
       'nuAnoDocumento'              VALUE doc.nuAnoDocumento,
       'deTipoDocumento'             VALUE tpdoc.deTipoDocumento,
       'dtDocumento'                 VALUE CASE WHEN doc.dtDocumento IS NULL THEN NULL
-                                          ELSE TO_CHAR(doc.dtDocumento, 'YYYY-DD-MM') END,
+                                          ELSE TO_CHAR(doc.dtDocumento, 'YYYY-MM-DD') END,
       'nuNumeroAtoLegal'            VALUE doc.nuNumeroAtoLegal,
       'deObservacao'                VALUE doc.deObservacao,
       'nmMeioPublicacao'            VALUE meiopub.nmMeioPublicacao,
       'nmTipoPublicacao'            VALUE tppub.nmTipoPublicacao,
       'dtPublicacao'                VALUE CASE WHEN ctr.dtPublicacao IS NULL THEN NULL
-                                          ELSE TO_CHAR(ctr.dtPublicacao, 'YYYY-DD-MM') END,
+                                          ELSE TO_CHAR(ctr.dtPublicacao, 'YYYY-MM-DD') END,
       'nuPublicacao'                VALUE ctr.nuPublicacao,
       'nuPagInicial'                VALUE ctr.nuPagInicial,
       'deOutroMeio'                 VALUE ctr.deOutroMeio,
@@ -183,9 +187,9 @@ VigenciaTipoServico AS (
 SELECT vgtpserv.cdtiposervico,
 JSON_ARRAYAGG(JSON_OBJECT(
     'dtInicioVigencia'              VALUE CASE WHEN vgtpserv.dtInicioVigencia IS NULL THEN NULL
-                                          ELSE TO_CHAR(vgtpserv.dtInicioVigencia, 'YYYY-DD-MM') END,
+                                          ELSE TO_CHAR(vgtpserv.dtInicioVigencia, 'YYYY-MM-DD') END,
     'dtFimVigencia'                 VALUE CASE WHEN vgtpserv.dtFimVigencia IS NULL THEN NULL
-                                          ELSE TO_CHAR(vgtpserv.dtFimVigencia, 'YYYY-DD-MM') END,
+                                          ELSE TO_CHAR(vgtpserv.dtFimVigencia, 'YYYY-MM-DD') END,
     'nuOrdem'                       VALUE vgtpserv.nuOrdem,
     'nmConsigOutroTipo'             VALUE vgtpserv.cdConsigOutroTipo,
     'Parametros' VALUE
@@ -253,10 +257,10 @@ cstsup.cdconsignataria, cstsup.cdconsignacao, cstsup.cdtiposervico,
 --  'nuRubrica'                     VALUE rub.nuRubrica || ' ' || rub.deRubrica,
   'nmTipoServico'                 VALUE tiposervico.nmTipoServico,
   'dtInicioSuspensao'             VALUE CASE WHEN cstsup.dtInicioSuspensao IS NULL THEN NULL
-                                        ELSE TO_CHAR(cstsup.dtInicioSuspensao, 'YYYY-DD-MM') END,
+                                        ELSE TO_CHAR(cstsup.dtInicioSuspensao, 'YYYY-MM-DD') END,
   'nuHoraInicioSuspensao'         VALUE cstsup.nuHoraInicioSuspensao,
   'dtFimSuspensao'                VALUE CASE WHEN cstsup.dtFimSuspensao IS NULL THEN NULL
-                                         ELSE TO_CHAR(cstsup.dtFimSuspensao, 'YYYY-DD-MM') END,
+                                         ELSE TO_CHAR(cstsup.dtFimSuspensao, 'YYYY-MM-DD') END,
   'nuHoraFimSuspensao'            VALUE cstsup.nuHoraFimSuspensao,
   'deMotivoSuspensao'             VALUE cstsup.deMotivoSuspensao,
   'Documento' VALUE
@@ -270,13 +274,13 @@ cstsup.cdconsignataria, cstsup.cdconsignacao, cstsup.cdtiposervico,
     'nuAnoDocumento'              VALUE doc.nuAnoDocumento,
     'deTipoDocumento'             VALUE tpdoc.deTipoDocumento,
     'dtDocumento'                 VALUE CASE WHEN doc.dtDocumento IS NULL THEN NULL
-                                        ELSE TO_CHAR(doc.dtDocumento, 'YYYY-DD-MM') END,
+                                        ELSE TO_CHAR(doc.dtDocumento, 'YYYY-MM-DD') END,
     'nuNumeroAtoLegal'            VALUE doc.nuNumeroAtoLegal,
     'deObservacao'                VALUE doc.deObservacao,
     'nmMeioPublicacao'            VALUE meiopub.nmMeioPublicacao,
     'nmTipoPublicacao'            VALUE tppub.nmTipoPublicacao,
     'dtPublicacao'                VALUE CASE WHEN cst.dtPublicacao IS NULL THEN NULL
-                                        ELSE TO_CHAR(cst.dtPublicacao, 'YYYY-DD-MM') END,
+                                        ELSE TO_CHAR(cst.dtPublicacao, 'YYYY-MM-DD') END,
     'nuPublicacao'                VALUE cstsup.nuPublicacao,
     'nuPagInicial'                VALUE cstsup.nuPagInicial,
     'deOutroMeio'                 VALUE cstsup.deOutroMeio,
@@ -374,13 +378,13 @@ JSON_OBJECT(
     'nuAnoDocumento'                VALUE doc.nuAnoDocumento,
     'deTipoDocumento'               VALUE tpdoc.deTipoDocumento,
     'dtDocumento'                   VALUE CASE WHEN doc.dtDocumento IS NULL THEN NULL
-                                          ELSE TO_CHAR(doc.dtDocumento, 'YYYY-DD-MM') END,
+                                          ELSE TO_CHAR(doc.dtDocumento, 'YYYY-MM-DD') END,
     'nuNumeroAtoLegal'              VALUE doc.nuNumeroAtoLegal,
     'deObservacao'                  VALUE doc.deObservacao,
     'nmMeioPublicacao'              VALUE meiopub.nmMeioPublicacao,
     'nmTipoPublicacao'              VALUE tppub.nmTipoPublicacao,
     'dtPublicacao'                  VALUE CASE WHEN cst.dtPublicacao IS NULL THEN NULL
-                                          ELSE TO_CHAR(cst.dtPublicacao, 'YYYY-DD-MM') END,
+                                          ELSE TO_CHAR(cst.dtPublicacao, 'YYYY-MM-DD') END,
     'nuPublicacao'                  VALUE cst.nuPublicacao,
     'nuPagInicial'                  VALUE cst.nuPagInicial,
     'deOutroMeio'                   VALUE cst.deOutroMeio,
@@ -406,9 +410,9 @@ VigenciaConsignacao AS (
 SELECT vigencia.cdConsignacao,
 JSON_ARRAYAGG(JSON_OBJECT(
     'dtInicioVigencia' VALUE CASE WHEN vigencia.dtInicioVigencia IS NULL THEN NULL
-      ELSE TO_CHAR(vigencia.dtInicioVigencia, 'YYYY-DD-MM') END,
+      ELSE TO_CHAR(vigencia.dtInicioVigencia, 'YYYY-MM-DD') END,
     'dtFimVigencia'    VALUE CASE WHEN vigencia.dtFimVigencia IS NULL THEN NULL
-      ELSE TO_CHAR(vigencia.dtFimVigencia, 'YYYY-DD-MM') END,
+      ELSE TO_CHAR(vigencia.dtFimVigencia, 'YYYY-MM-DD') END,
     'Parametros' VALUE
       CASE WHEN NULLIF(vigencia.nuMaxParcelas, 999) IS NULL AND vigencia.vlMinConsignado IS NULL AND
         vigencia.vlMinDescontoFolha IS NULL AND NULLIF(vigencia.flMaisDeUmaOcorrencia, 'S') IS NULL AND
@@ -449,13 +453,13 @@ JSON_ARRAYAGG(JSON_OBJECT(
       'nuAnoDocumento'              VALUE doc.nuAnoDocumento,
       'deTipoDocumento'             VALUE tpdoc.deTipoDocumento,
       'dtDocumento'                 VALUE CASE WHEN doc.dtDocumento IS NULL THEN NULL
-                                          ELSE TO_CHAR(doc.dtDocumento, 'YYYY-DD-MM') END,
+                                          ELSE TO_CHAR(doc.dtDocumento, 'YYYY-MM-DD') END,
       'nuNumeroAtoLegal'            VALUE doc.nuNumeroAtoLegal,
       'deObservacao'                VALUE doc.deObservacao,
       'nmMeioPublicacao'            VALUE meiopub.nmMeioPublicacao,
       'nmTipoPublicacao'            VALUE tppub.nmTipoPublicacao,
       'dtPublicacao'                VALUE CASE WHEN vigencia.dtPublicacao IS NULL THEN NULL
-                                          ELSE TO_CHAR(vigencia.dtPublicacao, 'YYYY-DD-MM') END,
+                                          ELSE TO_CHAR(vigencia.dtPublicacao, 'YYYY-MM-DD') END,
       'nuPublicacao'                VALUE vigencia.nuPublicacao,
       'nuPagInicial'                VALUE vigencia.nuPagInicial,
       'deOutroMeio'                 VALUE vigencia.deOutroMeio,
@@ -477,9 +481,9 @@ JSON_OBJECT(
   'nuRubrica'               VALUE rub.nuRubrica,
   'deRubrica'               VALUE rub.deRubrica,
   'dtInicioConcessao'       VALUE CASE WHEN csg.dtInicioConcessao IS NULL THEN NULL
-                                  ELSE TO_CHAR(csg.dtInicioConcessao, 'YYYY-DD-MM') END,
+                                  ELSE TO_CHAR(csg.dtInicioConcessao, 'YYYY-MM-DD') END,
   'dtFimConcessao'          VALUE CASE WHEN csg.dtFimConcessao IS NULL THEN NULL
-                                  ELSE TO_CHAR(csg.dtFimConcessao, 'YYYY-DD-MM') END,
+                                  ELSE TO_CHAR(csg.dtFimConcessao, 'YYYY-MM-DD') END,
   'flGeridaTerceitos'       VALUE NULLIF(flGeridaSCConsig,'N'),
   'flRepasse'               VALUE NULLIF(flRepasse,'N'),
   'Vigencias'               VALUE vigencia.Vigencias,
@@ -504,4 +508,331 @@ WHERE cdAgrupamento = 19
 ORDER BY cdAgrupamento, nuRubrica -- Tamanho DESC
 ;
 /
+
+======================================================================================================
+
+
+WITH
+ConsignacoesExistentes AS (
+  SELECT LPAD(tprub.nuTipoRubrica,2,0) || '-' || LPAD(rub.nuRubrica,4,0) AS nuRubrica
+  FROM epagConsignacao csg
+  LEFT JOIN epagRubrica rub ON rub.cdRubrica = csg.cdRubrica
+  LEFT JOIN epagTipoRubrica tprub ON tprub.cdTipoRubrica = rub.cdTipoRubrica
+),
+
+-- Consignações das Parametrizações das Rubricas
+Consignacoes AS (
+  SELECT parm.sgAgrupamento, parm.sgOrgao, parm.sgModulo, parm.sgConceito, parm.dtExportacao,
+    parm.cdIdentificacao, js.nuRubrica, js.deRubrica, rubagrp.cdRubricaAgrupamento,
+    NVL2(csgexiste.nuRubrica, 'S', 'N') AS flConsignacaoExiste,
+    js.nuCodigoConsignataria, js.sgConsignataria,
+    NVL2(cgt.nuCodigoConsignataria, 'S', 'N') AS flConsignatariaExiste,
+    js.nmTipoServico,
+    NVL2(tpserv.nmTipoServico, 'S', 'N') AS flTipoServicoExiste,
+    JSON_SERIALIZE(TO_CLOB(js.Consignacao) RETURNING CLOB) AS Consignacao
+  FROM emigParametrizacao parm
+  CROSS APPLY JSON_TABLE(parm.jsConteudo, '$.PAG.Rubrica.Tipos[*].Agrupamento.Consignacao' COLUMNS (
+    nuRubrica             PATH '$.nuRubrica',
+    deRubrica             PATH '$.deRubrica',
+    nuCodigoConsignataria PATH '$.Consignataria.nuCodigoConsignataria',
+    sgConsignataria       PATH '$.Consignataria.sgConsignataria',
+    nmTipoServico         PATH '$.TipoServico.nmTipoServico',
+    Consignacao           CLOB FORMAT JSON PATH '$'
+  )) js
+  INNER JOIN ecadAgrupamento a ON a.sgAgrupamento = 'MILITAR'
+  LEFT JOIN epagTipoRubrica tprub ON tprub.nuTipoRubrica = SUBSTR(parm.cdIdentificacao,1,2)
+  LEFT JOIN epagRubrica rub ON rub.cdTipoRubrica = tprub.cdTipoRubrica
+                            AND rub.nuRubrica = SUBSTR(parm.cdIdentificacao,4,4)
+  LEFT JOIN epagRubricaAgrupamento rubagrp ON rubagrp.cdAgrupamento =  a.cdAgrupamento
+                                          AND rubagrp.cdRubrica =  rub.cdRubrica
+  LEFT JOIN ConsignacoesExistentes csgexiste ON csgexiste.nuRubrica = js.nuRubrica
+  LEFT JOIN epagConsignataria cgt ON cgt.nuCodigoConsignataria = js.nuCodigoConsignataria
+  LEFT JOIN epagTipoServico tpserv ON tpserv.nmTipoServico = js.nmTipoServico
+  WHERE parm.sgModulo = 'PAG' AND parm.sgConceito = 'RUBRICA' AND parm.flAnulado = 'N'
+    AND parm.sgAgrupamento = 'MILITAR' AND parm.sgOrgao IS NULL
+    AND to_char(parm.dtExportacao, 'DD/MM/YYYY HH24:MI') = '11/07/2025 09:23'
+    --AND (parm.cdIdentificacao = pcdIdentificacao OR pcdIdentificacao IS NULL)
+    --AND js.nuRubrica IS NOT NULL
+  ORDER BY parm.cdIdentificacao
+)
+SELECT * FROM Consignacoes;
+
+
+==================================================================================================================
+
+WITH
+BancoAgencia AS (
+SELECT ag.cdAgencia,
+  LPAD(bco.nuBanco,3,0) AS nuBanco, ag.nuAgencia, ag.nuDvAgencia,
+  bco.sgBanco, bco.nmBanco, ag.nmAgencia
+FROM ecadAgencia ag
+INNER JOIN ecadBanco bco ON bco.cdBanco = ag.cdBanco
+),
+ConsignatariasNovas AS (
+SELECT parm.sgAgrupamento, parm.sgOrgao, parm.sgModulo, parm.sgConceito, parm.dtExportacao,
+  parm.cdIdentificacao, js.nuRubrica, js.deRubrica,
+  js.nuCodigoConsignataria, js.sgConsignataria,
+  NVL2(cgt.nuCodigoConsignataria, 'S', 'N') AS flConsignatariaExiste,
+  RANK() OVER (PARTITION BY js.nuCodigoConsignataria ORDER BY js.deRubrica, parm.cdParametrizacao) AS nuOrder,
+  JSON_SERIALIZE(TO_CLOB(js.Consignataria) RETURNING CLOB) AS Consignataria
+FROM emigParametrizacao parm
+CROSS APPLY JSON_TABLE(parm.jsConteudo, '$.PAG.Rubrica.Tipos[*].Agrupamento.Consignacao' COLUMNS (
+  nuRubrica             PATH '$.nuRubrica',
+  deRubrica             PATH '$.deRubrica',
+  nuCodigoConsignataria NUMBER PATH '$.Consignataria.nuCodigoConsignataria',
+  sgConsignataria       PATH '$.Consignataria.sgConsignataria',
+  nmTipoServico         PATH '$.TipoServico.nmTipoServico',
+  Consignataria         CLOB FORMAT JSON PATH '$.Consignataria'
+)) js
+LEFT JOIN epagConsignataria cgt ON cgt.nuCodigoConsignataria = js.nuCodigoConsignataria
+WHERE parm.sgModulo = 'PAG' AND parm.sgConceito = 'RUBRICA' AND parm.flAnulado = 'N'
+  AND parm.sgAgrupamento = 'MILITAR' --AND parm.sgOrgao IS NULL
+  --AND to_char(parm.dtExportacao, 'DD/MM/YYYY HH24:MI') = vdtExportacao
+  --AND (parm.cdIdentificacao = pcdIdentificacao OR pcdIdentificacao IS NULL)
+  AND cgt.nuCodigoConsignataria IS NOT NULL
+ORDER BY js.nuCodigoConsignataria
+),
+Consignataria AS (
+SELECT 
+js.nuCodigoConsignataria,
+js.nmConsignataria,
+js.sgConsignataria,
+
+js.deEmailInstitucional,
+js.deInstrucoesContato,
+NVL(js.flMargemConsignavel, 'N') AS flMargemConsignavel,
+NVL(js.flImpedida, 'N') AS flImpedida,
+
+js.nuCNPJConsignataria,
+modcst.cdModalidadeConsignataria AS cdModalidadeConsignataria, js.nmModalidadeConsignataria,
+js.nuProcessoSGPE,
+
+bcoag.cdAgencia AS cdAgencia, js.nuBanco, js.nuAgencia,
+js.nuContaCorrente,
+js.nuDVContaCorrente,
+
+js.EnderecoRepresentacao,
+
+js.nuDDD,
+js.nuTelefone,
+js.nuRamal,
+js.nuDDDFax,
+js.nuFax,
+js.nuRamalfax,
+tpRep.cdTipoRepresentacao, js.nmTipoRepresentacao,
+js.nuCNPJRepresentante,
+js.nmRepresentante,
+js.nuDDDRepresentante,
+js.nuTelefoneRepresentante,
+js.nuRamalRepresentante,
+js.nuDDDFaxRepresentante,
+js.nuFaxRepresentante,
+js.nuRamalFaxRepresentante,
+
+js.EnderecoRepresentante,
+
+js.Documento,
+
+js.nuAnoDocumento,
+tpdoc.cdTipoDocumento AS cdTipoDocumento, js.deTipoDocumento,
+CASE WHEN js.dtDocumento IS NULL THEN NULL
+  ELSE TO_DATE(js.dtDocumento, 'YYYY-MM-DD') END AS dtDocumento,
+js.nuNumeroAtoLegal,
+js.deObservacao,
+meiopub.cdMeioPublicacao AS cdMeioPublicacao, js.nmMeioPublicacao,
+tppub.cdTipoPublicacao AS cdTipoPublicacao, js.nmTipoPublicacao,
+CASE WHEN js.dtPublicacao IS NULL THEN NULL
+  ELSE TO_DATE(js.dtPublicacao, 'YYYY-MM-DD') END AS dtPublicacao,
+js.nuPublicacao,
+js.nuPagInicial,
+js.deOutroMeio,
+js.nmArquivoDocumento,
+js.deCaminhoArquivoDocumento,
+
+'11111111111' AS nuCPFCadastrador,
+TRUNC(SYSDATE) AS dtInclusao,
+SYSTIMESTAMP AS dtUltAlteracao
+
+FROM ConsignatariasNovas cst
+CROSS APPLY JSON_TABLE(cst.Consignataria, '$' COLUMNS (
+  nuCodigoConsignataria     PATH '$.nuCodigoConsignataria',
+  sgConsignataria           PATH '$.sgConsignataria',
+  nmConsignataria           PATH '$.nmConsignataria',
+
+  deEmailInstitucional      PATH '$.deEmailInstitucional',
+  deInstrucoesContato       PATH '$.deInstrucoesContato',
+  nuCNPJConsignataria       PATH '$.nuCNPJConsignataria',
+  nmModalidadeConsignataria PATH '$.nmModalidadeConsignataria',
+  nuProcessoSGPE            PATH '$.nuProcessoSGPE',
+  flMargemConsignavel       PATH '$.flMargemConsignavel',
+  flImpedida                PATH '$.flImpedida',
+  TaxasServicos             PATH '$.TaxasServicos',
+
+  sgBanco                   PATH '$.Representacao.sgBanco',
+  nmBanco                   PATH '$.Representacao.nmBanco',
+  nmAgencia                 PATH '$.Representacao.nmAgencia',
+  nuBanco                   PATH '$.Representacao.nuBanco',
+  nuAgencia                 PATH '$.Representacao.nuAgencia',
+  nuDvAgencia               PATH '$.Representacao.nuDvAgencia',
+  nuContaCorrente           PATH '$.Representacao.nuContaCorrente',
+  nuDVContaCorrente         PATH '$.Representacao.nuDVContaCorrente',
+
+  nuDDD                     PATH '$.TelefonesEndereco.nuDDD',
+  nuTelefone                PATH '$.TelefonesEndereco.nuTelefone',
+  nuRamal                   PATH '$.TelefonesEndereco.nuRamal',
+  nuDDDFax                  PATH '$.TelefonesEndereco.nuDDDFax',
+  nuFax                     PATH '$.TelefonesEndereco.nuFax',
+  nuRamalfax                PATH '$.TelefonesEndereco.nuRamalfax',
+
+  EnderecoRepresentacao     PATH '$.TelefonesEndereco.EnderecoRepresentante',
+
+  nmTipoRepresentacao       PATH '$.Representante.nmTipoRepresentacao',
+  nuCNPJRepresentante       PATH '$.Representante.nuCNPJRepresentante',
+  nmRepresentante           PATH '$.Representante.nmRepresentante',
+  nuDDDRepresentante        PATH '$.Representante.nuDDDRepresentante',
+  nuTelefoneRepresentante   PATH '$.Representante.nuTelefoneRepresentante',
+  nuRamalRepresentante      PATH '$.Representante.nuRamalRepresentante',
+  nuDDDFaxRepresentante     PATH '$.Representante.nuDDDFaxRepresentante',
+  nuFaxRepresentante        PATH '$.Representante.nuFaxRepresentante',
+  nuRamalFaxRepresentante   PATH '$.Representante.nuRamalFaxRepresentante',
+
+  EnderecoRepresentante     PATH '$.Representante.EnderecoRepresentante',
+
+  Documento                 PATH '$.Documento',
+
+  nuAnoDocumento            PATH '$.Documento.nuAnoDocumento',
+  deTipoDocumento           PATH '$.Documento.deTipoDocumento',
+  dtDocumento               PATH '$.Documento.dtDocumento',
+  nuNumeroAtoLegal          PATH '$.Documento.nuNumeroAtoLegal',
+  deObservacao              PATH '$.Documento.deObservacao',
+  nmMeioPublicacao          PATH '$.Documento.nmMeioPublicacao',
+  nmTipoPublicacao          PATH '$.Documento.nmTipoPublicacao',
+  dtPublicacao              PATH '$.Documento.dtPublicacao',
+  nuPublicacao              PATH '$.Documento.nuPublicacao',
+  nuPagInicial              PATH '$.Documento.nuPagInicial',
+  deOutroMeio               PATH '$.Documento.deOutroMeio',
+  nmArquivoDocumento        PATH '$.Documento.nmArquivoDocumento',
+  deCaminhoArquivoDocumento PATH '$.Documento.deCaminhoArquivoDocumento'
+
+)) js
+LEFT JOIN epagModalidadeConsignataria modcst ON modcst.nmModalidadeConsignataria = js.nmModalidadeConsignataria
+LEFT JOIN epagTipoRepresentacao tpRep ON tpRep.nmTipoRepresentacao = js.nmTipoRepresentacao
+LEFT JOIN BancoAgencia bcoag ON bcoag.nuBanco = js.nuBanco AND bcoag.nuAGencia = js.nuAgencia
+LEFT JOIN eatoTipoDocumento tpdoc ON tpdoc.deTipoDocumento = js.deTipoDocumento
+LEFT JOIN ecadMeioPublicacao meiopub ON meiopub.nmMeioPublicacao = js.nmMeioPublicacao
+LEFT JOIN ecadTipoPublicacao tppub ON tppub.nmTipoPublicacao = js.nmTipoPublicacao
+WHERE cst.nuOrder = 1
+ORDER BY LPAD(js.nuCodigoConsignataria,3,0)
+)
+SELECT * FROM Consignataria;
+
+
+======================================================================================================================
+
+WITH
+TipoServicosNovos AS (
+SELECT parm.sgAgrupamento, parm.sgOrgao, parm.sgModulo, parm.sgConceito, parm.dtExportacao,
+parm.cdIdentificacao, js.nmTipoServico,
+RANK() OVER (PARTITION BY js.nmTipoServico ORDER BY parm.cdParametrizacao) AS nuOrder,
+JSON_SERIALIZE(TO_CLOB(js.TipoServico) RETURNING CLOB) AS TipoServico,
+JSON_SERIALIZE(TO_CLOB(js.Vigencias) RETURNING CLOB) AS Vigencias
+FROM emigParametrizacao parm
+CROSS APPLY JSON_TABLE(parm.jsConteudo, '$.PAG.Rubrica.Tipos[*].Agrupamento.Consignacao.TipoServico' COLUMNS (
+  nmTipoServico PATH '$.nmTipoServico',
+  TipoServico   CLOB FORMAT JSON PATH '$',
+  Vigencias     CLOB FORMAT JSON PATH '$.Vigencias'
+)) js
+LEFT JOIN epagTipoServico tpserv ON tpserv.nmTipoServico = js.nmTipoServico
+WHERE parm.sgModulo = 'PAG' AND parm.sgConceito = 'RUBRICA' AND parm.flAnulado = 'N'
+  AND parm.sgAgrupamento = 'MILITAR' --AND parm.sgOrgao IS NULL
+  --AND to_char(parm.dtExportacao, 'DD/MM/YYYY HH24:MI') = vdtExportacao
+  --AND (parm.cdIdentificacao = pcdIdentificacao OR pcdIdentificacao IS NULL)
+  AND tpserv.nmTipoServico IS NOT NULL
+ORDER BY js.nmTipoServico
+),
+TipoServico AS (
+SELECT
+NULL AS cdTipoServico,
+NULL AS cdAgrupamento,
+tpsrv.nmTipoServico,
+SYSTIMESTAMP AS dtUltAlteracao,
+tpsrv.Vigencias
+FROM TipoServicosNovos tpsrv
+WHERE tpsrv.nuOrder = 1
+ORDER BY tpsrv.nmTipoServico
+),
+Vigencias AS (
+SELECT tpsrv.nmTipoServico,
+NULL AS cdHistTipoServico,
+tpsrv.cdTipoServico AS cdTipoServico,
+
+CASE WHEN js.dtInicioVigencia IS NULL THEN NULL
+  ELSE TO_DATE(js.dtInicioVigencia, 'YYYY-DD-MM') END AS dtInicioVigencia,
+CASE WHEN js.dtFimVigencia IS NULL THEN NULL
+  ELSE TO_DATE(js.dtFimVigencia, 'YYYY-DD-MM') END AS dtFimVigencia,
+js.nuOrdem,
+NULL AS cdConsigOutroTipo, js.nmConsigOutroTipo,
+
+NVL(UPPER(js.flEmprestimo), 'N') AS flEmprestimo,
+NVL(UPPER(js.flSeguro), 'N') AS flSeguro,
+NVL(UPPER(js.flCartaoCredito), 'N') AS flCartaoCredito,
+NVL(js.nuMaxParcelas, 999) AS nuMaxParcelas,
+js.vlMinConsignado,
+js.vlLimiteTAC,
+js.vlLimitePercentReservado,
+js.vlLimiteReservado,
+
+NVL(UPPER(js.flTacFinanciada), 'N') AS flTacFinanciada,
+NVL(UPPER(js.flVerificaMargemConsig), 'N') AS flVerificaMargemConsig,
+NVL(UPPER(js.flIOFFinanciado), 'N') AS flIOFFinanciado,
+NVL(UPPER(js.flExigeContrato), 'N') AS flExigeContrato,
+NVL(UPPER(js.flExigeValorLiberado), 'N') AS flExigeValorLiberado,
+NVL(UPPER(js.flExigeValorReservado), 'N') AS flExigeValorReservado,
+NVL(UPPER(js.flExigePedido), 'N') AS flExigePedido,
+NVL(UPPER(js.flExigeConsigOutroTipo), 'N') AS flExigeConsigOutroTipo,
+
+js.vlRetencao,
+js.vlTaxaRetencao,
+js.vlTaxaIRRF,
+js.vlTaxaAdministracao,
+js.vlTaxaProlabore,
+js.vlTaxaBescor,
+
+SYSTIMESTAMP AS dtUltAlteracao
+
+FROM TipoServico tpsrv
+CROSS APPLY JSON_TABLE(tpsrv.Vigencias, '$[*]' COLUMNS (
+  dtInicioVigencia         PATH '$.dtInicioVigencia',
+  dtFimVigencia            PATH '$.dtFimVigencia',
+  nuOrdem                  PATH '$.nuOrdem',
+  nmConsigOutroTipo        PATH '$.nmConsigOutroTipo',
+
+  flEmprestimo             PATH '$.Parametros.flEmprestimo',
+  flSeguro                 PATH '$.Parametros.flSeguro',
+  flCartaoCredito          PATH '$.Parametros.flCartaoCredito',
+  nuMaxParcelas            PATH '$.Parametros.nuMaxParcelas',
+  vlMinConsignado          PATH '$.Parametros.vlMinConsignado',
+  vlLimiteTAC              PATH '$.Parametros.vlLimiteTAC',
+  vlLimitePercentReservado PATH '$.Parametros.vlLimitePercentReservado',
+  vlLimiteReservado        PATH '$.Parametros.vlLimiteReservado',
+
+  flTacFinanciada          PATH '$.Parametros.flTacFinanciada',
+  flVerificaMargemConsig   PATH '$.Parametros.flVerificaMargemConsig',
+  flIOFFinanciado          PATH '$.Parametros.flIOFFinanciado',
+  flExigeContrato          PATH '$.Parametros.flExigeContrato',
+  flExigeValorLiberado     PATH '$.Parametros.flExigeValorLiberado',
+  flExigeValorReservado    PATH '$.Parametros.flExigeValorReservado',
+  flExigePedido            PATH '$.Parametros.flExigePedido',
+  flExigeConsigOutroTipo   PATH '$.Parametros.flExigeConsigOutroTipo',
+
+  vlRetencao               PATH '$.TaxaRetencao.vlRetencao',
+  vlTaxaRetencao           PATH '$.TaxaRetencao.vlTaxaRetencao',
+  vlTaxaIRRF               PATH '$.TaxaRetencao.vlTaxaIR',
+  vlTaxaAdministracao      PATH '$.TaxaRetencao.vlTaxaAdministracao',
+  vlTaxaProlabore          PATH '$.TaxaRetencao.vlTaxaProlabore',
+  vlTaxaBescor             PATH '$.TaxaRetencao.vlTaxaBescor'
+)) js
+ORDER BY tpsrv.nmTipoServico, js.dtInicioVigencia
+)
+SELECT * FROM Vigencias;
 

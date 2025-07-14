@@ -22,8 +22,14 @@ CREATE OR REPLACE PACKAGE PKGMIG_ParametrizacaoConsignacoes AS
   --
   -- PROCEDURE:
   --   pImportar
-  --   pImportarVigencias
+  --   pImportarConsignacao
+  --   pImportarVigenciasConsignacao
   --   pImportarContratoServico
+  --   pImportarConsignatarias
+  --   pImportarTipoServico
+  --   pImportarVigenciasTipoServico
+  --   pIncluirDocumentosAmparoFato
+  --   pIncluirEndereco
   --
   -- ###########################################################################
   -- Constantes de nível de auditoria
@@ -33,6 +39,12 @@ CREATE OR REPLACE PACKAGE PKGMIG_ParametrizacaoConsignacoes AS
   cAUDITORIA_COMPLETO   CONSTANT PLS_INTEGER := 3;
 
   PROCEDURE pImportar(
+    psgAgrupamentoOrigem  IN VARCHAR2,
+    psgAgrupamentoDestino IN VARCHAR2,
+    pcdIdentificacao      IN VARCHAR2 DEFAULT NULL,
+    pnuNivelAuditoria     IN NUMBER DEFAULT NULL);
+
+  PROCEDURE pImportarConsignacao(
     psgAgrupamentoDestino IN VARCHAR2,
     psgOrgao              IN VARCHAR2,
     ptpOperacao           IN VARCHAR2,
@@ -45,20 +57,7 @@ CREATE OR REPLACE PACKAGE PKGMIG_ParametrizacaoConsignacoes AS
     pnuNivelAuditoria     IN NUMBER DEFAULT NULL
   );
 
-  PROCEDURE pImportarContratoServico(
-    psgAgrupamentoDestino IN VARCHAR2,
-    psgOrgao              IN VARCHAR2,
-    ptpOperacao           IN VARCHAR2,
-    pdtOperacao           IN TIMESTAMP,
-    psgModulo             IN CHAR,
-    psgConceito           IN VARCHAR2,
-    pcdIdentificacao      IN VARCHAR2,
-    pcdConsignacao        IN NUMBER,
-    pContratoServico      IN CLOB,
-    pnuNivelAuditoria     IN NUMBER DEFAULT NULL
-  );
-
-  PROCEDURE pImportarVigencias(
+  PROCEDURE pImportarVigenciasConsignacao(
     psgAgrupamentoDestino IN VARCHAR2,
     psgOrgao              IN VARCHAR2,
     ptpOperacao           IN VARCHAR2,
@@ -71,6 +70,56 @@ CREATE OR REPLACE PACKAGE PKGMIG_ParametrizacaoConsignacoes AS
     pnuNivelAuditoria     IN NUMBER DEFAULT NULL
   );
 
+  PROCEDURE pImportarContratoServico(
+    psgAgrupamentoDestino IN VARCHAR2,
+    psgOrgao              IN VARCHAR2,
+    ptpOperacao           IN VARCHAR2,
+    pdtOperacao           IN TIMESTAMP,
+    psgModulo             IN CHAR,
+    psgConceito           IN VARCHAR2,
+    pcdIdentificacao      IN VARCHAR2,
+    pContratoServico      IN CLOB,
+    pcdContratoServico    OUT NUMBER,
+    pnuNivelAuditoria     IN NUMBER DEFAULT NULL
+  );
+
+  PROCEDURE pImportarConsignatarias(
+    psgAgrupamentoOrigem  IN VARCHAR2,
+    psgAgrupamentoDestino IN VARCHAR2,
+    psgOrgao              IN VARCHAR2,
+    ptpOperacao           IN VARCHAR2,
+    pdtOperacao           IN TIMESTAMP,
+    psgModulo             IN CHAR,
+    psgConceito           IN VARCHAR2,
+    pcdIdentificacao      IN VARCHAR2,
+    pnuNivelAuditoria     IN NUMBER DEFAULT NULL
+  );
+
+  PROCEDURE pImportarTipoServicos(
+    psgAgrupamentoOrigem  IN VARCHAR2,
+    psgAgrupamentoDestino IN VARCHAR2,
+    psgOrgao              IN VARCHAR2,
+    ptpOperacao           IN VARCHAR2,
+    pdtOperacao           IN TIMESTAMP,
+    psgModulo             IN CHAR,
+    psgConceito           IN VARCHAR2,
+    pcdIdentificacao      IN VARCHAR2,
+    pnuNivelAuditoria     IN NUMBER DEFAULT NULL
+  );
+
+  PROCEDURE pImportarVigenciasTipoServico(
+    psgAgrupamentoDestino IN VARCHAR2,
+    psgOrgao              IN VARCHAR2,
+    ptpOperacao           IN VARCHAR2,
+    pdtOperacao           IN TIMESTAMP,
+    psgModulo             IN CHAR,
+    psgConceito           IN VARCHAR2,
+    pcdIdentificacao      IN VARCHAR2,
+    pcdTipoServico        IN NUMBER,
+    pVigenciasTipoServico IN CLOB,
+    pnuNivelAuditoria     IN NUMBER DEFAULT NULL
+  );
+
   PROCEDURE pIncluirDocumentoAmparoFato(
     psgAgrupamentoDestino      IN VARCHAR2,
     psgOrgao                   IN VARCHAR2,
@@ -79,13 +128,7 @@ CREATE OR REPLACE PACKAGE PKGMIG_ParametrizacaoConsignacoes AS
     psgModulo                  IN CHAR,
     psgConceito                IN VARCHAR2,
     pcdIdentificacao           IN VARCHAR2,
-    pnuAnoDocumento            IN NUMBER,
-    pcdTipoDocumento           IN NUMBER,
-    pdtDocumento               IN DATE,
-    pdeObservacao              IN VARCHAR2,
-    pnuNumeroAtoLegal          IN VARCHAR2,
-    pnmArquivoDocumento        IN VARCHAR2,
-    pdeCaminhoArquivoDocumento IN VARCHAR2,
+    pDocumento                 IN CLOB,
     pcdDocumento               OUT NUMBER,
 	  pnuNivelAuditoria          IN NUMBER DEFAULT NULL
   );
