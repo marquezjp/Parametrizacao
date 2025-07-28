@@ -39,7 +39,7 @@ SELECT COUNT(*) AS vnuRegistros FROM epagHistRubricaAgrupUO
 -- Excluir Motivos Afastamento que Impedem das Vigências das Rubricas do Agrupamento
 SELECT COUNT(*) AS vnuRegistros FROM epagRubAgrupMotAfastTempImp
 --DELETE FROM epagRubAgrupMotAfastTempImp
-  WHERE cdHistRubricaAgrupamento IN (
+  WHERE cdRubricaAgrupamento IN (
     SELECT RubAgrp.cdRubricaAgrupamento FROM epagRubricaAgrupamento RubAgrp
       INNER JOIN ecadAgrupamento a ON a.cdAgrupamento = RubAgrp.cdAgrupamento
       WHERE a.sgAgrupamento = &psgAgrupamento);
@@ -47,7 +47,7 @@ SELECT COUNT(*) AS vnuRegistros FROM epagRubAgrupMotAfastTempImp
 -- Excluir Motivos Afastamento das Vigências das Rubricas do Agrupamento
 SELECT COUNT(*) AS vnuRegistros FROM epagRubAgrupMotAfastTempEx
 --DELETE FROM epagRubAgrupMotAfastTempEx
-  WHERE cdHistRubricaAgrupamento IN (
+  WHERE cdRubricaAgrupamento IN (
     SELECT RubAgrp.cdRubricaAgrupamento FROM epagRubricaAgrupamento RubAgrp
       INNER JOIN ecadAgrupamento a ON a.cdAgrupamento = RubAgrp.cdAgrupamento
       WHERE a.sgAgrupamento = &psgAgrupamento);
@@ -73,7 +73,7 @@ SELECT COUNT(*) AS vnuRegistros FROM epagHistRubricaAgrupImpeditiva
 -- Excluir Motivos Convocação das Vigências das Rubricas do Agrupamento
 SELECT COUNT(*) AS vnuRegistros FROM epagHistRubricaAgrupMotConv
 --DELETE FROM epagHistRubricaAgrupMotConv
-  WHERE cdHistRubricaAgrupamento IN (
+  WHERE cdRubricaAgrupamento IN (
     SELECT RubAgrp.cdRubricaAgrupamento FROM epagRubricaAgrupamento RubAgrp
       INNER JOIN ecadAgrupamento a ON a.cdAgrupamento = RubAgrp.cdAgrupamento
       WHERE a.sgAgrupamento = &psgAgrupamento);
