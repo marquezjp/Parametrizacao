@@ -1,6 +1,11 @@
 /*
 0249, 0903, 0532, 0556, 0747, 0267, 0590, 1101, 1821, 0254
 
+05-0249 PECULIO / PREVIDENCIA PRIVADA
+05-0254 PECULIO / PREVIDENCIA PRIVADA
+05-1101 PLANO DE SAUDE
+05-1821 PECULIO / PREVIDENCIA PRIVADA
+
 Tipo Servico 5, 7 
 
 epagConsignacao
@@ -13,6 +18,41 @@ epagHistTipoServico
 epagParametroBaseConsignacao
 epagContratoServico
 */
+
+SET SERVEROUTPUT ON SIZE UNLIMITED;
+EXEC PKGMIG_ParametrizacaoConsignacoes.pImportar('INDIR-FEMARH', 'INDIR-FEMARH', '05-1821', 3);
+
+select * from emigParametrizacaoLog
+where tpOperacao = 'IMPORTACAO' AND sgAgrupamento = 'INDIR-FEMARH' AND sgConceito = 'RUBRICA';
+
+DELETE FROM emigParametrizacaoLog
+where tpOperacao = 'IMPORTACAO' AND sgAgrupamento = 'INDIR-FEMARH' AND sgConceito = 'RUBRICA';
+
+select * from emigParametrizacao
+where sgAgrupamento = 'ADM-DIR' AND sgConceito = 'RUBRICA' AND cdIdentificacao = '05-0249';
+
+SELECT * FROM epagConsignataria
+WHERE sgConsignataria = 'GBOEX'
+;
+
+SELECT * FROM epagTipoServico
+WHERE nmTipoServico = 'CONVENIO'
+;
+
+
+SELECT a.sgAgrupamento, 'CONSIGNCAO' AS Tipo, lpad(r.cdTipoRubrica,2,0) || '-' || lpad(r.nuRubrica,4,0) AS nuRubrica,
+TRIM(tpsrv.nmTipoServico || ' ' || cst.sgConsignataria) AS Sigla
+FROM epagConsignacao csg
+INNER JOIN epagConsignataria cst ON cst.cdConsignataria = csg.cdConsignataria
+LEFT JOIN epagTipoServico tpsrv ON tpsrv.cdTipoServico = csg.cdTipoServico
+INNER JOIN epagRubrica r ON r.cdRubrica = csg.cdRubrica
+INNER JOIN epagRubricaAgrupamento ra ON ra.cdRubrica = r.cdRubrica
+INNER JOIN ecadAgrupamento a ON a.cdAgrupamento = ra.cdAgrupamento
+--WHERE a.sgAgrupamento = 'INDIR-FEMARH'
+WHERE r.nuRubrica = 146
+ORDER BY sgAgrupamento, nuRubrica, Tipo, Sigla
+;
+
 WITH
   -- RubricaLista: lista Rubricas
   RubricaLista AS (
