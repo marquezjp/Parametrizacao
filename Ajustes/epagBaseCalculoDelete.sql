@@ -61,7 +61,7 @@ ORDER BY nmBaseCalculo
 
 DEFINE psgAgrupamento = '''INDIR-IPEM/RR''';
 
--- Excluir Grupo de Rubridcas dos Blocos das Bases de Cálculo
+-- Excluir Grupo de Rubricas dos Blocos das Bases de Cálculo
 SELECT COUNT(*) AS vnuRegistros FROM epagBaseCalcBlocoExprRubAgrup Rub
 --DELETE FROM epagBaseCalcBlocoExprRubAgrup Rub
   WHERE Rub.cdBaseCalculoBlocoExpressao IN (
