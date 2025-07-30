@@ -55,6 +55,14 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         vtxMensagem := 'Inicio da Exportação da Parametrização da Rubrica do Agrupamento "' || pcdIdentificacao || '" ';
       END IF;
 
+      IF psgAgrupamento IS NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_PARAMETRO_OBRIGATORIO,
+          'Agrupamento não Informado.');
+      ELSIF PKGMIG_ParametrizacaoLog.fnValidarAgrupamento(psgAgrupamento) IS NOT NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_AGRUPAMENTO_INVALIDO,
+          'Agrupamento Informado não Cadastrado.: "' || SUBSTR(psgAgrupamento,1,50) || '".');
+      END IF;
+
       PKGMIG_ParametrizacaoLog.pAlertar(vtxMensagem ||
         'do Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
 	      'Data da Exportação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
@@ -147,6 +155,14 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
     BEGIN
 
       vdtOperacao := LOCALTIMESTAMP;
+
+      IF psgAgrupamento IS NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_PARAMETRO_OBRIGATORIO,
+          'Agrupamento não Informado.');
+      ELSIF PKGMIG_ParametrizacaoLog.fnValidarAgrupamento(psgAgrupamento) IS NOT NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_AGRUPAMENTO_INVALIDO,
+          'Agrupamento Informado não Cadastrado.: "' || SUBSTR(psgAgrupamento,1,50) || '".');
+      END IF;
 
 	    -- Defini o Cursos com a Query que Gera o Documento JSON Rubricas
 	    vRefCursor := fnCursorParametroTributacao(psgAgrupamento, pcdIdentificacao);
@@ -348,6 +364,14 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
     BEGIN
   
       vcdIdentificacao := pcdIdentificacao;
+
+      IF psgAgrupamentoDestino IS NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_PARAMETRO_OBRIGATORIO,
+          'Agrupamento não Informado.');
+      ELSIF PKGMIG_ParametrizacaoLog.fnValidarAgrupamento(psgAgrupamentoDestino) IS NOT NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_AGRUPAMENTO_INVALIDO,
+          'Agrupamento Informado não Cadastrado.: "' || SUBSTR(psgAgrupamentoDestino,1,50) || '".');
+      END IF;
 
       PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, pcdIdentificacao, 0,
@@ -2603,8 +2627,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
               AND NULLIF(vigencia.flPropAfaCCOSubst, 'N')         IS NULL AND NULLIF(vigencia.flPropAfaComOpcPercCEF, 'N')     IS NULL
               AND NULLIF(vigencia.flPropAfaFGFTG, 'N')            IS NULL AND NULLIF(vigencia.flPropAfastTempNaoRemun, 'N')    IS NULL
               AND NULLIF(vigencia.flIgnoraAfastCEFAgPolitico, 'N') IS NULL
-              AND EXISTS (SELECT 1 FROM epagRubAgrupMotAfastTempImp WHERE cdHistRubricaAgrupamento = vigencia.cdHistRubricaAgrupamento)
-              AND EXISTS (SELECT 1 FROM epagRubAgrupMotAfastTempEx  WHERE cdHistRubricaAgrupamento = vigencia.cdHistRubricaAgrupamento)
+              AND NOT EXISTS (SELECT 1 FROM epagRubAgrupMotAfastTempImp WHERE cdHistRubricaAgrupamento = vigencia.cdHistRubricaAgrupamento)
+              AND NOT EXISTS (SELECT 1 FROM epagRubAgrupMotAfastTempEx  WHERE cdHistRubricaAgrupamento = vigencia.cdHistRubricaAgrupamento)
               THEN NULL
             ELSE JSON_OBJECT(
               'deTipoIndice'                VALUE tpIndice.deTipoIndice,       -- cdTipoIndice
@@ -2632,10 +2656,20 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
               'ListaMotivosAfastamentoQueImpedem' VALUE (
                 SELECT JSON_ARRAYAGG(motivoTemp.deMotivoAfastTemporario ORDER BY motivoTemp.deMotivoAfastTemporario
                 RETURNING CLOB) AS ListaMotivosAfastamentoQueImpedem
-                FROM epagRubAgrupMotAfastTempImp afamottemp
-                LEFT JOIN MotivoAfastamentoLista motivoTemp ON motivoTemp.cdMotivoAfastTemporario = afamottemp.cdMotivoAfastTemporario
-                WHERE afamottemp.cdHistRubricaAgrupamento = vigencia.cdHistRubricaAgrupamento),
-              'ListaMotivosAfastamentoExigidos' VALUE NULL -- (ListaMotivosAfastamentoExigidos ABSENT ON NULL RETURNING CLOB)
+                FROM epagRubAgrupMotAfastTempImp afamottempimp
+                LEFT JOIN MotivoAfastamentoLista motivoTemp ON motivoTemp.cdMotivoAfastTemporario = afamottempimp.cdMotivoAfastTemporario
+                WHERE afamottempimp.cdHistRubricaAgrupamento = vigencia.cdHistRubricaAgrupamento),
+              'ListaMotivosAfastamentoExigidos' VALUE (
+                SELECT JSON_ARRAYAGG(JSON_OBJECT(
+                  'deMotivoAfastTemporario' VALUE motivoTemp.deMotivoAfastTemporario,
+                  'nmPeriodoAfastamento'    VALUE UPPER(periodo.nmPeriodoAfastamento),
+                  'flAfastamentoVinculado'  VALUE NULLIF(afamottempex.flAfastamentoVinculado,'N'),
+                  'nuPeriodo'               VALUE afamottempex.nuPeriodo
+                ) ORDER BY motivoTemp.deMotivoAfastTemporario RETURNING CLOB) AS ListaMotivosAfastamentoExigidos
+                FROM epagRubAgrupMotAfastTempEx afamottempex
+                LEFT JOIN epagPeriodoAfastamento periodo ON periodo.cdPeriodoAfastamento = afamottempex.cdPeriodoAfastamento
+                LEFT JOIN MotivoAfastamentoLista motivoTemp ON motivoTemp.cdMotivoAfastTemporario = afamottempex.cdMotivoAfastTemporario
+                WHERE afamottempex.cdHistRubricaAgrupamento = vigencia.cdHistRubricaAgrupamento)
             ABSENT ON NULL) END,
             'PermissoesRubrica' VALUE JSON_OBJECT(
               'inImpedimentoRubrica'        VALUE DECODE(vigencia.inImpedimentoRubrica,

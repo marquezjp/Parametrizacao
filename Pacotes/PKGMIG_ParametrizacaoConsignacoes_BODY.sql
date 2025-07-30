@@ -54,6 +54,14 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoConsignacoes AS
 
       vdtOperacao := LOCALTIMESTAMP;
 
+      IF psgAgrupamento IS NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_PARAMETRO_OBRIGATORIO,
+          'Agrupamento não Informado.');
+      ELSIF PKGMIG_ParametrizacaoLog.fnValidarAgrupamento(psgAgrupamento) IS NOT NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_AGRUPAMENTO_INVALIDO,
+          'Agrupamento Informado não Cadastrado.: "' || SUBSTR(psgAgrupamento,1,50) || '".');
+      END IF;
+
       IF pcdIdentificacao IS NULL THEN
         vtxMensagem := 'Inicio da Exportação das Parametrizações das Consginações ';
       ELSE
@@ -215,6 +223,22 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoConsignacoes AS
   BEGIN
 
     vdtOperacao := LOCALTIMESTAMP;
+
+    IF psgAgrupamentoOrigem IS NULL THEN
+      RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_PARAMETRO_OBRIGATORIO,
+        'Agrupamento Orgiem não Informado.');
+    ELSIF PKGMIG_ParametrizacaoLog.fnValidarAgrupamento(psgAgrupamentoOrigem) IS NOT NULL THEN
+      RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_AGRUPAMENTO_INVALIDO,
+        'Agrupamento Origem Informado não Cadastrado.: "' || SUBSTR(psgAgrupamentoOrigem,1,50) || '".');
+    END IF;
+
+    IF psgAgrupamentoDestino IS NULL THEN
+      RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_PARAMETRO_OBRIGATORIO,
+        'Agrupamento Destino não Informado.');
+    ELSIF PKGMIG_ParametrizacaoLog.fnValidarAgrupamento(psgAgrupamentoDestino) IS NOT NULL THEN
+      RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_AGRUPAMENTO_INVALIDO,
+        'Agrupamento Destino Informado não Cadastrado.: "' || SUBSTR(psgAgrupamentoDestino,1,50) || '".');
+    END IF;
 
     SELECT MAX(dtExportacao) INTO vdtExportacao FROM emigParametrizacao
     WHERE sgModulo = csgModulo AND sgConceito = csgConceito
@@ -452,6 +476,14 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoConsignacoes AS
       PKGMIG_ParametrizacaoLog.pAlertar('Importação das Consignações - Consignação - ' ||
         vcdIdentificacao, cAUDITORIA_DETALHADO, pnuNivelAuditoria);
   	
+      IF psgAgrupamentoDestino IS NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_PARAMETRO_OBRIGATORIO,
+          'Agrupamento não Informado.');
+      ELSIF PKGMIG_ParametrizacaoLog.fnValidarAgrupamento(psgAgrupamentoDestino) IS NOT NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_AGRUPAMENTO_INVALIDO,
+          'Agrupamento Informado não Cadastrado.: "' || SUBSTR(psgAgrupamentoDestino,1,50) || '".');
+      END IF;
+
       -- Loop principal de processamento para Incluir as Consignações não Existentes
       FOR r IN cDados LOOP
   
