@@ -412,8 +412,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoConsignacoes AS
           ELSE TO_DATE(js.dtInicioConcessao, 'YYYY-MM-DD') END AS dtInicioConcessao,
         CASE WHEN js.dtFimConcessao IS NULL THEN NULL
           ELSE TO_DATE(js.dtFimConcessao, 'YYYY-MM-DD') END AS dtFimConcessao,
-        NVL(js.flGeridaTerceitos, 'N') AS flGeridaSCConsig,
-        NVL(js.flRepasse, 'N') AS flRepasse,
+        NVL(js.flGeridaTerceitos, 'S') AS flGeridaSCConsig, -- DEFAULT S
+        NVL(js.flRepasse, 'S') AS flRepasse, -- DEFAULT S
         TRUNC(SYSDATE) AS dtInclusao,
         SYSTIMESTAMP AS dtUltAlteracao,
         JSON_SERIALIZE(TO_CLOB(js.Vigencias) RETURNING CLOB) AS Vigencias,
@@ -2398,8 +2398,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoConsignacoes AS
                                         ELSE TO_CHAR(csg.dtInicioConcessao, 'YYYY-DD-MM') END,
         'dtFimConcessao'          VALUE CASE WHEN csg.dtFimConcessao IS NULL THEN NULL
                                         ELSE TO_CHAR(csg.dtFimConcessao, 'YYYY-DD-MM') END,
-        'flGeridaTerceitos'       VALUE NULLIF(csg.flGeridaSCConsig,'N'),
-        'flRepasse'               VALUE NULLIF(csg.flRepasse,'N'),
+        'flGeridaTerceitos'       VALUE NULLIF(csg.flGeridaSCConsig,'S'), -- DEFAULT S
+        'flRepasse'               VALUE NULLIF(csg.flRepasse,'S'), -- DEFAULT S
         'Vigencias'               VALUE vigencia.Vigencias,
         'Consignataria'           VALUE cst.Consignataria,
         'TipoServico'             VALUE tpServico.TipoServico,
