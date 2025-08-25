@@ -29,94 +29,110 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
   ) IS
     -- Variáveis de controle e contexto
     vsgOrgao            VARCHAR2(15)          := Null;
-    vsgModulo           CONSTANT CHAR(3)      := 'PAG';
-    vsgConceito         CONSTANT VARCHAR2(20) := 'BASECALCULO';
-    vtpOperacao         CONSTANT VARCHAR2(15) := 'EXPORTACAO';
+    csgModulo           CONSTANT CHAR(3)      := 'PAG';
+    csgConceito         CONSTANT VARCHAR2(20) := 'BASECALCULO';
+    ctpOperacao         CONSTANT VARCHAR2(15) := 'EXPORTACAO';
+    cnuVersao           CONSTANT CHAR(04)     := '1.00';
+    cflAnulado          CONSTANT CHAR(01)     := 'N';
+
     vdtOperacao         TIMESTAMP             := LOCALTIMESTAMP;
-    vcdIdentificacao    VARCHAR2(20)          := Null;
-    vnuVersao           CONSTANT CHAR(04)     := '1.00';
-    vflAnulado          CONSTANT CHAR(01)     := 'N';
-
-    rsgAgrupamento      VARCHAR2(15) := NULL;
-    rsgOrgao            VARCHAR2(15) := NULL;
-    rsgModulo           CHAR(3)      := NULL;
-    rsgConceito         VARCHAR2(20) := NULL;
-    rdtExportacao       TIMESTAMP    := NULL;
-    rcdIdentificacao    VARCHAR2(20) := NULL;
-    rjsConteudo         CLOB         := NULL;
-    rnuVersao           CHAR(04)     := NULL;
-    rflAnulado          CHAR(01)     := NULL;
-    rdtInclusao         TIMESTAMP(6) := NULL;
-
-    vtxMensagem         VARCHAR2(100)  := NULL;
     vdtTermino          TIMESTAMP    := LOCALTIMESTAMP;
     vnuTempoExecucao    INTERVAL DAY TO SECOND := NULL;
-    vnuRegistros        NUMBER       := 0;
+
+    vtxMensagem         VARCHAR2(100)  := NULL;
     vtxResumo           VARCHAR2(4000) := NULL;
 
-    -- Cursor que extrai e transforma os dados JSON de Bases de Cálculo
-    vRefCursor SYS_REFCURSOR;
+    vnuRegistrosAntes   NUMBER := 0;
+    vnuRegistrosDepois  NUMBER := 0;
+    vnuProcessados      NUMBER := 0;
+    vnuInseridos        NUMBER := 0;
+    vnuAtualizados      NUMBER := 0;
 
-  BEGIN
+    BEGIN
 
-    vdtOperacao := LOCALTIMESTAMP;
+      vdtOperacao := LOCALTIMESTAMP;
 
-    IF pcdIdentificacao IS NULL THEN
-      vtxMensagem := 'Inicio da Exportação das Parametrizações das Bases de Cálculo ';
-    ELSE
-      vtxMensagem := 'Inicio da Exportação da Parametrização da Base de Cálculo "' || pcdIdentificacao || '" ';
-    END IF;
+      IF pcdIdentificacao IS NULL THEN
+        vtxMensagem := 'Inicio da Exportação das Parametrizações das Bases de Cálculo ';
+      ELSE
+        vtxMensagem := 'Inicio da Exportação da Parametrização da Base de Cálculo "' || pcdIdentificacao || '" ';
+      END IF;
 
-    PKGMIG_ParametrizacaoLog.pAlertar(vtxMensagem ||
-      'do Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
-	    'Data da Exportação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
-      cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      IF psgAgrupamento IS NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_PARAMETRO_OBRIGATORIO,
+          'Agrupamento não Informado.');
+      ELSIF PKGMIG_ParametrizacaoLog.fnValidarAgrupamento(psgAgrupamento) IS NOT NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_AGRUPAMENTO_INVALIDO,
+          'Agrupamento Informado não Cadastrado.: "' || SUBSTR(psgAgrupamento,1,15) || '".');
+      END IF;
 
-    IF cAUDITORIA_ESSENCIAL != pnuNivelAuditoria THEN
-        PKGMIG_ParametrizacaoLog.pAlertar('Nível de Auditoria Habilitado ' ||
-          CASE pnuNivelAuditoria
-            WHEN cAUDITORIA_SILENCIADO THEN 'SILENCIADO'
-            WHEN cAUDITORIA_ESSENCIAL  THEN 'ESSENCIAL'
-            WHEN cAUDITORIA_DETALHADO  THEN 'DETALHADO'
-            WHEN cAUDITORIA_COMPLETO   THEN 'COMPLETO'
-            ELSE 'ESSENCIAL'
-          END, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    END IF;
-
-    -- Defini o Cursos com a Query que Gera o Documento JSON ValoresReferencia
-    vRefCursor := fnCursorBases(psgAgrupamento, vsgOrgao, vsgModulo, vsgConceito, pcdIdentificacao, 
-      vdtOperacao, vnuVersao, vflAnulado);
-    
-    vnuRegistros := 0;
-    
-    -- Loop principal de processamento
-    LOOP
-      FETCH vRefCursor INTO rsgAgrupamento, rsgOrgao, rsgModulo, rsgConceito, rdtExportacao,
-	      rcdIdentificacao, rjsConteudo, rnuVersao, rflAnulado, rdtInclusao;
-      EXIT WHEN vRefCursor%NOTFOUND;
-
-      PKGMIG_ParametrizacaoLog.pAlertar('Exportação da Base ' || rcdIdentificacao,
+      PKGMIG_ParametrizacaoLog.pAlertar(vtxMensagem ||
+        'do Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
+	      'Data da Exportação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-      INSERT INTO emigParametrizacao (
-        sgAgrupamento, sgOrgao, sgModulo, sgConceito, dtExportacao,
-        cdIdentificacao, jsConteudo, nuVersao, flAnulado
-      ) VALUES (
-        rsgAgrupamento, rsgOrgao, rsgModulo, rsgConceito, rdtExportacao,
-		    rcdIdentificacao, rjsConteudo, rnuVersao, rflAnulado
-      );
+      IF cAUDITORIA_ESSENCIAL != pnuNivelAuditoria THEN
+          PKGMIG_ParametrizacaoLog.pAlertar('Nível de Auditoria Habilitado ' ||
+            CASE pnuNivelAuditoria
+              WHEN cAUDITORIA_SILENCIADO THEN 'SILENCIADO'
+              WHEN cAUDITORIA_ESSENCIAL  THEN 'ESSENCIAL'
+              WHEN cAUDITORIA_DETALHADO  THEN 'DETALHADO'
+              WHEN cAUDITORIA_COMPLETO   THEN 'COMPLETO'
+              ELSE 'ESSENCIAL'
+            END, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      END IF;
 
-      vnuRegistros := vnuRegistros + 1;
-      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,
-        vsgModulo, vsgConceito, rcdIdentificacao, 1,
-        'BASECALCULO', 'INCLUSAO', 'Documento JSON Bases incluído com sucesso',
-		    cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      SELECT COUNT(*) INTO vnuRegistrosAntes FROM emigParametrizacao
+      WHERE sgAgrupamento = psgAgrupamento
+        AND sgModulo = csgModulo AND sgConceito = csgConceito;
 
-    END LOOP;
+      MERGE INTO emigParametrizacao p USING (
+        SELECT
+          sgAgrupamento, sgOrgao, sgModulo, sgConceito, cdIdentificacao, jsConteudo 
+        FROM TABLE(fnExportarBasesCalculo(psgAgrupamento, vsgOrgao, ctpOperacao, vdtOperacao,
+          csgModulo, csgConceito, pcdIdentificacao, pnuNivelAuditoria))
+      ) r ON (p.sgAgrupamento= r.sgAgrupamento AND NVL(p.sgOrgao, ' ') = NVL(r.sgOrgao, ' ')
+          AND p.sgModulo = r.sgModulo AND p.sgConceito = r.sgConceito
+          AND p.cdIdentificacao = r.cdIdentificacao)
+      WHEN MATCHED THEN UPDATE SET
+          p.dtExportacao = vdtOperacao,
+          p.jsConteudo   = r.jsConteudo,
+          p.dtInclusao   = SYSTIMESTAMP,
+          p.nuVersao     = cnuVersao,
+          p.flAnulado    = cflAnulado
+      WHEN NOT MATCHED THEN INSERT (
+          sgAgrupamento, sgOrgao, sgModulo, sgConceito, dtExportacao,
+          cdIdentificacao, jsConteudo, dtInclusao, nuVersao, flAnulado
+        )
+        VALUES (
+          r.sgAgrupamento, r.sgOrgao, r.sgModulo, r.sgConceito, vdtOperacao,
+          r.cdIdentificacao, r.jsConteudo, SYSTIMESTAMP, cnuVersao, cflAnulado
+        );
 
-    CLOSE vRefCursor;
+      vnuProcessados := SQL%ROWCOUNT;
 
-    COMMIT;
+      SELECT COUNT(*) INTO vnuRegistrosDepois FROM emigParametrizacao
+      WHERE sgAgrupamento = psgAgrupamento
+        AND sgModulo = csgModulo AND sgConceito = csgConceito;
+
+      vnuInseridos   := vnuRegistrosDepois - vnuRegistrosAntes;
+      vnuAtualizados := vnuProcessados - vnuInseridos;
+
+      IF vnuInseridos > 0 THEN 
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamento, vsgOrgao, ctpOperacao, vdtOperacao, 
+          csgModulo, csgConceito, pcdIdentificacao, vnuInseridos,
+          'BASECALCULO', 'INCLUSAO', 'Documento JSON de Bases de Cálculo incluído com sucesso',
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      END IF;
+
+      IF vnuAtualizados > 0 THEN 
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamento, vsgOrgao, ctpOperacao, vdtOperacao, 
+          csgModulo, csgConceito, pcdIdentificacao, vnuAtualizados,
+          'BASECALCULO', 'ATUALIZACAO', 'Documento JSON de Bases de Cálculo atualizado com sucesso',
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      END IF;
+
+      COMMIT;
 
     -- Gerar as Estatísticas da Exportação das Bases de Cálculo
     vdtTermino := LOCALTIMESTAMP;
@@ -127,12 +143,13 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
 	    'Tempo de Execução ' ||
 	    LPAD(EXTRACT(HOUR FROM vnuTempoExecucao), 2, '0') || ':' ||
 	    LPAD(EXTRACT(MINUTE FROM vnuTempoExecucao), 2, '0') || ':' ||
-	    LPAD(TRUNC(EXTRACT(SECOND FROM vnuTempoExecucao)), 2, '0') || ', ' || CHR(13) || CHR(10) ||
-	    'Total de Parametrizações de Bases de Cálculo Exportadas: ' || vnuRegistros;
+	      LPAD(TRUNC(EXTRACT(SECOND FROM vnuTempoExecucao)), 2, '0') || ', ' || CHR(13) || CHR(10) ||
+	      'Total de Parametrizações de Bases de Cálculo Exportadas: ' || vnuInseridos ||
+        ' e Atualizadas: ' || vnuAtualizados;
 
     -- Registro de Resumo da Exportação das Bases de Cálculo
-    PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,
-      vsgModulo, vsgConceito, NULL, NULL,
+    PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamento, vsgOrgao, ctpOperacao, vdtOperacao,
+      csgModulo, csgConceito, NULL, NULL,
       'BASECALCULO', 'RESUMO', 'Exportação das Parametrizações das Bases de Cálculo do ' || vtxResumo, 
       cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
@@ -142,8 +159,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,  
-        vsgModulo, vsgConceito, vcdIdentificacao, 'BASE CALCULO',
+      PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamento, vsgOrgao, ctpOperacao, vdtOperacao,  
+        csgModulo, csgConceito, pcdIdentificacao, 'BASE CALCULO',
         'Exportação de Bases de Cálculo (PKGMIG_ParametrizacaoBasesCalculo.pExportar)', SQLERRM);
     RAISE;
   END pExportar;
@@ -1353,21 +1370,36 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
   END pImportarExpressaoBloco;
 
   -- Função que cria o Cursor que Estrutura o Documento JSON com as Parametrizações das Bases de Cálculo
-  FUNCTION fnCursorBases(
-    psgAgrupamento   IN VARCHAR2,
-    psgOrgao         IN VARCHAR2,
-    psgModulo        IN CHAR,
-    psgConceito      IN VARCHAR2,
-    pcdIdentificacao IN VARCHAR2,
-    pdtExportacao    IN TIMESTAMP,
-    pnuVersao        IN CHAR,
-    pflAnulado       IN CHAR
-    ) RETURN SYS_REFCURSOR IS
+  FUNCTION fnExportarBasesCalculo(
+  -- ###########################################################################
+  -- FUNCTION: fnExportarValoresReferencia
+  -- Objetivo:
+  --   Exportar as Parametrizações dos Valores de Referencia
+  --     para a Configuração Padrão JSON, realizando:
+  --     - Registro de Logs de Auditoria por evento
+  --
+  -- Parâmetros:
+  --   psgAgrupamentoDestino IN VARCHAR2:
+  --   psgOrgao              IN VARCHAR2,
+  --   ptpOperacao           IN VARCHAR2,
+  --   pdtOperacao           IN TIMESTAMP,
+  --   psgModulo             IN CHAR,
+  --   psgConceito           IN VARCHAR2,
+  --   pcdIdentificacao      IN VARCHAR2: 
+  --   pnuNivelAuditoria     IN NUMBER DEFAULT NULL:
+  --
+  -- ###########################################################################
+    psgAgrupamento    IN VARCHAR2,
+    psgOrgao          IN VARCHAR2,
+    ptpOperacao       IN VARCHAR2,
+    pdtOperacao       IN TIMESTAMP,
+    psgModulo         IN CHAR,
+    psgConceito       IN VARCHAR2,
+    pcdIdentificacao  IN VARCHAR2,
+    pnuNivelAuditoria IN NUMBER DEFAULT NULL
+    ) RETURN tpemigParametrizacaoTabela PIPELINED IS
 
-    vRefCursor SYS_REFCURSOR;
-
-  BEGIN
-    OPEN vRefCursor FOR
+    CURSOR cDados IS
       --- Extrair os Conceito das Bases de um Agrupamento
       WITH
       -- EstruturaCarreiraLista: lista da Estrutura de Carreira e Cargos
@@ -1598,19 +1630,38 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       SELECT
         sgAgrupamento,
         psgOrgao AS sgOrgao,
-        psgModulo AS sgModulo,
-        psgConceito AS sgConceito,
-        pdtExportacao AS dtExportacao,
         sgBaseCalculo AS cdIdentificacao,
-        Base AS jsConteudo,
-        pnuVersao AS nuVersao,
-        pflAnulado AS flAnulado,
-        SYSTIMESTAMP AS dtInclusao
+        Base AS jsConteudo
       FROM Bases
-      ORDER BY sgagrupamento, sgorgao, sgModulo, sgConceito, cdIdentificacao;
-    
-      RETURN vRefCursor;
-  END fnCursorBases;
+      ORDER BY sgagrupamento, sgorgao, cdIdentificacao;
+
+    BEGIN
+
+      IF psgAgrupamento IS NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_PARAMETRO_OBRIGATORIO,
+          'Agrupamento não Informado.');
+      ELSIF PKGMIG_ParametrizacaoLog.fnValidarAgrupamento(psgAgrupamento) IS NOT NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_AGRUPAMENTO_INVALIDO,
+          'Agrupamento Informado não Cadastrado.: "' || SUBSTR(psgAgrupamento,1,15) || '".');
+      END IF;
+
+      -- Loop principal de processamento
+      FOR r IN cDados LOOP
+        PIPE ROW (tpemigParametrizacao(
+          r.sgAgrupamento, r.sgOrgao, psgModulo, psgConceito, r.cdIdentificacao, r.jsConteudo
+        ));
+      END LOOP;
+      RETURN;
+
+    EXCEPTION
+      WHEN OTHERS THEN
+        -- Registro e Propagação do Erro
+        PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamento, psgOrgao, ptpOperacao, pdtOperacao,
+          psgModulo, psgConceito, pcdIdentificacao, 'VALORES REFERENCIA',
+          'Exportação das Bases Cálculo (PKGMIG_ParametrizacaoBasesCalculo.fnExportarBasesCalculo)', SQLERRM);
+      ROLLBACK;
+      RAISE;
+  END fnExportarBasesCalculo;
 
 END PKGMIG_ParametrizacaoBasesCalculo;
 /
