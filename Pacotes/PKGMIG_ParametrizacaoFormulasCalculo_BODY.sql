@@ -1,9 +1,330 @@
 -- Corpo do Pacote de Importação das Parametrizações de Formulas de Cálculo
 CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
 
+  FUNCTION fnExportar(
+  -- ###########################################################################
+  -- FUNCTION: pExportar
+  -- Objetivo:
+  --   Exportar as Parametrizações das Formulas de Cálculo para a Configuração Padrão JSON,
+  --     realizando:
+  --     - Gera o Documento JSON Formula de Calculo
+  --     - Registro de Logs de Auditoria por evento
+  --
+  -- Parâmetros:
+  --   psgAgrupamento        IN VARCHAR2: Sigla do agrupamento de origem da configuração
+  --   pnuNivelAuditoria     IN NUMBER DEFAULT NULL: Defini o nível das mensagens
+  --                         para acompanhar a execução, sendo:
+  --                         - Não informado assume 'Desligado' nível mínimo de mensagens;
+  --                         - Se informado 'SILENCIADO' omite todas as mensagens;
+  --                         - Se informado 'ESSENCIAL' inclui as mensagens das
+  --                           principais todas entidades, menos as listas;
+  --                         - Se informado 'DETALHADO' inclui as mensagens de todas 
+  --                           entidades, incluindo as referente as tabelas das listas;
+  --
+  -- ###########################################################################
+    psgAgrupamento        IN VARCHAR2,
+    pcdIdentificacao      IN VARCHAR2 DEFAULT NULL,
+    pnuNivelAuditoria     IN NUMBER DEFAULT NULL
+  ) RETURN tpemigParametrizacaoTabela PIPELINED IS
+    -- Variáveis de controle e contexto
+    vsgOrgao            VARCHAR2(15) := NULL;
+    csgModulo           CONSTANT CHAR(3)      := 'PAG';
+    csgConceito         CONSTANT VARCHAR2(20) := 'RUBRICA';
+    ctpOperacao         CONSTANT VARCHAR2(15) := 'EXPORTACAO';
+    vdtOperacao         TIMESTAMP             := LOCALTIMESTAMP;
+    vcdIdentificacao    VARCHAR2(20) := NULL;
+    vjsConteudo         CLOB         := NULL;
+
+    rsgAgrupamento      VARCHAR2(15) := NULL;
+    rsgOrgao            VARCHAR2(15) := NULL;
+    rcdIdentificacao    VARCHAR2(20) := NULL;
+    rjsConteudo         CLOB         := NULL;
+
+    vtxMensagem         VARCHAR2(100) := NULL;
+
+    -- Referencia para o Cursor que Estrutura o Documento JSON com as parametrizações das Formulas de Cálculo
+    vRefCursor SYS_REFCURSOR;
+
+    BEGIN
+
+      vdtOperacao := LOCALTIMESTAMP;
+
+      IF pcdIdentificacao IS NULL THEN
+        vtxMensagem := 'Inicio da Exportação das Parametrizações das Formulas de Cálculo ';
+      ELSE
+        vtxMensagem := 'Inicio da Exportação da Parametrização da Formula de Cálculo "' || pcdIdentificacao || '" ';
+      END IF;
+
+      IF psgAgrupamento IS NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_PARAMETRO_OBRIGATORIO,
+          'Agrupamento não Informado.');
+      ELSIF PKGMIG_ParametrizacaoLog.fnValidarAgrupamento(psgAgrupamento) IS NOT NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_AGRUPAMENTO_INVALIDO,
+          'Agrupamento Informado não Cadastrado.: "' || SUBSTR(psgAgrupamento,1,15) || '".');
+      END IF;
+
+      PKGMIG_ParametrizacaoLog.pAlertar(vtxMensagem ||
+        'do Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
+	      'Data da Exportação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
+        cAUDITORIA_DETALHADO, pnuNivelAuditoria);
+
+      IF cAUDITORIA_ESSENCIAL != pnuNivelAuditoria THEN
+        PKGMIG_ParametrizacaoLog.pAlertar('Nível de Auditoria Habilitado ' ||
+          CASE pnuNivelAuditoria
+            WHEN cAUDITORIA_SILENCIADO THEN 'SILENCIADO'
+            WHEN cAUDITORIA_ESSENCIAL  THEN 'ESSENCIAL'
+            WHEN cAUDITORIA_DETALHADO  THEN 'DETALHADO'
+            WHEN cAUDITORIA_COMPLETO   THEN 'COMPLETO'
+            ELSE 'ESSENCIAL'
+          END, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      END IF;
+
+	    -- Defini o Cursos com a Query que Gera o Documento JSON Rubricas
+	    vRefCursor := fnCursorFormulasCalculo(psgAgrupamento, pcdIdentificacao);
+
+      -- Loop principal de processamento
+	    LOOP
+        FETCH vRefCursor INTO rsgAgrupamento, rcdIdentificacao, rjsConteudo;
+        EXIT WHEN vRefCursor%NOTFOUND;
+
+        PKGMIG_ParametrizacaoLog.pAlertar('Exportação da Formula de Cálculo ' || rcdIdentificacao,
+          cAUDITORIA_DETALHADO, pnuNivelAuditoria);
+
+        PIPE ROW (tpemigParametrizacao(
+          rsgAgrupamento, vsgOrgao, csgModulo, csgConceito, rcdIdentificacao, rjsConteudo
+        ));
+      END LOOP;
+      RETURN;
+
+      CLOSE vRefCursor;
+
+    EXCEPTION
+      WHEN OTHERS THEN
+        -- Registro e Propagação do Erro
+        PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamento, vsgOrgao, ctpOperacao, vdtOperacao,  
+          csgModulo, csgConceito, vcdIdentificacao, 'FORMULA CALCULO',
+          'Exportação da Formula (PKGMIG_ParametrizacaoFormulasCalculo.pExportar)', SQLERRM);
+      ROLLBACK;
+      RAISE;
+  END fnExportar;
+
   PROCEDURE pImportar(
   -- ###########################################################################
   -- PROCEDURE: pImportar
+  -- Objetivo:
+  --   Importar dados Formulas de Cálculo partir do Documento Rubrica JSON
+  --   contida na tabela emigParametrizacao, realizando:
+  --     - Importação das Consignação não existente tabela epagFormulaCalculo
+  --     - Registro de Logs de Auditoria por evento
+  --
+  -- Parâmetros:
+  --   psgAgrupamentoOrigem  IN VARCHAR2: Sigla do agrupamento de origem da configuração
+  --   psgAgrupamentoDestino IN VARCHAR2: Sigla do agrupamento de destino para os dados
+  --   pcdIdentificacao      IN VARCHAR2: Código de Identificação do Conceito
+  --   pnuNivelAuditoria     IN NUMBER DEFAULT NULL: Defini o nível das mensagens
+  --                         para acompanhar a execução, sendo:
+  --                         - Não informado assume 'Desligado' nível mínimo de mensagens;
+  --                         - Se informado 'SILENCIADO' omite todas as mensagens;
+  --                         - Se informado 'ESSENCIAL' inclui as mensagens das
+  --                           principais todas entidades, menos as listas;
+  --                         - Se informado 'DETALHADO' inclui as mensagens de todas 
+  --                           entidades, incluindo as referente as tabelas das listas;
+  --
+  -- ###########################################################################
+    psgAgrupamentoOrigem  IN VARCHAR2,
+    psgAgrupamentoDestino IN VARCHAR2,
+    pcdIdentificacao      IN VARCHAR2 DEFAULT NULL,
+    pnuNivelAuditoria     IN NUMBER DEFAULT NULL
+  ) IS
+    -- Variáveis de controle e contexto
+    vsgOrgao               VARCHAR2(15)          := Null;
+    csgModulo              CONSTANT CHAR(3)      := 'PAG';
+    csgConceito            CONSTANT VARCHAR2(20) := 'RUBRICA';
+    ctpOperacao            CONSTANT VARCHAR2(15) := 'IMPORTACAO';
+    vdtOperacao            TIMESTAMP             := LOCALTIMESTAMP;
+    vcdIdentificacao       VARCHAR2(50)          := Null;
+
+    vtxMensagem            VARCHAR2(100) := NULL;
+    vContador              NUMBER       := 0;
+    cCommitLote            CONSTANT NUMBER := 1000;
+    vdtExportacao          TIMESTAMP    := LOCALTIMESTAMP;
+    vdtTermino             TIMESTAMP    := LOCALTIMESTAMP;
+    vnuTempoExecucao       INTERVAL DAY TO SECOND := NULL;
+    vnuInseridos           NUMBER       := 0;
+    vnuAtualizados         NUMBER       := 0;
+    vnuRegistros           NUMBER       := 0;
+    vtxResumo              VARCHAR2(4000) := NULL;
+
+    vListaTabelas          CLOB := '[
+      "EPAGFORMULACALCULO",
+      "EPAGFORMULAVERSAO",
+      "EPAGHISTFORMULACALCULO",
+      "EPAGEXPRESSAOFORMCALC",
+      "EPAGFORMULACALCULOBLOCO",
+      "EPAGFORMULACALCBLOCOEXPRESSAO",
+      "EPAGFORMCALCBLOCOEXPRUBAGRUP"
+    ]';
+
+    -- Cursor que extrai e transforma os dados JSON da Formula de Cálculo
+    CURSOR cDados IS
+      WITH
+      -- Formulas de Cálculo das Parametrizações das Rubricas
+      Formulas AS (
+      SELECT parm.sgAgrupamento, parm.sgOrgao, parm.sgModulo, parm.sgConceito, parm.dtExportacao,
+        parm.cdIdentificacao, rubagrp.cdRubricaAgrupamento,
+        JSON_SERIALIZE(TO_CLOB(js.Formula) RETURNING CLOB) AS Formula
+
+      -- Caminho Absoluto no Documento JSON
+      -- $.PAG.Rubrica.Tipos[*].Agrupamento.Formula
+      FROM emigParametrizacao parm
+      CROSS APPLY JSON_TABLE(parm.jsConteudo, '$.PAG.Rubrica.Tipos[*].Agrupamento.Formula' COLUMNS (
+        Formula           CLOB FORMAT JSON PATH '$'
+      )) js
+      INNER JOIN ecadAgrupamento a ON a.sgAgrupamento = psgAgrupamentoDestino
+      LEFT JOIN epagTipoRubrica tprub ON tprub.nuTipoRubrica = SUBSTR(parm.cdIdentificacao,1,2)
+      LEFT JOIN epagRubrica rub ON rub.cdTipoRubrica = tprub.cdTipoRubrica
+                                AND rub.nuRubrica = SUBSTR(parm.cdIdentificacao,4,4)
+      LEFT JOIN epagRubricaAgrupamento rubagrp ON rubagrp.cdAgrupamento =  a.cdAgrupamento
+                                              AND rubagrp.cdRubrica =  rub.cdRubrica
+
+      WHERE parm.sgModulo = csgModulo AND parm.sgConceito = csgConceito AND parm.flAnulado = 'N'
+        AND parm.sgAgrupamento = psgAgrupamentoOrigem AND NVL(parm.sgOrgao, ' ') = NVL(vsgOrgao, ' ')
+        AND TO_CHAR(parm.dtExportacao, 'DD/MM/YYYY HH24:MI') = TO_CHAR(vdtExportacao, 'DD/MM/YYYY HH24:MI')
+        AND (parm.cdIdentificacao = pcdIdentificacao OR pcdIdentificacao IS NULL)
+      ORDER BY parm.cdIdentificacao
+      )
+      SELECT * FROM Formulas;
+
+  BEGIN
+
+    vdtOperacao := LOCALTIMESTAMP;
+
+    IF psgAgrupamentoOrigem IS NULL THEN
+      RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_PARAMETRO_OBRIGATORIO,
+        'Agrupamento Origem não Informado.');
+    ELSIF PKGMIG_ParametrizacaoLog.fnValidarAgrupamento(psgAgrupamentoOrigem) IS NOT NULL THEN
+      RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_AGRUPAMENTO_INVALIDO,
+        'Agrupamento Origem Informado não Cadastrado.: "' || SUBSTR(psgAgrupamentoOrigem,1,50) || '".');
+    END IF;
+
+    IF psgAgrupamentoDestino IS NULL THEN
+      RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_PARAMETRO_OBRIGATORIO,
+        'Agrupamento Destino não Informado.');
+    ELSIF PKGMIG_ParametrizacaoLog.fnValidarAgrupamento(psgAgrupamentoDestino) IS NOT NULL THEN
+      RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_AGRUPAMENTO_INVALIDO,
+        'Agrupamento Destino Informado não Cadastrado.: "' || SUBSTR(psgAgrupamentoDestino,1,50) || '".');
+    END IF;
+
+    SELECT MAX(dtExportacao) INTO vdtExportacao FROM emigParametrizacao
+    WHERE sgModulo = csgModulo AND sgConceito = csgConceito
+      AND sgAgrupamento = psgAgrupamentoOrigem AND sgOrgao IS NULL;
+
+    IF pcdIdentificacao IS NULL THEN
+      vtxMensagem := 'Inicio da Importação das Parametrizações das Formulas de Cálculo ';
+    ELSE
+      vtxMensagem := 'Inicio da Importação da Parametrização da Formula de Cálculo "' || pcdIdentificacao || '" ';
+    END IF;
+
+    PKGMIG_ParametrizacaoLog.pAlertar(vtxMensagem ||
+      'do Agrupamento ' || psgAgrupamentoOrigem || ' ' ||
+      'para o Agrupamento ' || psgAgrupamentoDestino || ', ' || CHR(13) || CHR(10) ||
+      'Data da Operação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
+      cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+
+    IF cAUDITORIA_ESSENCIAL != pnuNivelAuditoria THEN
+        PKGMIG_ParametrizacaoLog.pAlertar('Nível de Auditoria Habilitado ' ||
+          CASE pnuNivelAuditoria
+            WHEN cAUDITORIA_SILENCIADO THEN 'SILENCIADO'
+            WHEN cAUDITORIA_ESSENCIAL  THEN 'ESSENCIAL'
+            WHEN cAUDITORIA_DETALHADO  THEN 'DETALHADO'
+            WHEN cAUDITORIA_COMPLETO   THEN 'COMPLETO'
+            ELSE 'ESSENCIAL'
+          END, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+    END IF;
+
+    vnuInseridos   := 0;
+    vnuAtualizados := 0;
+    vContador      := 0;
+
+    -- Loop principal de processamento para Incluir as Consignações
+    FOR r IN cDados LOOP
+  
+      vsgOrgao := r.sgOrgao;
+      vcdIdentificacao := r.cdIdentificacao;
+
+      IF r.cdRubricaAgrupamento IS NULL THEN
+        PKGMIG_ParametrizacaoLog.pAlertar('Importação das Formulas de Cálculo - ' ||
+          'Formula de Cálculo - ' || vcdIdentificacao ||
+          'Rubrica da Formula de Cálculo Inexistente no Agrupamento',
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, vsgOrgao, ctpOperacao, vdtOperacao, 
+          csgModulo, csgConceito, vcdIdentificacao, 1,
+          'FORMULA CALCULO', 'INCONSISTENTE',
+          'Rubrica da Formual de Cálculo Inexistente no Agrupamento',
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      END IF;
+
+      IF r.cdRubricaAgrupamento IS NOT NULL THEN
+
+        -- Incluir Formula de Cálculo
+        vContador := vContador + 1;
+        vnuInseridos := vnuInseridos + 1;
+        pImportarFormulaCalculo(psgAgrupamentoDestino, vsgOrgao, ctpOperacao, vdtOperacao,
+          csgModulo, csgConceito, vcdIdentificacao, r.cdRubricaAgrupamento, r.Formula, pnuNivelAuditoria);
+
+        IF MOD(vContador, cCommitLote) = 0 THEN
+          COMMIT;
+        END IF;
+      END IF;
+
+    END LOOP;
+
+    COMMIT;
+
+    -- Gerar as Estatísticas da Importação das Formulas de Cálculo
+    vdtTermino := LOCALTIMESTAMP;
+    vnuTempoExecucao := vdtTermino - vdtOperacao;
+    vtxResumo := 
+      'Agrupamento ' || psgAgrupamentoOrigem || ' para o ' ||
+      'Agrupamento ' || psgAgrupamentoDestino || ', ' || CHR(13) || CHR(10) ||
+      'Data e Hora da Inicio da Operação  ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS')  || ', ' || CHR(13) || CHR(10) ||
+      'Data e Hora da Termino da Operação ' || TO_CHAR(vdtTermino, 'DD/MM/YYYY HH24:MI:SS')  || ', ' || CHR(13) || CHR(10) ||
+	    'Tempo de Execução ' ||
+	    LPAD(EXTRACT(HOUR FROM vnuTempoExecucao), 2, '0') || ':' ||
+	    LPAD(EXTRACT(MINUTE FROM vnuTempoExecucao), 2, '0') || ':' ||
+	    LPAD(TRUNC(EXTRACT(SECOND FROM vnuTempoExecucao)), 2, '0') || ', ' || CHR(13) || CHR(10) ||
+	    'Total de Parametrizações das Formulas de Cálculo Incluídas: ' || vnuInseridos;
+
+    PKGMIG_ParametrizacaoLog.pGerarResumo(psgAgrupamentoDestino, vsgOrgao, ctpOperacao, vdtOperacao,
+      csgModulo, csgConceito, vdtTermino, vnuTempoExecucao, pnuNivelAuditoria);
+
+    -- Registro de Resumo da Importação das Formulas de Cálculo
+    PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, vsgOrgao, ctpOperacao, vdtOperacao,
+      csgModulo, csgConceito, NULL, NULL,
+      'FORMULA CALCULO', 'RESUMO', 'Importação das Parametrizações das Formulas de Cálculo do ' || vtxResumo, 
+      cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+
+    -- Atualizar a SEQUENCE das Tabela Envolvidas na importação das Formulas de Cálculo
+    PKGMIG_ParametrizacaoLog.pAtualizarSequence(psgAgrupamentoDestino, vsgOrgao, ctpOperacao, vdtOperacao,
+      csgModulo, csgConceito, vListaTabelas, pnuNivelAuditoria);
+
+    PKGMIG_ParametrizacaoLog.pAlertar('Termino da Importação das Parametrizações das Formulas de Cálculo do ' ||
+      vtxResumo, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+
+  EXCEPTION
+    WHEN OTHERS THEN
+      -- Registro e Propagação do Erro
+        PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, vsgOrgao, ctpOperacao, vdtOperacao,  
+          csgModulo, csgConceito, vcdIdentificacao, 'FORMULA CALCULO',
+          'Importação das Formulas (PKGMIG_ParametrizacaoFormulasCalculo.pImportar)', SQLERRM);
+    ROLLBACK;
+    RAISE;
+  END pImportar;
+
+  PROCEDURE pImportarFormulaCalculo(
+  -- ###########################################################################
+  -- PROCEDURE: pImportarFormulaCalculo
   -- Objetivo:
   --   Importar dados das Formulas de Cálculo do Documento Versões JSON
   --     contido na tabela emigParametrizacao, realizando:
@@ -91,6 +412,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
       
       JSON_SERIALIZE(TO_CLOB(js.Versoes) RETURNING CLOB) AS Versoes
 
+      -- Caminho Absoluto no Documento JSON
+      -- $.PAG.Rubrica.Tipos[*].Agrupamento.Formula
       FROM JSON_TABLE(pFormulaCalculo, '$' COLUMNS (
           sgFormulaCalculo  PATH '$.sgFormulaCalculo',
           deFormulaCalculo  PATH '$.deFormulaCalculo',
@@ -142,9 +465,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
       -- Registro e Propagação do Erro
         PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
           psgModulo, psgConceito, vcdIdentificacao, 'FORMULA CALCULO',
-          'Importação da Formula de Cálculo (PKGMIG_ParametrizacaoFormulasCalculo.pImportar)', SQLERRM);
+          'Importação da Formula (PKGMIG_ParametrizacaoFormulasCalculo.pImportarFormulaCalculo)', SQLERRM);
       RAISE;
-  END pImportar;
+  END pImportarFormulaCalculo;
 
   PROCEDURE pExcluirFormulaCalculo(
   -- ###########################################################################
@@ -442,6 +765,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
 
       JSON_SERIALIZE(TO_CLOB(js.VigenciasFormula) RETURNING CLOB) AS VigenciasFormula
 
+      -- Caminho Absoluto no Documento JSON
+      -- $.PAG.Rubrica.Tipos[*].Agrupamento.Formula.Versoes
       FROM JSON_TABLE(pVersoesFormula, '$[*]' COLUMNS (
         nuFormulaVersao  PATH '$.nuFormulaVersao',
         VigenciasFormula CLOB FORMAT JSON PATH '$.Vigencias'
@@ -573,6 +898,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
       
       JSON_SERIALIZE(TO_CLOB(js.ExpressaoFormula) RETURNING CLOB) AS ExpressaoFormula
 
+      -- Caminho Absoluto no Documento JSON
+      -- $.PAG.Rubrica.Tipos[*].Agrupamento.Formula.Versoes.Vigencias
       FROM JSON_TABLE(pVigenciasFormula, '$[*]' COLUMNS (
         nuAnoMesInicioVigencia      PATH '$.nuAnoMesInicioVigencia',
         nuAnoMesFimVigencia         PATH '$.nuAnoMesFimVigencia',
@@ -755,6 +1082,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
       
       JSON_SERIALIZE(TO_CLOB(js.BlocosFormula) RETURNING CLOB) AS BlocosFormula
 
+      -- Caminho Absoluto no Documento JSON
+      -- $.PAG.Rubrica.Tipos[*].Agrupamento.Formula.Versoes.Vigencias.Expressao
       FROM JSON_TABLE(pExpressaoFormula, '$' COLUMNS (
         deFormulaExpressao           PATH '$.deFormulaExpressao',
         deExpressao                  PATH '$.deExpressao',
@@ -900,6 +1229,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
       
       JSON_SERIALIZE(TO_CLOB(js.BlocoExpressao) RETURNING CLOB) AS BlocoExpressao
 
+      -- Caminho Absoluto no Documento JSON
+      -- $.PAG.Rubrica.Tipos[*].Agrupamento.Formula.Versoes.Vigencias.Expressao.Blocos
       FROM JSON_TABLE(pBlocosFormula, '$[*]' COLUMNS (
         sgBloco         PATH '$.sgBloco',
         flLimiteParcial PATH '$.flLimiteParcial',
@@ -1143,6 +1474,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
                                  AND rub.cdAgrupamento = o.cdAgrupamento
       ) As GrupoRubricas
 
+      -- Caminho Absoluto no Documento JSON
+      -- $.PAG.Rubrica.Tipos[*].Agrupamento.Formula.Versoes.Vigencias.Expressao.Blocos.Expressao
       FROM JSON_TABLE(pBlocoExpressao, '$' COLUMNS (
         sgTipoMneumonico        PATH '$.sgTipoMneumonico',
         deOperacao              PATH '$.deOperacao',
@@ -1376,6 +1709,306 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
           'Importação da Formula de Cálculo (PKGMIG_ParametrizacaoFormulasCalculo.pImportarExpressaoBloco)', SQLERRM);
       RAISE;
   END pImportarExpressaoBloco;
+
+  -- Função que cria o Cursor que Estrutura o Documento JSON com as Parametrizações das Formulas de Cálculo
+  FUNCTION fnCursorFormulasCalculo(
+    psgAgrupamento   IN VARCHAR2,
+    pcdIdentificacao IN VARCHAR2
+  ) RETURN SYS_REFCURSOR IS
+    vRefCursor SYS_REFCURSOR;
+
+  BEGIN
+    OPEN vRefCursor FOR
+      --- Extrair os Conceito das Formulas de Cálculo das Rubricas de um Agrupamento
+      WITH
+      --- Informações referente as lista de Órgãos, Rubricas, Carreiras, Cargos Comissionados, Motivos
+      -- OrgaoLista: lista dos Agrupamentos e Órgãos
+      OrgaoLista AS (
+      SELECT g.sgGrupoAgrupamento, UPPER(p.nmPoder) AS nmPoder, a.sgAgrupamento, vgcorg.sgOrgao,
+        vgcorg.dtInicioVigencia, vgcorg.dtFimVigencia,
+        UPPER(tporgao.nmTipoOrgao) AS nmTipoOrgao,
+        o.cdAgrupamento, o.cdOrgao, vgcorg.cdHistOrgao, vgcorg.cdTipoOrgao
+      FROM ecadAgrupamento a
+      INNER JOIN ecadPoder p ON p.cdPoder = a.cdPoder
+      INNER JOIN ecadGrupoAgrupamento g ON g.cdGrupoAgrupamento = a.cdGrupoAgrupamento
+      INNER JOIN ecadOrgao o ON o.cdAgrupamento = a.cdAgrupamento
+      INNER JOIN (
+        SELECT sgOrgao, dtInicioVigencia, dtFimVigencia, cdOrgao, cdHistOrgao, cdTipoOrgao FROM (
+          SELECT sgOrgao, dtInicioVigencia, dtFimVigencia, cdOrgao, cdHistOrgao, cdTipoOrgao, 
+          RANK() OVER (PARTITION BY cdOrgao ORDER BY dtInicioVigencia DESC, dtFimVigencia DESC NULLS FIRST) AS nuOrder
+          FROM ecadHistOrgao WHERE flAnulado = 'N'
+        ) WHERE nuOrder = 1
+      ) vgcorg ON vgcorg.cdOrgao = o.cdOrgao
+      LEFT JOIN ecadTipoOrgao tporgao ON tporgao.cdTipoOrgao = vgcorg.cdTipoOrgao
+      UNION
+      SELECT g.sgGrupoAgrupamento, UPPER(p.nmPoder) AS nmPoder, a.sgAgrupamento, NULL AS sgOrgao,
+        NULL AS dtInicioVigencia,NULL AS dtFimVigencia, NULL AS nmTipoOrgao,
+        a.cdAgrupamento, NULL AS cdOrgao, NULL AS cdHistOrgao, NULL AS cdTipoOrgao
+      FROM ecadAgrupamento a
+      INNER JOIN ecadPoder p ON p.cdPoder = a.cdPoder
+      INNER JOIN ecadGrupoAgrupamento g ON g.cdGrupoAgrupamento = a.cdGrupoAgrupamento
+      ORDER BY sgGrupoAgrupamento, nmPoder, sgAgrupamento, sgOrgao nulls FIRST, dtInicioVigencia DESC NULLS FIRST
+      ),
+      -- RubricaLista: lista Rubricas
+      RubricaLista AS (
+      SELECT rubagrp.cdAgrupamento, rubagrp.cdRubricaAgrupamento, rub.cdRubrica,
+        LPAD(tprub.nuTipoRubrica,2,0) || '-' || LPAD(rub.nuRubrica,4,0) AS nuRubrica,
+        CASE WHEN tprub.nuTipoRubrica IN (1, 5, 9) THEN NULL ELSE tprub.deTipoRubrica || ' ' END ||
+          NVL2(UltVigenciaAgrupamento.cdRubricaAgrupamento,UltVigenciaAgrupamento.deRubrica,
+            NVL2(UltVigenciaRub.nuRubrica,UltVigenciaRub.deRubrica,NULL)) as deRubrica,
+        NVL2(UltVigenciaAgrupamento.cdRubricaAgrupamento,UltVigenciaAgrupamento.nuAnoMesInicioVigencia,
+          NVL2(UltVigenciaRub.nuRubrica,UltVigenciaRub.nuAnoMesInicioVigencia,NULL)) as nuAnoMesInicioVigencia,
+        NVL2(UltVigenciaAgrupamento.cdRubricaAgrupamento,UltVigenciaAgrupamento.nuAnoMesFimVigencia,
+          NVL2(UltVigenciaRub.nuRubrica,UltVigenciaRub.nuAnoMesFimVigencia,NULL)) as nuAnoMesFimVigencia
+      FROM epagRubrica rub
+      INNER JOIN epagTipoRubrica tprub ON tprub.cdtiporubrica = rub.cdtiporubrica
+      INNER JOIN epagRubricaAgrupamento rubagrp ON rubagrp.cdrubrica = rub.cdrubrica
+      LEFT JOIN (SELECT cdRubricaAgrupamento, deRubrica, nuAnoMesInicioVigencia, nuAnoMesFimVigencia FROM (
+        SELECT cdRubricaAgrupamento, deRubricaAgrupamento as deRubrica,
+          LPAD(nuAnoInicioVigencia,4,0) || LPAD(nuMesInicioVigencia,2,0) AS nuAnoMesInicioVigencia,
+          CASE WHEN nuAnoFimVigencia IS NULL OR nuMesFimVigencia IS NULL THEN NULL
+          ELSE LPAD(nuAnoFimVigencia,4,0) || LPAD(nuMesFimVigencia,2,0) END AS nuAnoMesFimVigencia,
+          RANK() OVER (PARTITION BY cdRubricaAgrupamento
+            ORDER BY LPAD(nuAnoInicioVigencia,4,0) || LPAD(nuMesInicioVigencia,2,0) DESC,
+              CASE WHEN nuAnoFimVigencia IS NULL OR nuMesFimVigencia IS NULL THEN NULL
+              ELSE LPAD(nuAnoFimVigencia,4,0) || LPAD(nuMesFimVigencia,2,0)
+              END DESC nulls FIRST) AS nuOrder
+        FROM epagHistRubricaAgrupamento) WHERE nuOrder = 1
+      ) UltVigenciaAgrupamento ON UltVigenciaAgrupamento.cdRubricaAgrupamento = rubagrp.cdRubricaAgrupamento
+      LEFT JOIN (SELECT nuRubrica, deRubrica, nuAnoMesInicioVigencia, nuAnoMesFimVigencia FROM (
+        SELECT rub.cdRubrica, vigenciarub.deRubrica,
+          LPAD(tprub.nuTipoRubrica,2,0) || '-' || LPAD(rub.nuRubrica,4,0) as nuRubrica,
+          NVL(LPAD(vigenciarub.nuAnoInicioVigencia,4,0) || LPAD(vigenciarub.nuMesInicioVigencia,2,0), '190101') AS nuAnoMesInicioVigencia,
+          CASE WHEN vigenciarub.nuAnoFimVigencia IS NULL OR vigenciarub.nuMesFimVigencia IS NULL THEN NULL
+          ELSE LPAD(vigenciarub.nuAnoFimVigencia,4,0) || LPAD(vigenciarub.nuMesFimVigencia,2,0) END AS nuAnoMesFimVigencia,
+          RANK() OVER (PARTITION BY rub.cdRubrica
+            ORDER BY NVL(LPAD(vigenciarub.nuAnoInicioVigencia,4,0) || LPAD(vigenciarub.nuMesInicioVigencia,2,0),'190101') DESC,
+              CASE WHEN vigenciarub.nuAnoFimVigencia IS NULL OR vigenciarub.nuMesFimVigencia IS NULL THEN NULL
+              ELSE LPAD(vigenciarub.nuAnoFimVigencia,4,0) || LPAD(vigenciarub.nuMesFimVigencia,2,0)
+              END DESC nulls FIRST) AS nuOrder
+        FROM epagRubrica rub
+        INNER JOIN epagTipoRubrica tprub on tprub.cdTipoRubrica = rub.cdTipoRubrica
+        LEFT JOIN epagHistRubrica vigenciarub on vigenciarub.cdRubrica = rub.cdRubrica
+        WHERE tprub.nuTipoRubrica IN (1, 5, 9)) WHERE nuOrder = 1
+      ) UltVigenciaRub ON UltVigenciaRub.nuRubrica =
+          CASE WHEN tprub.nuTipoRubrica IN (1, 2, 3, 8, 10, 12) THEN '01'
+               WHEN tprub.nuTipoRubrica IN (5, 6, 7, 4, 11, 13) THEN '05'
+               WHEN tprub.nuTipoRubrica = 9 THEN '09'
+          END || '-' || LPAD(rub.nuRubrica,4,0)
+      ),
+      -- EstruturaCarreiraLista: lista da Estrutura de Carreira e Cargos
+      EstruturaCarreiraLista AS (
+      SELECT e.cdAgrupamento, e.cdEstruturaCarreira,
+        NVL2(nivel4.cdEstruturaCarreira, item4.deItemCarreira || ' / ', '') ||
+        NVL2(nivel3.cdEstruturaCarreira, item3.deItemCarreira || ' / ', '') ||
+        NVL2(nivel2.cdEstruturaCarreira, item2.deItemCarreira || ' / ', '') ||
+        NVL2(nivel1.cdEstruturaCarreira, item1.deItemCarreira, item.deItemCarreira) ||
+        CASE WHEN e.cdEstruturaCarreira IS NOT NULL THEN ' / ' || item.deItemCarreira ELSE '' END nmEstruturaCarreira
+      FROM ecadestruturacarreira e
+      LEFT JOIN ecadItemCarreira item ON item.cdAgrupamento = e.cdagrupamento AND item.cdItemCarreira = e.cdItemCarreira
+      LEFT JOIN ecadEstruturaCarreira nivel1 ON nivel1.cdAgrupamento = e.cdAgrupamento AND nivel1.cdEstruturaCarreira = e.cdEstruturaCarreiraPai
+      LEFT JOIN ecadEstruturaCarreira nivel2 ON nivel2.cdAgrupamento = e.cdAgrupamento AND nivel2.cdEstruturaCarreira = nivel1.cdEstruturaCarreiraPai
+      LEFT JOIN ecadEstruturaCarreira nivel3 ON nivel3.cdAgrupamento = e.cdAgrupamento AND nivel3.cdEstruturaCarreira = nivel2.cdEstruturaCarreiraPai
+      LEFT JOIN ecadEstruturaCarreira nivel4 ON nivel4.cdAgrupamento = e.cdAgrupamento AND nivel4.cdEstruturaCarreira = nivel3.cdEstruturaCarreiraPai
+      LEFT JOIN ecadItemCarreira item1 ON item1.cdAgrupamento = e.cdAgrupamento AND item1.cdItemCarreira = nivel1.cdItemCarreira
+      LEFT JOIN ecadItemCarreira item2 ON item2.cdAgrupamento = e.cdAgrupamento AND item2.cdItemCarreira = nivel2.cdItemCarreira
+      LEFT JOIN ecadItemCarreira item3 ON item3.cdAgrupamento = e.cdAgrupamento AND item3.cdItemCarreira = nivel3.cdItemCarreira
+      LEFT JOIN ecadItemCarreira item4 ON item4.cdAgrupamento = e.cdAgrupamento AND item4.cdItemCarreira = nivel4.cdItemCarreira
+      ),
+
+      --- Informações referente as Formulas de Calculo
+      -- Referente as seguintes Tabelas:
+      --   Formula => epagFormulaCalculo
+      --   VersoesFormula => epagFormulaVersao
+      --   VigenciasFormula => epagHistFormulaCalculo
+      --   ExpressaoFormula => epagExpressaoFormCalc
+      --   BlocosFormula => epagFormulaCalculoBloco
+      --   BlocoExpressao => epagFormulaCalcBlocoExpressao
+      --   BlocoExpressaoRubricas= > epagFormCalcBlocoExpRubAgrup
+      --   
+      -- BlocoExpressaoRubricas: expressões agrupadas por rubrica
+      BlocoExpressaoRubricas AS (
+        SELECT gprub.cdFormulaCalcBlocoExpressao,
+          JSON_ARRAYAGG(TRIM(nuRubrica || ' ' || deRubrica) ORDER BY nuRubrica RETURNING CLOB) AS GrupoRubricas
+        FROM epagFormCalcBlocoExpRubAgrup gprub
+        LEFT JOIN RubricaLista rub ON rub.cdRubricaAgrupamento = gprub.cdRubricaAgrupamento
+        GROUP BY gprub.cdFormulaCalcBlocoExpressao
+      ),
+      -- BlocoExpressao: expressões individuais por tipo e ordem
+      BlocoExpressao AS (
+        SELECT blexp.cdFormulaCalcBlocoExpressao, blexp.cdFormulaCalculoBloco, tipoMneumonico.sgTipoMneumonico,
+          JSON_OBJECT(
+            'sgTipoMneumonico'        VALUE tipoMneumonico.sgTipoMneumonico,
+            'deOperacao'              VALUE blexp.deOperacao,
+            'inTipoRubrica'           VALUE DECODE(blexp.inTipoRubrica,
+                                              'I', 'VALOR INTEGRAL',
+                                              'P', 'VALOR PAGO',
+                                              'R', 'VALOR REAL',
+                                             NULL),
+            'inRelacaoRubrica'        VALUE DECODE(blexp.inRelacaoRubrica,
+                                              'R', 'RELACAO DE TRABALHO',
+                                              'S', 'SOMATORIO',
+                                            NULL),
+            'inMes'                   VALUE DECODE(blexp.inMes,
+                                              'AT', 'VALOR REFERENTE AO MES ATUAL',
+                                              'AN', 'VALOR REFERENTE AO MES ANTERIOR',
+                                            NULL),
+            'nuMeses'                 VALUE blexp.nuMeses,
+            'nuValor'                 VALUE blexp.nuValor,
+            'flValorHoraMinuto'       VALUE NULLIF(blexp.flValorHoraMinuto, 'N'),
+            'nuRubrica'               VALUE TRIM(rub.nuRubrica || ' ' || rub.deRubrica),
+            'nuMesRubrica'            VALUE blexp.nuMesRubrica,
+            'nuAnoRubrica'            VALUE blexp.nuAnoRubrica,
+            'nmValorReferencia'       VALUE valorReferencia.nmValorReferencia,
+            'sgBaseCalculo'           VALUE baseCalculo.sgBaseCalculo,
+            'sgTabelaValorGeralCef'   VALUE valorGeral.sgTabelaValorGeralCef,
+            'nmEstruturaCarreira'     VALUE cef.nmEstruturaCarreira,
+            'cdFuncaoChefia'          VALUE blexp.cdFuncaoChefia,
+            'deNivel'                 VALUE blexp.deNivel,
+            'deReferencia'            VALUE blexp.deReferencia,
+            'deCodigoCco'             VALUE blexp.deCodigoCco,
+            'cdTipoAdicionalTempServ' VALUE blexp.cdTipoAdicionalTempServ,
+            'GrupoRubricas'           VALUE grupoRub.GrupoRubricas
+            ABSENT ON NULL RETURNING CLOB) AS Expressao
+        FROM epagFormulaCalcBlocoExpressao blexp
+        INNER JOIN epagFormulaCalculoBloco bloco ON bloco.cdFormulaCalculoBloco = blexp.cdFormulaCalculoBloco
+        INNER JOIN epagExpressaoFormCalc expFormula ON expFormula.cdExpressaoFormCalc = bloco.cdExpressaoFormCalc
+        INNER JOIN epagHistFormulaCalculo vigencia ON vigencia.cdHistFormulaCalculo = expFormula.cdHistFormulaCalculo
+        INNER JOIN epagFormulaVersao versao ON versao.cdFormulaVersao = vigencia.cdFormulaVersao
+        INNER JOIN epagFormulaCalculo formula ON formula.cdFormulaCalculo = versao.cdFormulaCalculo
+        LEFT JOIN epagTipoMneumonico tipoMneumonico ON tipoMneumonico.cdTipoMneumonico = blexp.cdTipoMneumonico
+        LEFT JOIN BlocoExpressaoRubricas grupoRub ON grupoRub.cdFormulaCalcBlocoExpressao = blexp.cdFormulaCalcBlocoExpressao
+        LEFT JOIN epagValorReferencia valorReferencia ON valorReferencia.cdAgrupamento = formula.cdAgrupamento
+              AND valorReferencia.cdValorReferencia = blexp.cdValorReferencia
+        LEFT JOIN epagBaseCalculo baseCalculo ON baseCalculo.cdBaseCalculo = blexp.cdBaseCalculo
+        LEFT JOIN epagValorGeralCefAgrup valorGeral ON valorGeral.cdAgrupamento = formula.cdAgrupamento
+              AND valorGeral.cdValorGeralCefAgrup = blexp.cdValorGeralCefAgrup
+        LEFT JOIN EstruturaCarreiraLista cef ON cef.cdEstruturaCarreira = blexp.cdEstruturaCarreira
+        LEFT JOIN RubricaLista rub ON rub.cdRubricaAgrupamento = blexp.cdRubricaAgrupamento
+      ),
+      -- BlocosFormula: blocos de cálculo compostos por expressões
+      BlocosFormula AS (
+        SELECT bloco.cdExpressaoFormCalc,
+          JSON_ARRAYAGG(JSON_OBJECT(
+            'sgBloco'   VALUE bloco.sgBloco,
+            'Expressao' VALUE blexp.Expressao
+            RETURNING CLOB) ORDER BY bloco.sgBloco RETURNING CLOB) AS Blocos
+        FROM epagFormulaCalculoBloco bloco
+        LEFT JOIN BlocoExpressao blexp ON blexp.cdFormulaCalculoBloco = bloco.cdFormulaCalculoBloco
+        GROUP BY bloco.cdExpressaoFormCalc
+      ),
+      -- ExpressaoFormula: expressões utilizadas nas fórmulas
+      ExpressaoFormula AS (
+        SELECT expressao.cdHistFormulaCalculo,
+          JSON_OBJECT(
+            'deFormulaExpressao'        VALUE expressao.deFormulaExpressao,
+            'deExpressao'               VALUE expressao.deExpressao,
+            'deIndiceExpressao'         VALUE expressao.deIndiceExpressao,
+            'flExpGeral'                VALUE NULLIF(expressao.flExpGeral, 'N'),
+            'flDesprezaPropChoRubrica'  VALUE NULLIF(expressao.flDesprezaPropChoRubrica, 'N'),
+            'flExigeIndice'             VALUE NULLIF(expressao.flExigeIndice, 'N'),
+            'flValorHoraMinuto'         VALUE NULLIF(expressao.flValorHoraMinuto, 'N'),
+            'nmEstruturaCarreira'       VALUE cef.nmEstruturaCarreira,
+            'nmUnidadeOrganizacional'   VALUE expressao.cdUnidadeOrganizacional,
+            'nmCargoComissionado'       VALUE expressao.cdCargoComissionado,
+            'Blocos'                    VALUE blocos.Blocos,
+            'FormulaEspecifica'         VALUE
+              CASE WHEN expressao.cdFormulaEspecifica IS NULL AND expressao.deFormulaEspecifica IS NULL 
+                    AND expressao.nuFormulaEspecifica IS NULL
+                    THEN NULL
+              ELSE JSON_OBJECT(
+                'sgFormulaEspecifica'   VALUE expressao.cdFormulaEspecifica,
+                'deFormulaEspecifica'   VALUE expressao.deFormulaEspecifica,
+                'nuFormulaEspecifica'   VALUE expressao.nuFormulaEspecifica
+              ABSENT ON NULL) END,
+            'Limites'                   VALUE
+              CASE WHEN expressao.cdValorRefLimInfParcial      IS NULL AND expressao.cdValorRefLimSupParcial   IS NULL 
+                    AND expressao.cdValorRefLimInfFinal        IS NULL AND expressao.cdValorRefLimSupFinal     IS NULL
+                    AND expressao.nuQtdeLimInfParcial          IS NULL AND expressao.nuQtdeLimiteSupParcial    IS NULL 
+                    AND expressao.nuQtdeLimiteInfFinal         IS NULL AND expressao.nuQtdeLimiteSupFinal      IS NULL 
+                    AND expressao.vlIndiceLimInferiorMensal    IS NULL AND expressao.vlIndiceLimSuperiorMensal IS NULL 
+                    AND expressao.vlIndiceLimSuperiorSemestral IS NULL AND expressao.vlIndiceLimSuperiorAnual  IS NULL
+                    THEN NULL
+              ELSE JSON_OBJECT(
+                'nmValorRefLimInfParcial'      VALUE vlrefLimInfParcial.nmValorReferencia,
+                'nmValorRefLimSupParcial'      VALUE vlrefLimSupParcial.nmValorReferencia,
+                'nmValorRefLimInfFinal'        VALUE vlrefLimInfFinal.nmValorReferencia,
+                'nmValorRefLimSupFinal'        VALUE vlrefLimSupFinal.nmValorReferencia,
+                'nuQtdeLimInfParcial'          VALUE expressao.nuQtdeLimInfParcial,
+                'nuQtdeLimiteSupParcial'       VALUE expressao.nuQtdeLimiteSupParcial,
+                'nuQtdeLimiteInfFinal'         VALUE expressao.nuQtdeLimiteInfFinal,
+                'nuQtdeLimiteSupFinal'         VALUE expressao.nuQtdeLimiteSupFinal,
+                'vlIndiceLimInferiorMensal'    VALUE expressao.vlIndiceLimInferiorMensal,
+                'vlIndiceLimSuperiorMensal'    VALUE expressao.vlIndiceLimSuperiorMensal,
+                'vlIndiceLimSuperiorSemestral' VALUE expressao.vlIndiceLimSuperiorSemestral,
+                'vlIndiceLimSuperiorAnual'     VALUE expressao.vlIndiceLimSuperiorAnual
+              ABSENT ON NULL) END
+          ABSENT ON NULL RETURNING CLOB) AS Expressao
+        FROM epagExpressaoFormCalc expressao
+        INNER JOIN epagHistFormulaCalculo vigencia ON vigencia.cdHistFormulaCalculo = expressao.cdHistFormulaCalculo
+        INNER JOIN epagFormulaVersao versao ON versao.cdFormulaVersao = vigencia.cdFormulaVersao
+        INNER JOIN epagFormulaCalculo formula ON formula.cdFormulaCalculo = versao.cdFormulaCalculo
+        LEFT JOIN BlocosFormula blocos ON blocos.cdExpressaoFormCalc = expressao.cdExpressaoFormCalc
+        LEFT JOIN EstruturaCarreiraLista cef ON cef.cdEstruturaCarreira = expressao.cdEstruturaCarreira
+        LEFT JOIN epagValorReferencia vlrefLimInfParcial ON vlrefLimInfParcial.cdAgrupamento = formula.cdAgrupamento
+              AND vlrefLimInfParcial.cdValorReferencia = expressao.cdValorRefLimInfParcial
+        LEFT JOIN epagValorReferencia vlrefLimSupParcial ON vlrefLimSupParcial.cdAgrupamento = formula.cdAgrupamento
+              AND vlrefLimSupParcial.cdValorReferencia = expressao.cdValorRefLimSupParcial
+        LEFT JOIN epagValorReferencia vlrefLimInfFinal ON vlrefLimInfFinal.cdAgrupamento = formula.cdAgrupamento
+              AND vlrefLimInfFinal.cdValorReferencia = expressao.cdValorRefLimInfFinal
+        LEFT JOIN epagValorReferencia vlrefLimSupFinal ON vlrefLimSupFinal.cdAgrupamento = formula.cdAgrupamento
+              AND vlrefLimSupFinal.cdValorReferencia = expressao.cdValorRefLimSupFinal
+      ),
+      -- VigenciasFormula: vigências (períodos de validade) das fórmulas
+      VigenciasFormula AS (
+        SELECT vigencia.cdFormulaVersao,
+          JSON_ARRAYAGG(JSON_OBJECT(
+            'nuAnoMesInicioVigencia' VALUE vigencia.nuAnoInicio || LPAD(vigencia.nuMesInicio, 2, '0'),
+            'nuAnoMesFimVigencia'    VALUE vigencia.nuAnoFim || LPAD(vigencia.nuMesFim, 2, '0'),
+            'Expressao'              VALUE expressao.Expressao
+            ABSENT ON NULL RETURNING CLOB)
+          ORDER BY vigencia.nuAnoInicio || LPAD(vigencia.nuMesInicio, 2, '0') DESC RETURNING CLOB) AS Vigencias
+        FROM epagHistFormulaCalculo vigencia
+        LEFT JOIN ExpressaoFormula expressao ON expressao.cdHistFormulaCalculo = vigencia.cdHistFormulaCalculo
+        GROUP BY vigencia.cdFormulaVersao
+      ),
+      -- VersoesFormula: versões agrupadas das fórmulas
+      VersoesFormula AS (
+        SELECT versao.cdFormulaCalculo,
+          JSON_ARRAYAGG(JSON_OBJECT(
+            'nuFormulaVersao' VALUE LPAD(versao.nuFormulaVersao, 2, '0'),
+            'Vigencias'        VALUE vigencias.Vigencias
+            ABSENT ON NULL RETURNING CLOB)
+          ORDER BY versao.nuFormulaVersao RETURNING CLOB) AS Versoes
+        FROM epagFormulaVersao versao
+        LEFT JOIN VigenciasFormula vigencias ON vigencias.cdFormulaVersao = versao.cdFormulaVersao
+        GROUP BY versao.cdFormulaCalculo
+      ),
+      -- Formula: definição da fórmula com versões embutidas
+      Formula AS (
+        SELECT rub.nuRubrica,
+          JSON_OBJECT(
+            'sgFormulaCalculo' VALUE formula.sgFormulaCalculo,
+            'deFormulaCalculo' VALUE formula.deFormulaCalculo,
+            'Versoes'          VALUE versoes.Versoes
+          ABSENT ON NULL RETURNING CLOB) AS Formula
+        FROM epagFormulaCalculo Formula
+        INNER JOIN RubricaLista rub ON rub.cdRubricaAgrupamento = formula.cdRubricaAgrupamento
+        INNER JOIN ecadAgrupamento a ON a.cdAgrupamento = rub.cdAgrupamento
+        LEFT JOIN VersoesFormula versoes ON versoes.cdFormulaCalculo = formula.cdFormulaCalculo
+        WHERE a.sgAgrupamento = psgAgrupamento
+          AND (rub.nuRubrica = pcdIdentificacao OR pcdIdentificacao IS NULL)
+        ORDER BY rub.nuRubrica
+      )
+      SELECT 
+        psgAgrupamento AS sgAgrupamento,
+        nuRubrica AS cdIdentificacao,
+        Formula AS jsConteudo
+      FROM Formula
+      ORDER BY sgAgrupamento, cdIdentificacao;
+
+    RETURN vRefCursor;
+  END fnCursorFormulasCalculo;
 
 END PKGMIG_ParametrizacaoFormulasCalculo;
 /

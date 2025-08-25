@@ -116,15 +116,15 @@ CREATE OR REPLACE PACKAGE PKGMIG_ParametrizacaoRubricas AS
     pVigenciasTipo        IN CLOB,
     pnuNivelAuditoria     IN NUMBER DEFAULT NULL);
 
-  FUNCTION fnCursorRubricas(
-    psgAgrupamento        IN VARCHAR2,
-    psgOrgao              IN VARCHAR2,
-    psgModulo             IN CHAR,
-    psgConceito           IN VARCHAR2,
-    pcdIdentificacao      IN VARCHAR2,
-    pdtExportacao         IN TIMESTAMP,
-    pnuVersao             IN CHAR,
-    pflAnulado            IN CHAR
-  ) RETURN SYS_REFCURSOR;
+  FUNCTION fnExportarRubricas(
+    psgAgrupamento    IN VARCHAR2,
+    psgOrgao          IN VARCHAR2,
+    ptpOperacao       IN VARCHAR2,
+    pdtOperacao       IN TIMESTAMP,
+    psgModulo         IN CHAR,
+    psgConceito       IN VARCHAR2,
+    pcdIdentificacao  IN VARCHAR2,
+    pnuNivelAuditoria IN NUMBER DEFAULT NULL
+  ) RETURN tpemigParametrizacaoTabela PIPELINED;
 END PKGMIG_ParametrizacaoRubricas;
 /

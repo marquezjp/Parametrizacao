@@ -45,7 +45,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
     vParm                 tpmigParametroEntrada;
 
   BEGIN
-    vParm := PKGMIG_ParametrizacaoLog.fnObterParametro(pjsParametros);
+    vParm := PKGMIG_ParametrizacaoLog.fnObterParametro(pjsParametros,'S');
 
     FOR r IN (
       SELECT sgAgrupamento, sgOrgao, sgModulo, sgConceito, TO_CHAR(dtExportacao, 'DD/MM/YYYY HH24:MI') AS dtExportacao, COUNT(*) AS Conteudos
@@ -72,31 +72,21 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_Parametrizacao AS
     vdtExportacao    TIMESTAMP := Null;
 
   BEGIN
-    vParm := PKGMIG_ParametrizacaoLog.fnObterParametro(pjsParametros);
-
-    IF vParm.dtOperacao IS NULL THEN
-      SELECT TO_CHAR(MAX(dtExportacao), 'DD/MM/YYYY HH24:MI') INTO vdtExportacao
-      FROM emigParametrizacao
-      WHERE sgModulo = vParm.sgModulo AND sgConceito = vParm.sgConceito
-        AND sgAgrupamento = vParm.sgAgrupamento AND sgOrgao IS NULL;
-    ELSE
-      vdtExportacao := vParm.dtOperacao;
-    END IF;
+    vParm := PKGMIG_ParametrizacaoLog.fnObterParametro(pjsParametros,'S');
 
     FOR r IN (
-      SELECT sgAgrupamento, sgOrgao, sgModulo, sgConceito, TO_CHAR(dtExportacao, 'DD/MM/YYYY HH24:MI') AS dtExportacao,
-        cdIdentificacao,
-        JSON_SERIALIZE(TO_CLOB(jsconteudo) RETURNING CLOB PRETTY) AS jsConteudo
+      SELECT sgAgrupamento, sgOrgao, sgModulo, sgConceito, cdIdentificacao,
+        JSON_SERIALIZE(TO_CLOB(jsconteudo) RETURNING CLOB PRETTY) AS jsConteudo,
+        TO_CHAR(dtExportacao, 'DD/MM/YYYY HH24:MI') AS dtExportacao
       FROM emigParametrizacao
-      WHERE (sgAgrupamento = vParm.sgAgrupamento)
-        AND (sgModulo = vParm.sgModulo)
-        AND (sgConceito = vParm.sgConceito)
-        AND (TO_CHAR(dtExportacao, 'DD/MM/YYYY HH24:MI') = vdtExportacao)
-      ORDER BY sgAgrupamento, sgModulo, sgConceito, sgOrgao, dtExportacao DESC, cdIdentificacao)
+      WHERE (sgAgrupamento = vParm.sgAgrupamento OR vParm.sgAgrupamento IS NULL)
+        AND (sgModulo = vParm.sgModulo OR vParm.sgModulo IS NULL)
+        AND (sgConceito = vParm.sgConceito OR vParm.sgConceito IS NULL)
+        AND (TO_CHAR(dtExportacao, 'DD/MM/YYYY HH24:MI') = vParm.dtOperacao OR vParm.dtOperacao IS NULL)
+      ORDER BY sgAgrupamento, sgModulo, sgConceito, sgOrgao, cdIdentificacao, dtExportacao DESC)
     LOOP
       PIPE ROW (tpmigParametrizacaoListar(r.sgAgrupamento, r.sgOrgao,
-          r.sgModulo, r.sgConceito, r.dtExportacao, 
-          r.cdIdentificacao, r.jsConteudo));
+          r.sgModulo, r.sgConceito, r.cdIdentificacao, r.jsConteudo, r.dtExportacao));
     END LOOP;
     RETURN;
   END fnListar;

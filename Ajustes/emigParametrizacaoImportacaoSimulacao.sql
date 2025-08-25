@@ -202,23 +202,30 @@ INNER JOIN epagRubrica rub ON rub.cdRubrica = rubagrp.cdRubrica
 INNER JOIN epagTipoRubrica tprub ON tprub.cdTipoRubrica = rub.cdTipoRubrica
 WHERE parm.cdRubricaAgrupamento IS NOT NULL
 GROUP BY parm.cdAgrupamento, a.sgAgrupamento, parm.cdRubricaAgrupamento, LPAD(tprub.nuTipoRubrica,2,0) || '-' || LPAD(rub.nuRubrica,4,0)
-)
+),
+Lista AS (
 SELECT sgAgrupamento, 'PARAMETRO' AS Tipo, nuRubrica, ParametroTributacao AS Sigla FROM ParametroTributacao
-WHERE cdAgrupamento = 19
+WHERE cdAgrupamento != 1
 UNION ALL
 SELECT a.sgAgrupamento, 'FORMULA' AS Tipo, lpad(r.cdTipoRubrica,2,0) || '-' || lpad(r.nuRubrica,4,0) AS nuRubrica, f.deFormulaCalculo AS Sigla
 FROM epagFormulaCalculo f
 INNER JOIN epagRubricaAgrupamento ra ON ra.cdRubricaAgrupamento = f.cdRubricaAgrupamento
 INNER JOIN epagRubrica r ON r.cdRubrica = ra.cdRubrica
 INNER JOIN ecadAgrupamento a ON a.cdAgrupamento = ra.cdAgrupamento
-WHERE f.cdAgrupamento = 19
+WHERE f.cdAgrupamento != 1 AND (r.cdTipoRubrica = 1 OR ra.flPensaoAlimenticia = 'N')
+UNION ALL
+SELECT a.sgAgrupamento, 'PENSAO' AS Tipo, lpad(r.cdTipoRubrica,2,0) || '-' || lpad(r.nuRubrica,4,0) AS nuRubrica, NULL AS Sigla
+FROM epagRubricaAgrupamento ra
+INNER JOIN epagRubrica r ON r.cdRubrica = ra.cdRubrica
+INNER JOIN ecadAgrupamento a ON a.cdAgrupamento = ra.cdAgrupamento
+WHERE ra.cdAgrupamento != 1 AND ra.flPensaoAlimenticia = 'S'
 UNION ALL
 SELECT a.sgAgrupamento, 'EVENTO' AS Tipo, lpad(r.cdTipoRubrica,2,0) || '-' || lpad(r.nuRubrica,4,0) AS nuRubrica, e.deEvento AS Sigla
 FROM epagEventoPagAgrup e
 INNER JOIN epagRubricaAgrupamento ra ON ra.cdRubricaAgrupamento = e.cdRubricaAgrupamento
 INNER JOIN epagRubrica r ON r.cdRubrica = ra.cdRubrica
 INNER JOIN ecadAgrupamento a ON a.cdAgrupamento = ra.cdAgrupamento
-WHERE ra.cdAgrupamento = 19
+WHERE ra.cdAgrupamento != 1
 UNION ALL
 SELECT a.sgAgrupamento, 'BASE' AS Tipo, lpad(r.cdTipoRubrica,2,0) || '-' || lpad(r.nuRubrica,4,0) AS nuRubrica, base.nmBaseCalculo AS Sigla
 FROM epagRubricaAgrupamento ra
@@ -227,7 +234,7 @@ INNER JOIN epagBaseCalculo base ON base.cdBaseCalculo = ra.cdBaseCalculo
 INNER JOIN ecadAgrupamento a ON a.cdAgrupamento = ra.cdAgrupamento
 WHERE ra.cdAgrupamento = 19 and ra.cdBaseCalculo is not null
 UNION ALL
-SELECT a.sgAgrupamento, 'CONSIGNCAO' AS Tipo, lpad(r.cdTipoRubrica,2,0) || '-' || lpad(r.nuRubrica,4,0) AS nuRubrica,
+SELECT a.sgAgrupamento, 'CONSIGNACAO' AS Tipo, lpad(r.cdTipoRubrica,2,0) || '-' || lpad(r.nuRubrica,4,0) AS nuRubrica,
 TRIM(tpsrv.nmTipoServico || ' ' || cst.sgConsignataria) AS Sigla
 FROM epagConsignacao csg
 INNER JOIN epagConsignataria cst ON cst.cdConsignataria = csg.cdConsignataria
@@ -235,6 +242,15 @@ LEFT JOIN epagTipoServico tpsrv ON tpsrv.cdTipoServico = csg.cdTipoServico
 INNER JOIN epagRubrica r ON r.cdRubrica = csg.cdRubrica
 INNER JOIN epagRubricaAgrupamento ra ON ra.cdRubrica = r.cdRubrica
 INNER JOIN ecadAgrupamento a ON a.cdAgrupamento = ra.cdAgrupamento
-WHERE ra.cdAgrupamento = 19
+WHERE ra.cdAgrupamento != 1
+)
+
+SELECT * FROM Lista
 ORDER BY sgAgrupamento, nuRubrica, Tipo, Sigla
 ;
+
+SELECT DISTINCT nuRubrica FROM Lista
+WHERE TIPO = 'PENSAO'
+ORDER BY nuRubrica
+;
+

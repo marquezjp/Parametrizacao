@@ -24,7 +24,19 @@ CREATE OR REPLACE PACKAGE PKGMIG_ParametrizacaoEventosPagamento AS
   cAUDITORIA_DETALHADO  CONSTANT PLS_INTEGER := 2;
   cAUDITORIA_COMPLETO   CONSTANT PLS_INTEGER := 3;
 
+  FUNCTION fnExportar(
+    psgAgrupamento        IN VARCHAR2,
+    pcdIdentificacao      IN VARCHAR2 DEFAULT NULL,
+    pnuNivelAuditoria     IN NUMBER DEFAULT NULL
+  ) RETURN tpemigParametrizacaoTabela PIPELINED;
+
   PROCEDURE pImportar(
+    psgAgrupamentoOrigem  IN VARCHAR2,
+    psgAgrupamentoDestino IN VARCHAR2,
+    pcdIdentificacao      IN VARCHAR2 DEFAULT NULL,
+    pnuNivelAuditoria     IN NUMBER DEFAULT NULL);
+
+  PROCEDURE pImportarEventos(
     psgAgrupamentoDestino IN VARCHAR2,
     psgOrgao              IN VARCHAR2,
     ptpOperacao           IN VARCHAR2,
@@ -61,5 +73,10 @@ CREATE OR REPLACE PACKAGE PKGMIG_ParametrizacaoEventosPagamento AS
     pVigenciasEvento      IN CLOB, 
     pnuNivelAuditoria     IN NUMBER DEFAULT NULL
   );
+
+  FUNCTION fnCursorEventos(
+    psgAgrupamento        IN VARCHAR2,
+    pcdIdentificacao      IN VARCHAR2
+  ) RETURN SYS_REFCURSOR;
 END PKGMIG_ParametrizacaoEventosPagamento;
 /

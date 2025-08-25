@@ -1,16 +1,3 @@
---- Declaração dos Tipos de Objetos e Tabelas para o Pacote de Exportação e Importação das Parametrizações
-DROP TYPE tpParametrizacaoTabela;
-CREATE OR REPLACE TYPE tpParametrizacao AS OBJECT (
--- Tipo Objeto: Parametrizações
-  sgAgrupamento        VARCHAR2(15), 
-  sgOrgao              VARCHAR2(15), 
-  sgModulo             CHAR(3), 
-  sgConceito           VARCHAR2(20), 
-  cdIdentificacao      VARCHAR2(20), 
-  jsConteudo           CLOB
-);
-CREATE OR REPLACE TYPE tpParametrizacaoTabela AS TABLE OF tpParametrizacao;
-
 --- Pacote de Importação das Parametrizações das Consignações
 CREATE OR REPLACE PACKAGE PKGMIG_ParametrizacaoConsignacoes AS
   -- ###########################################################################
@@ -55,7 +42,7 @@ CREATE OR REPLACE PACKAGE PKGMIG_ParametrizacaoConsignacoes AS
     psgAgrupamento        IN VARCHAR2,
     pcdIdentificacao      IN VARCHAR2 DEFAULT NULL,
     pnuNivelAuditoria     IN NUMBER DEFAULT NULL
-  ) RETURN tpParametrizacaoTabela PIPELINED;
+  ) RETURN tpemigParametrizacaoTabela PIPELINED;
 
   PROCEDURE pImportar(
     psgAgrupamentoOrigem  IN VARCHAR2,
