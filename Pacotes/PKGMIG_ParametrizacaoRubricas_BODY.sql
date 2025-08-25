@@ -109,6 +109,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
         );
 
       vnuProcessados := SQL%ROWCOUNT;
+
       SELECT COUNT(*) INTO vnuRegistrosDepois FROM emigParametrizacao
       WHERE sgAgrupamento = psgAgrupamento
         AND sgModulo = csgModulo AND sgConceito = csgConceito;
@@ -144,12 +145,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
 	      LPAD(TRUNC(EXTRACT(SECOND FROM vnuTempoExecucao)), 2, '0') || ', ' || CHR(13) || CHR(10) ||
 	      'Total de Parametrizações de Rubricas Exportadas: ' || vnuInseridos ||
         ' e Atualizadas: ' || vnuAtualizados;
---	      'Contabilida ' || CHR(13) || CHR(10) ||
---        'vnuRegistrosAntes: ' || vnuRegistrosAntes || CHR(13) || CHR(10) ||
---        'vnuRegistrosDepois: ' || vnuRegistrosDepois || CHR(13) || CHR(10) ||
---        'vnuProcessados: ' || vnuProcessados || CHR(13) || CHR(10) ||
---        'vnuInseridos: ' || vnuInseridos || CHR(13) || CHR(10) ||
---        'vnuAtualizados: ' || vnuAtualizados;
 
       -- Registro de Resumo da Exportação das Rubricas
       PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamento, vsgOrgao, ctpOperacao, vdtOperacao,
