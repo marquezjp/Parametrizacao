@@ -28,130 +28,144 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
   ) IS
     -- Variáveis de controle e contexto
     vsgOrgao            VARCHAR2(15)          := NULL;
-    vsgModulo           CONSTANT CHAR(3)      := 'PAG';
-    vsgConceito         CONSTANT VARCHAR2(20) := 'VALORREFERENCIA';
-    vtpOperacao         CONSTANT VARCHAR2(15) := 'EXPORTACAO';
+    csgModulo           CONSTANT CHAR(3)      := 'PAG';
+    csgConceito         CONSTANT VARCHAR2(20) := 'VALORREFERENCIA';
+    ctpOperacao         CONSTANT VARCHAR2(15) := 'EXPORTACAO';
+    cnuVersao           CONSTANT CHAR(04)     := '1.00';
+    cflAnulado          CONSTANT CHAR(01)     := 'N';
+
     vdtOperacao         TIMESTAMP             := LOCALTIMESTAMP;
-    vcdIdentificacao    VARCHAR2(20)          := NULL;
-    vnuVersao           CONSTANT CHAR(04)     := '1.00';
-    vflAnulado          CONSTANT CHAR(01)     := 'N';
-
-    rsgAgrupamento      VARCHAR2(15) := NULL;
-    rsgOrgao            VARCHAR2(15) := NULL;
-    rsgModulo           CHAR(3)      := NULL;
-    rsgConceito         VARCHAR2(20) := NULL;
-    rdtExportacao       TIMESTAMP(6) := NULL;
-    rcdIdentificacao    VARCHAR2(20) := NULL;
-    rjsConteudo         CLOB         := NULL;
-    rnuVersao           CHAR(04)     := NULL;
-    rflAnulado          CHAR(01)     := NULL;
-    rdtInclusao         TIMESTAMP(6) := NULL;
-
-    vtxMensagem         VARCHAR2(100)  := NULL;
     vdtTermino          TIMESTAMP    := LOCALTIMESTAMP;
     vnuTempoExecucao    INTERVAL DAY TO SECOND := NULL;
-    vnuRegistros        NUMBER       := 0;
+
+    vtxMensagem         VARCHAR2(100)  := NULL;
     vtxResumo           VARCHAR2(4000) := NULL;
+
+    vnuRegistrosAntes   NUMBER := 0;
+    vnuRegistrosDepois  NUMBER := 0;
+    vnuProcessados      NUMBER := 0;
+    vnuInseridos        NUMBER := 0;
+    vnuAtualizados      NUMBER := 0;
+
     vListaTabelas       CLOB := '[
       "EPAGVALORREFERENCIA",
       "EPAGVALORREFERENCIAVERSAO",
       "EPAGHISTVALORREFERENCIA"
     ]';
 
-    -- Cursor que extrai e transforma os dados JSON de Valores de Referencia
-    vRefCursor SYS_REFCURSOR;
-
-  BEGIN
+    BEGIN
   
-    vdtOperacao := LOCALTIMESTAMP;
+      vdtOperacao := LOCALTIMESTAMP;
 
-    IF pcdIdentificacao IS NULL THEN
-      vtxMensagem := 'Inicio da Exportação das Parametrizações dos Valores de Referencia ';
-    ELSE
-      vtxMensagem := 'Inicio da Exportação da Parametrização do Valor de Referencia "' || pcdIdentificacao || '" ';
-    END IF;
+      IF pcdIdentificacao IS NULL THEN
+        vtxMensagem := 'Inicio da Exportação das Parametrizações dos Valores de Referencia ';
+      ELSE
+        vtxMensagem := 'Inicio da Exportação da Parametrização do Valor de Referencia "' || pcdIdentificacao || '" ';
+      END IF;
 
-    PKGMIG_ParametrizacaoLog.pAlertar(vtxMensagem ||
-      'do Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
-	    'Data da Exportação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
-      cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      IF psgAgrupamento IS NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_PARAMETRO_OBRIGATORIO,
+          'Agrupamento não Informado.');
+      ELSIF PKGMIG_ParametrizacaoLog.fnValidarAgrupamento(psgAgrupamento) IS NOT NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_AGRUPAMENTO_INVALIDO,
+          'Agrupamento Informado não Cadastrado.: "' || SUBSTR(psgAgrupamento,1,15) || '".');
+      END IF;
 
-    IF cAUDITORIA_ESSENCIAL != pnuNivelAuditoria THEN
-        PKGMIG_ParametrizacaoLog.pAlertar('Nível de Auditoria Habilitado ' ||
-          CASE pnuNivelAuditoria
-            WHEN cAUDITORIA_SILENCIADO THEN 'SILENCIADO'
-            WHEN cAUDITORIA_ESSENCIAL  THEN 'ESSENCIAL'
-            WHEN cAUDITORIA_DETALHADO  THEN 'DETALHADO'
-            WHEN cAUDITORIA_COMPLETO   THEN 'COMPLETO'
-            ELSE 'ESSENCIAL'
-          END, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    END IF;
-
-	  -- Defini o Cursos com a Query que Gera o Documento JSON ValoresReferencia
-	  vRefCursor := fnCursorValoresReferencia(psgAgrupamento, vsgOrgao, vsgModulo, vsgConceito,
-      pcdIdentificacao, vdtOperacao, vnuVersao, vflAnulado);
-
-	  vnuRegistros := 0;
-
-	  -- Loop principal de processamento
-	LOOP
-      FETCH vRefCursor INTO rsgAgrupamento, rsgOrgao, rsgModulo, rsgConceito, rdtExportacao,
-        rcdIdentificacao, rjsConteudo,
-        rnuVersao,
-        rflAnulado, rdtInclusao;
-      EXIT WHEN vRefCursor%NOTFOUND;
-
-      vcdIdentificacao := rcdIdentificacao;
-      
-      PKGMIG_ParametrizacaoLog.pAlertar('Exportação do Valor de Referencia ' || vcdIdentificacao,
+      PKGMIG_ParametrizacaoLog.pAlertar(vtxMensagem ||
+        'do Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
+	      'Data da Exportação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-      INSERT INTO emigParametrizacao (
-        sgAgrupamento, sgOrgao, sgModulo, sgConceito, dtExportacao,
-        cdIdentificacao, jsConteudo, nuVersao, flAnulado
-      ) VALUES (
-        rsgAgrupamento, rsgOrgao, rsgModulo, rsgConceito, rdtExportacao,
-        rcdIdentificacao, rjsConteudo, rnuVersao, rflAnulado
-      );
+      IF cAUDITORIA_ESSENCIAL != pnuNivelAuditoria THEN
+          PKGMIG_ParametrizacaoLog.pAlertar('Nível de Auditoria Habilitado ' ||
+            CASE pnuNivelAuditoria
+              WHEN cAUDITORIA_SILENCIADO THEN 'SILENCIADO'
+              WHEN cAUDITORIA_ESSENCIAL  THEN 'ESSENCIAL'
+              WHEN cAUDITORIA_DETALHADO  THEN 'DETALHADO'
+              WHEN cAUDITORIA_COMPLETO   THEN 'COMPLETO'
+              ELSE 'ESSENCIAL'
+            END, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      END IF;
 
-      vnuRegistros := vnuRegistros + 1;
-      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao, 
-        vsgModulo, vsgConceito, vcdIdentificacao, 1,
-        'VALORES REFERENCIA', 'INCLUSAO', 'Documento JSON ValoresReferencia incluído com sucesso',
+      SELECT COUNT(*) INTO vnuRegistrosAntes FROM emigParametrizacao
+      WHERE sgAgrupamento = psgAgrupamento
+        AND sgModulo = csgModulo AND sgConceito = csgConceito;
+
+      MERGE INTO emigParametrizacao p USING (
+        SELECT
+          sgAgrupamento, sgOrgao, sgModulo, sgConceito, cdIdentificacao, jsConteudo 
+        FROM TABLE(fnExportarValoresReferencia(psgAgrupamento, vsgOrgao, ctpOperacao, vdtOperacao,
+          csgModulo, csgConceito, pcdIdentificacao, pnuNivelAuditoria))
+      ) r ON (p.sgAgrupamento= r.sgAgrupamento AND NVL(p.sgOrgao, ' ') = NVL(r.sgOrgao, ' ')
+          AND p.sgModulo = r.sgModulo AND p.sgConceito = r.sgConceito
+          AND p.cdIdentificacao = r.cdIdentificacao)
+      WHEN MATCHED THEN UPDATE SET
+          p.dtExportacao = vdtOperacao,
+          p.jsConteudo   = r.jsConteudo,
+          p.dtInclusao   = SYSTIMESTAMP,
+          p.nuVersao     = cnuVersao,
+          p.flAnulado    = cflAnulado
+      WHEN NOT MATCHED THEN INSERT (
+          sgAgrupamento, sgOrgao, sgModulo, sgConceito, dtExportacao,
+          cdIdentificacao, jsConteudo, dtInclusao, nuVersao, flAnulado
+        )
+        VALUES (
+          r.sgAgrupamento, r.sgOrgao, r.sgModulo, r.sgConceito, vdtOperacao,
+          r.cdIdentificacao, r.jsConteudo, SYSTIMESTAMP, cnuVersao, cflAnulado
+        );
+
+      vnuProcessados := SQL%ROWCOUNT;
+
+      SELECT COUNT(*) INTO vnuRegistrosDepois FROM emigParametrizacao
+      WHERE sgAgrupamento = psgAgrupamento
+        AND sgModulo = csgModulo AND sgConceito = csgConceito;
+
+      vnuInseridos   := vnuRegistrosDepois - vnuRegistrosAntes;
+      vnuAtualizados := vnuProcessados - vnuInseridos;
+
+      IF vnuInseridos > 0 THEN 
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamento, vsgOrgao, ctpOperacao, vdtOperacao, 
+          csgModulo, csgConceito, pcdIdentificacao, vnuInseridos,
+          'VALORES REFERENCIA', 'INCLUSAO', 'Documento JSON de ValoresReferencia incluído com sucesso',
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      END IF;
+
+      IF vnuAtualizados > 0 THEN 
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamento, vsgOrgao, ctpOperacao, vdtOperacao, 
+          csgModulo, csgConceito, pcdIdentificacao, vnuAtualizados,
+          'VALORES REFERENCIA', 'ATUALIZACAO', 'Documento JSON de ValoresReferencia atualizado com sucesso',
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      END IF;
+
+      COMMIT;
+
+      -- Gerar as Estatísticas da Exportação dos Valores de Referencia
+      vdtTermino := LOCALTIMESTAMP;
+      vnuTempoExecucao := vdtTermino - vdtOperacao;
+      vtxResumo := 'Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
+        'Data e Hora da Inicio da Exportação  ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS')  || ', ' || CHR(13) || CHR(10) ||
+        'Data e Hora da Termino da Exportação ' || TO_CHAR(vdtTermino, 'DD/MM/YYYY HH24:MI:SS')  || ', ' || CHR(13) || CHR(10) ||
+	      'Tempo de Execução ' ||
+	      LPAD(EXTRACT(HOUR FROM vnuTempoExecucao), 2, '0') || ':' ||
+	      LPAD(EXTRACT(MINUTE FROM vnuTempoExecucao), 2, '0') || ':' ||
+	      LPAD(TRUNC(EXTRACT(SECOND FROM vnuTempoExecucao)), 2, '0') || ', ' || CHR(13) || CHR(10) ||
+	      'Total de Parametrizações dos Valores de Referencia Exportadas: ' || vnuInseridos ||
+        ' e Atualizadas: ' || vnuAtualizados;
+
+      -- Registro de Resumo da Exportação dos Valores de Referencia
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamento, vsgOrgao, ctpOperacao, vdtOperacao,
+        csgModulo, csgConceito, NULL, NULL,
+        'VALORES REFERENCIA', 'RESUMO', 'Exportação das Parametrizações dos Valores de Referencia do ' || vtxResumo, 
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-
-    END LOOP;
-
-    CLOSE vRefCursor;
-
-    COMMIT;
-
-    -- Gerar as Estatísticas da Exportação dos Valores de Referencia
-    vdtTermino := LOCALTIMESTAMP;
-    vnuTempoExecucao := vdtTermino - vdtOperacao;
-    vtxResumo := 'Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
-      'Data e Hora da Inicio da Exportação  ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS')  || ', ' || CHR(13) || CHR(10) ||
-      'Data e Hora da Termino da Exportação ' || TO_CHAR(vdtTermino, 'DD/MM/YYYY HH24:MI:SS')  || ', ' || CHR(13) || CHR(10) ||
-	    'Tempo de Execução ' ||
-	    LPAD(EXTRACT(HOUR FROM vnuTempoExecucao), 2, '0') || ':' ||
-	    LPAD(EXTRACT(MINUTE FROM vnuTempoExecucao), 2, '0') || ':' ||
-	    LPAD(TRUNC(EXTRACT(SECOND FROM vnuTempoExecucao)), 2, '0') || ', ' || CHR(13) || CHR(10) ||
-	    'Total de Parametrizações dos Valores de Referencia Exportadas: ' || vnuRegistros;
-
-    -- Registro de Resumo da Exportação dos Valores de Referencia
-    PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,
-      vsgModulo, vsgConceito, NULL, NULL,
-      'VALORES REFERENCIA', 'RESUMO', 'Exportação das Parametrizações dos Valores de Referencia do ' || vtxResumo, 
-      cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-
-    PKGMIG_ParametrizacaoLog.pAlertar('Termino da Exportação das Parametrizações dos Valores de Referencia do ' ||
-      vtxResumo, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+  
+      PKGMIG_ParametrizacaoLog.pAlertar('Termino da Exportação das Parametrizações dos Valores de Referencia do ' ||
+        vtxResumo, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,  
-        vsgModulo, vsgConceito, vcdIdentificacao, 'VALORES REFERENCIA',
+      PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamento, vsgOrgao, ctpOperacao, vdtOperacao,  
+        csgModulo, csgConceito, pcdIdentificacao, 'VALORES REFERENCIA',
         'Exportação de Valores de Referencia (PKGMIG_ParemetrizacaoValoresReferencia.pExportar)', SQLERRM);
     ROLLBACK;
     RAISE;
@@ -790,21 +804,36 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
   END pImportarVigencias;
 
   -- Função que cria o Cursor que Estrutura o Documento JSON com as Parametrizações dos Valores de Referencia
-  FUNCTION fnCursorValoresReferencia(
-    psgAgrupamento   IN VARCHAR2,
-    psgOrgao         IN VARCHAR2,
-    psgModulo        IN CHAR,
-    psgConceito      IN VARCHAR2,
-    pcdIdentificacao IN VARCHAR2,
-    pdtExportacao    IN TIMESTAMP,
-    pnuVersao        IN CHAR,
-    pflAnulado       IN CHAR
-    ) RETURN SYS_REFCURSOR IS
+  FUNCTION fnExportarValoresReferencia(
+  -- ###########################################################################
+  -- FUNCTION: fnExportarValoresReferencia
+  -- Objetivo:
+  --   Exportar as Parametrizações dos Valores de Referencia
+  --     para a Configuração Padrão JSON, realizando:
+  --     - Registro de Logs de Auditoria por evento
+  --
+  -- Parâmetros:
+  --   psgAgrupamentoDestino IN VARCHAR2:
+  --   psgOrgao              IN VARCHAR2,
+  --   ptpOperacao           IN VARCHAR2,
+  --   pdtOperacao           IN TIMESTAMP,
+  --   psgModulo             IN CHAR,
+  --   psgConceito           IN VARCHAR2,
+  --   pcdIdentificacao      IN VARCHAR2: 
+  --   pnuNivelAuditoria     IN NUMBER DEFAULT NULL:
+  --
+  -- ###########################################################################
+    psgAgrupamento    IN VARCHAR2,
+    psgOrgao          IN VARCHAR2,
+    ptpOperacao       IN VARCHAR2,
+    pdtOperacao       IN TIMESTAMP,
+    psgModulo         IN CHAR,
+    psgConceito       IN VARCHAR2,
+    pcdIdentificacao  IN VARCHAR2,
+    pnuNivelAuditoria IN NUMBER DEFAULT NULL
+    ) RETURN tpemigParametrizacaoTabela PIPELINED IS
 
-    vRefCursor SYS_REFCURSOR;
-
-  BEGIN
-    OPEN vRefCursor FOR
+    CURSOR cDados IS
       --- Extrair os Conceito de Valores de Referencia de um Agrupamento
       WITH
       VigenciasValorReferencia AS (
@@ -883,19 +912,38 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       SELECT
         sgAgrupamento,
         psgOrgao AS sgOrgao,
-        psgModulo AS sgModulo,
-        psgConceito AS sgConceito,
-        pdtExportacao AS dtExportacao,
         sgValorReferencia AS cdIdentificacao,
-        vlref.ValorReferencia AS jsConteudo,
-        pnuVersao AS nuVersao,
-        pflAnulado AS flAnulado,
-        SYSTIMESTAMP AS dtInclusao
+        ValorReferencia AS jsConteudo
       FROM ValorReferencia vlref
-      ORDER BY sgagrupamento, sgorgao, sgModulo, sgConceito, cdIdentificacao;
+      ORDER BY sgagrupamento, sgorgao, cdIdentificacao;
 
-    RETURN vRefCursor;
-  END fnCursorValoresReferencia;
+    BEGIN
+
+      IF psgAgrupamento IS NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_PARAMETRO_OBRIGATORIO,
+          'Agrupamento não Informado.');
+      ELSIF PKGMIG_ParametrizacaoLog.fnValidarAgrupamento(psgAgrupamento) IS NOT NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_AGRUPAMENTO_INVALIDO,
+          'Agrupamento Informado não Cadastrado.: "' || SUBSTR(psgAgrupamento,1,15) || '".');
+      END IF;
+
+      -- Loop principal de processamento
+      FOR r IN cDados LOOP
+        PIPE ROW (tpemigParametrizacao(
+          r.sgAgrupamento, r.sgOrgao, psgModulo, psgConceito, r.cdIdentificacao, r.jsConteudo
+        ));
+      END LOOP;
+      RETURN;
+
+    EXCEPTION
+      WHEN OTHERS THEN
+        -- Registro e Propagação do Erro
+        PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamento, psgOrgao, ptpOperacao, pdtOperacao,
+          psgModulo, psgConceito, pcdIdentificacao, 'VALORES REFERENCIA',
+          'Exportação dos Valores de Referencia (PKGMIG_ParemetrizacaoValoresReferencia.fnExportarValoresReferencia)', SQLERRM);
+      ROLLBACK;
+      RAISE;
+  END fnExportarValoresReferencia;
 
 END PKGMIG_ParemetrizacaoValoresReferencia;
 /
