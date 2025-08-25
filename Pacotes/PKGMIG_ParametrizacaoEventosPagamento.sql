@@ -28,7 +28,7 @@ CREATE OR REPLACE PACKAGE PKGMIG_ParametrizacaoEventosPagamento AS
     psgAgrupamento        IN VARCHAR2,
     pcdIdentificacao      IN VARCHAR2 DEFAULT NULL,
     pnuNivelAuditoria     IN NUMBER DEFAULT NULL
-  ) RETURN tpParametrizacaoTabela PIPELINED;
+  ) RETURN tpemigParametrizacaoTabela PIPELINED;
 
   PROCEDURE pImportar(
     psgAgrupamentoOrigem  IN VARCHAR2,

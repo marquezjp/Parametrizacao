@@ -102,7 +102,8 @@ CREATE OR REPLACE PACKAGE PKGMIG_ParametrizacaoLog AS
   cAUDITORIA_COMPLETO   CONSTANT PLS_INTEGER := 3;
 
   FUNCTION fnObterParametro(
-    pjsParametros     IN VARCHAR2 DEFAULT NULL
+    pjsParametros          IN VARCHAR2 DEFAULT NULL,
+    pflParamentrosOpcional IN CHAR DEFAULT 'N'
   ) RETURN tpmigParametroEntrada;
 
   FUNCTION fnObterChave(

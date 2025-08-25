@@ -25,7 +25,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoEventosPagamento AS
     psgAgrupamento        IN VARCHAR2,
     pcdIdentificacao      IN VARCHAR2 DEFAULT NULL,
     pnuNivelAuditoria     IN NUMBER DEFAULT NULL
-  ) RETURN tpParametrizacaoTabela PIPELINED IS
+  ) RETURN tpemigParametrizacaoTabela PIPELINED IS
     -- Variáveis de controle e contexto
     vsgOrgao            VARCHAR2(15) := NULL;
     csgModulo           CONSTANT CHAR(3)      := 'PAG';
@@ -48,6 +48,14 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoEventosPagamento AS
     BEGIN
 
       vdtOperacao := LOCALTIMESTAMP;
+
+      IF psgAgrupamento IS NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_PARAMETRO_OBRIGATORIO,
+          'Agrupamento não Informado.');
+      ELSIF PKGMIG_ParametrizacaoLog.fnValidarAgrupamento(psgAgrupamento) IS NOT NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_AGRUPAMENTO_INVALIDO,
+          'Agrupamento Informado não Cadastrado.: "' || SUBSTR(psgAgrupamento,1,15) || '".');
+      END IF;
 
       IF pcdIdentificacao IS NULL THEN
         vtxMensagem := 'Inicio da Exportação das Parametrizações dos Eventos de Pagamento ';
@@ -82,7 +90,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoEventosPagamento AS
         PKGMIG_ParametrizacaoLog.pAlertar('Exportação do Evento de Pagamento ' || rcdIdentificacao,
           cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 
-        PIPE ROW (tpParametrizacao(
+        PIPE ROW (tpemigParametrizacao(
           rsgAgrupamento, vsgOrgao, csgModulo, csgConceito, rcdIdentificacao, rjsConteudo
         ));
       END LOOP;
@@ -461,6 +469,14 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoEventosPagamento AS
     PKGMIG_ParametrizacaoLog.pAlertar('Importação do Evento de Pagamento - ' ||
       'Evento de Pagamento ' || vcdIdentificacao, cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 	
+    IF psgAgrupamentoDestino IS NULL THEN
+      RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_PARAMETRO_OBRIGATORIO,
+        'Agrupamento não Informado.');
+    ELSIF PKGMIG_ParametrizacaoLog.fnValidarAgrupamento(psgAgrupamentoDestino) IS NOT NULL THEN
+      RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_AGRUPAMENTO_INVALIDO,
+        'Agrupamento Informado não Cadastrado.: "' || SUBSTR(psgAgrupamentoDestino,1,50) || '".');
+    END IF;
+
     -- Excluir o Evento de Pagamento e as Entidades Filhas
     pExcluirEventos(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
       psgModulo, psgConceito, vcdIdentificacao, pcdRubricaAgrupamento, pnuNivelAuditoria);
@@ -793,7 +809,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoEventosPagamento AS
       
       relTrab.cdRelacaoTrabalho, UPPER(js.nmRelacaoTrabalho) AS nmRelacaoTrabalho,
       
-      NVL(js.flAbrangeTodosOrgaos, 'N') AS flAbrangeTodosOrgaos,
+      NVL(js.flAbrangeTodosOrgaos, 'S') AS flAbrangeTodosOrgaos, -- DEFAULT S
       DECODE(js.inAcaoCarreira,
         'ALGUMAS IMPEDEM', '1', 
         'ALGUMAS EXIGEM',  '2',
@@ -1183,10 +1199,10 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoEventosPagamento AS
               ABSENT ON NULL) END,
             'nmRelacaoTrabalho'             VALUE UPPER(relTrab.nmRelacaoTrabalho),
             'Orgaos'                        VALUE
-      		CASE WHEN NULLIF(vigencia.flAbrangeTodosOrgaos, 'N') IS NULL AND orgao.Orgaos IS NULL
+      		CASE WHEN NULLIF(vigencia.flAbrangeTodosOrgaos, 'S') IS NULL AND orgao.Orgaos IS NULL
       		      THEN NULL
               ELSE JSON_OBJECT(
-                'flAbrangeTodosOrgaos'      VALUE NULLIF(vigencia.flAbrangeTodosOrgaos, 'N'),
+                'flAbrangeTodosOrgaos'      VALUE NULLIF(vigencia.flAbrangeTodosOrgaos, 'S'), -- DEFAULT S
                 'Orgaos'                    VALUE orgao.Orgaos
               ABSENT ON NULL) END,
             'Carreiras'                     VALUE

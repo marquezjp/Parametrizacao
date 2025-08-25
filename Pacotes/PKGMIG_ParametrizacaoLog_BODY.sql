@@ -2,10 +2,18 @@
 CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
 
   FUNCTION fnObterParametro(
-    pjsParametros     IN VARCHAR2 DEFAULT NULL
+    pjsParametros          IN VARCHAR2 DEFAULT NULL,
+    pflParamentrosOpcional IN CHAR DEFAULT 'N'
   ) RETURN tpmigParametroEntrada IS
 
     vParm tpmigParametroEntrada := NEW tpmigParametroEntrada(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+
+    vDocJSON          JSON_OBJECT_T;
+    vChavesJSON       JSON_KEY_LIST;
+
+    TYPE tabChaves IS TABLE OF VARCHAR2(50);
+    vChavesValidasJSON    JSON_KEY_LIST;
+    vChavesValidas tabChaves := tabChaves();
 
     vtxParametroFormato CONSTANT VARCHAR2(4000) := '
       {
@@ -13,8 +21,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
         "sgAgrupamentoDestino": "Sigla do Agrupamento de Destino para Importação das Parametrizações [Opcional]",
         "sgOrgao": "Sigla do Órgão para Exportação e Importação das Parametrizações [Opcional]",
         "sgModulo": "Sigla do Modulo para Exportação e Importação das Parametrizações [Opcional]",
-        "sgConceito": "Sigla do Conceito para Exportação das Parametrizações [Obrigatorio]",
-        "cdIdentificação": "Código da identificação do Conceito para Exportação ou Importação das Parametrizações [Opcional]",
+        "sgConceito": "Sigla do Conceito para Exportação ou Importação das Parametrizações [Obrigatorio]",
+        "sgEntidades": "Lista das Siglas das Entidades para Importação das Parametrizações [Opcional]",
+        "cdIdentificacao": "Código da identificação do Conceito para Exportação ou Importação das Parametrizações [Opcional]",
         "tpOperacao": "Tipo da Operação para Indicar se é Exportação ou Importação das Parametrizações [Opcional]",
         "dtOperacao": "Data da Operação de Exportação ou Importação das Parametrizações [Opcional]",
         "nmNivelAuditoria": "Nível da Auditoria [Opcional]"
@@ -23,15 +32,38 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
     vtxMensagem       VARCHAR2(50);
 
   BEGIN
+    vChavesValidasJSON := JSON_OBJECT_T.PARSE(vtxParametroFormato).GET_KEYS;
+    FOR i IN 1 .. vChavesValidasJSON.COUNT LOOP
+      vChavesValidas.EXTEND;
+      vChavesValidas(vChavesValidas.LAST) := vChavesValidasJSON(i);
+    END LOOP;
+    
     IF NVL(TRIM(pjsParametros),' ') = ' ' THEN
-      RAISE_APPLICATION_ERROR(cERRO_PARAMETRO_INVALIDO, 'Parâmetro "pjsParametros" não foi informado ou está vazio. ' ||
-        'Deveria ser informado da seguinte forma:' || vtxParametroFormato);
+      IF pflParamentrosOpcional = 'N' THEN
+        RAISE_APPLICATION_ERROR(cERRO_PARAMETRO_INVALIDO, 'Parâmetro "pjsParametros" não foi informado ou está vazio. ' ||
+          'Deveria ser informado da seguinte forma:' || vtxParametroFormato);
+      ELSE
+        RETURN vParm;
+      END IF;
     END IF;
+
+    vDocJSON := JSON_OBJECT_T.PARSE(pjsParametros);
+    vChavesJSON := vDocJSON.GET_KEYS;
+    IF vChavesJSON.COUNT = 0 THEN
+      RAISE_APPLICATION_ERROR(cERRO_PARAMETRO_NAO_INFORMADO, 'Parâmetro "pjsParametros" está vazio.');
+    END IF;
+
+    FOR i IN 1 .. vChavesJSON.COUNT LOOP
+      IF vChavesJSON(i) NOT MEMBER OF vChavesValidas THEN
+        RAISE_APPLICATION_ERROR(cERRO_PARAMETRO_INVALIDO, 'Parâmetro "' || vChavesJSON(i) || '" inexistente.' ||
+          'Parâmetro validos são: ' || vtxParametroFormato);
+      END IF;
+    END LOOP;
 
     vParm.nuNivelAuditoria := fnObterNivelAuditoria(fnObterChave(pjsParametros, 'nmNivelAuditoria'));
 
     vParm.sgAgrupamento := UPPER(TRIM(fnObterChave(pjsParametros, 'sgAgrupamento')));
-    IF vParm.sgAgrupamento IS NULL THEN
+    IF pflParamentrosOpcional = 'N' AND vParm.sgAgrupamento IS NULL THEN
       RAISE_APPLICATION_ERROR(cERRO_PARAMETRO_OBRIGATORIO,
         'Agrupamento não Informado.');
     ELSIF fnValidarAgrupamento(vParm.sgAgrupamento) IS NOT NULL THEN
@@ -41,7 +73,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
 
     vParm.sgAgrupamentoDestino := UPPER(TRIM(fnObterChave(pjsParametros, 'sgAgrupamentoDestino')));
     IF vParm.sgAgrupamentoDestino IS NULL THEN
-      vParm.sgAgrupamentoDestino := vParm.sgAgrupamento;
+      IF pflParamentrosOpcional = 'N' THEN
+        vParm.sgAgrupamentoDestino := vParm.sgAgrupamento;
+      END IF;
     ELSIF fnValidarAgrupamento(vParm.sgAgrupamentoDestino) IS NOT NULL THEN
       RAISE_APPLICATION_ERROR(cERRO_AGRUPAMENTO_INVALIDO,
         'Agrupamento Destino Informado não Cadastrado.: "' || vParm.sgAgrupamentoDestino || '".');
@@ -55,7 +89,9 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
 
     vParm.sgModulo := UPPER(TRIM(fnObterChave(pjsParametros, 'sgModulo')));
     IF vParm.sgModulo IS NULL THEN
-      vParm.sgModulo := 'PAG';
+      IF pflParamentrosOpcional = 'N' THEN
+        vParm.sgModulo := 'PAG';
+      END IF;
     ELSIF vParm.sgModulo NOT IN ('PAG') THEN
       RAISE_APPLICATION_ERROR(cERRO_MODULO_INVALIDO,
         'Modulo não suportado: "' || vParm.sgModulo || '", ' ||
@@ -64,9 +100,11 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
 
     vParm.sgConceito := UPPER(TRIM(fnObterChave(pjsParametros, 'sgConceito')));
     IF vParm.sgConceito IS NULL THEN
-      RAISE_APPLICATION_ERROR(cERRO_PARAMETRO_OBRIGATORIO,
-        'Conceito não Informado: "' || vParm.sgConceito || '", ' ||
-        'Conceitos suportados: "VALORREFERENCIA"; "BASECALCULO"; e "RUBRICA".');
+      IF pflParamentrosOpcional = 'N' THEN
+        RAISE_APPLICATION_ERROR(cERRO_PARAMETRO_OBRIGATORIO,
+          'Conceito não Informado: "' || vParm.sgConceito || '", ' ||
+          'Conceitos suportados: "VALORREFERENCIA"; "BASECALCULO"; e "RUBRICA".');
+       END IF;
     ELSIF vParm.sgConceito NOT IN ('VALORREFERENCIA', 'BASECALCULO', 'RUBRICA') THEN
       RAISE_APPLICATION_ERROR(cERRO_CONCEITO_INVALIDO,
         'Conceito não suportado: "' || vParm.sgConceito || '", ' ||
@@ -118,6 +156,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
       WHEN 'SGORGAO'              THEN vnmChave := 'sgOrgao';
       WHEN 'SGMODULO'             THEN vnmChave := 'sgModulo';
       WHEN 'SGCONCEITO'           THEN vnmChave := 'sgConceito';
+      WHEN 'SGENTIDADES'          THEN vnmChave := 'sgEntidades';
       WHEN 'CDIDENTIFICACAO'      THEN vnmChave := 'cdIdentificacao';
       WHEN 'TPOPERACAO'           THEN vnmChave := 'tpOperacao';
       WHEN 'DTOPERACAO'           THEN vnmChave := 'dtOperacao';
@@ -551,17 +590,17 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
     vParm                 tpmigParametroEntrada;
 
   BEGIN
-    vParm := PKGMIG_ParametrizacaoLog.fnObterParametro(pjsParametros);
+    vParm := PKGMIG_ParametrizacaoLog.fnObterParametro(pjsParametros,'S');
 
     FOR r IN (
       SELECT DISTINCT tpOperacao, TO_CHAR(dtOperacao, 'DD/MM/YYYY HH24:MI') AS dtOperacao,
         sgAgrupamento, sgOrgao, sgModulo, sgConceito,
         COUNT(*) AS nuEventos, SUM(nuRegistros) AS nuRegistros
       FROM emigParametrizacaoLog
-      WHERE (tpOperacao LIKE vParm.tpOperacao OR vParm.tpOperacao IS NULL)
-        AND (sgAgrupamento LIKE vParm.sgAgrupamento OR vParm.sgAgrupamento IS NULL)
+      WHERE (sgAgrupamento LIKE vParm.sgAgrupamento OR vParm.sgAgrupamento IS NULL)
         AND (sgModulo LIKE vParm.sgModulo OR vParm.sgModulo IS NULL)
         AND (sgConceito LIKE vParm.sgConceito OR vParm.sgConceito IS NULL)
+        AND (tpOperacao LIKE vParm.tpOperacao OR vParm.tpOperacao IS NULL)
         AND nmEvento NOT IN ('RESUMO', 'SEQUENCE', 'JSON')
       GROUP BY tpOperacao, dtOperacao, sgAgrupamento, sgOrgao, sgModulo, sgConceito
       ORDER BY tpOperacao, dtOperacao DESC, sgAgrupamento, sgOrgao, sgModulo, sgConceito)
@@ -580,13 +619,14 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
     vdtOperacao    TIMESTAMP := Null;
 
   BEGIN
-    vParm := PKGMIG_ParametrizacaoLog.fnObterParametro(pjsParametros);
+    vParm := PKGMIG_ParametrizacaoLog.fnObterParametro(pjsParametros,'S');
 
     IF vParm.dtOperacao IS NULL THEN
       SELECT TO_CHAR(MAX(dtExportacao), 'DD/MM/YYYY HH24:MI') INTO vdtOperacao
       FROM emigParametrizacao
-      WHERE sgModulo = vParm.sgModulo AND sgConceito = vParm.sgConceito
-        AND sgAgrupamento = vParm.sgAgrupamento;
+      WHERE (sgAgrupamento LIKE vParm.sgAgrupamento OR vParm.sgAgrupamento IS NULL)
+        AND (sgModulo LIKE vParm.sgModulo OR vParm.sgModulo IS NULL)
+        AND (sgConceito LIKE vParm.sgConceito OR vParm.sgConceito IS NULL);
     ELSE
       vdtOperacao := vParm.dtOperacao;
     END IF;
@@ -596,7 +636,10 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
 	      sgAgrupamento, sgOrgao, sgModulo, sgConceito, nmEntidade,
         COUNT(*) as nuEventos, SUM(nuRegistros) as nuRegistros
       FROM emigParametrizacaoLog
-      WHERE tpOperacao = vParm.tpOperacao
+      WHERE (sgAgrupamento LIKE vParm.sgAgrupamento OR vParm.sgAgrupamento IS NULL)
+        AND (sgModulo LIKE vParm.sgModulo OR vParm.sgModulo IS NULL)
+        AND (sgConceito LIKE vParm.sgConceito OR vParm.sgConceito IS NULL)
+        AND (tpOperacao LIKE vParm.tpOperacao OR vParm.tpOperacao IS NULL)
         AND TO_CHAR(dtOperacao, 'DD/MM/YYYY HH24:MI') = vdtOperacao
         AND nmevento != 'RESUMO'
       GROUP BY tpOperacao, dtOperacao, sgAgrupamento, sgOrgao, sgModulo, sgConceito, nmEntidade
@@ -617,13 +660,14 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
     vdtOperacao    TIMESTAMP := Null;
 
   BEGIN
-    vParm := PKGMIG_ParametrizacaoLog.fnObterParametro(pjsParametros);
+    vParm := PKGMIG_ParametrizacaoLog.fnObterParametro(pjsParametros,'S');
 
     IF vParm.dtOperacao IS NULL THEN
       SELECT TO_CHAR(MAX(dtExportacao), 'DD/MM/YYYY HH24:MI') INTO vdtOperacao
       FROM emigParametrizacao
-      WHERE sgModulo = vParm.sgModulo AND sgConceito = vParm.sgConceito
-        AND sgAgrupamento = vParm.sgAgrupamento;
+      WHERE (sgAgrupamento LIKE vParm.sgAgrupamento OR vParm.sgAgrupamento IS NULL)
+        AND (sgModulo LIKE vParm.sgModulo OR vParm.sgModulo IS NULL)
+        AND (sgConceito LIKE vParm.sgConceito OR vParm.sgConceito IS NULL);
     ELSE
       vdtOperacao := vParm.dtOperacao;
     END IF;
@@ -633,8 +677,11 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
         sgAgrupamento, sgOrgao, sgModulo, sgConceito,
         nmEntidade, cdidentificacao, nmEvento, nuRegistros, deMensagem, dtInclusao
       FROM emigParametrizacaoLog
-      WHERE tpOperacao = vParm.tpOperacao
-        AND TO_CHAR(dtOperacao, 'DD/MM/YYYY HH24:MI') = vdtOperacao
+      WHERE (sgAgrupamento LIKE vParm.sgAgrupamento OR vParm.sgAgrupamento IS NULL)
+        AND (sgModulo LIKE vParm.sgModulo OR vParm.sgModulo IS NULL)
+        AND (sgConceito LIKE vParm.sgConceito OR vParm.sgConceito IS NULL)
+        AND (tpOperacao LIKE vParm.tpOperacao OR vParm.tpOperacao IS NULL)
+        AND (TO_CHAR(dtOperacao, 'DD/MM/YYYY HH24:MI') = vdtOperacao)
       ORDER BY dtInclusao, tpOperacao, dtOperacao,
         sgAgrupamento, sgOrgao, sgModulo, sgConceito,
         cdIdentificacao NULLS FIRST, nmEvento, deMensagem)

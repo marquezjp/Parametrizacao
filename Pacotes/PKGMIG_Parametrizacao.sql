@@ -1,4 +1,16 @@
 --- Declaração dos Tipos de Objetos e Tabelas para o Pacote de Exportação e Importação das Parametrizações
+DROP TYPE tpemigParametrizacaoTabela;
+CREATE OR REPLACE TYPE tpemigParametrizacao AS OBJECT (
+-- Tipo Objeto: Parametrizações
+  sgAgrupamento        VARCHAR2(15), 
+  sgOrgao              VARCHAR2(15), 
+  sgModulo             CHAR(3), 
+  sgConceito           VARCHAR2(20), 
+  cdIdentificacao      VARCHAR2(20), 
+  jsConteudo           CLOB
+);
+CREATE OR REPLACE TYPE tpemigParametrizacaoTabela AS TABLE OF tpemigParametrizacao;
+
 DROP TYPE tpmigParametrizacaoResumoTabela;
 CREATE OR REPLACE TYPE tpmigParametrizacaoResumo AS OBJECT (
 -- Tipo Objeto: Resumo das Parametrizações
@@ -18,9 +30,9 @@ CREATE OR REPLACE TYPE tpmigParametrizacaoListar AS OBJECT (
   sgOrgao         VARCHAR2(15),
   sgModulo        VARCHAR2(3),
   sgConceito      VARCHAR2(20),
-  dtExportacao    VARCHAR2(25),
   cdIdentificacao VARCHAR2(20), 
-  jsConteudo      CLOB
+  jsConteudo      CLOB,
+  dtExportacao    VARCHAR2(25)
 );
 CREATE OR REPLACE TYPE tpmigParametrizacaoListarTabela AS TABLE OF tpmigParametrizacaoListar;
 /

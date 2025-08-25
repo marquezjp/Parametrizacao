@@ -25,7 +25,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
     psgAgrupamento        IN VARCHAR2,
     pcdIdentificacao      IN VARCHAR2 DEFAULT NULL,
     pnuNivelAuditoria     IN NUMBER DEFAULT NULL
-  ) RETURN tpParametrizacaoTabela PIPELINED IS
+  ) RETURN tpemigParametrizacaoTabela PIPELINED IS
     -- Variáveis de controle e contexto
     vsgOrgao            VARCHAR2(15) := NULL;
     csgModulo           CONSTANT CHAR(3)      := 'PAG';
@@ -55,6 +55,14 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
         vtxMensagem := 'Inicio da Exportação da Parametrização da Formula de Cálculo "' || pcdIdentificacao || '" ';
       END IF;
 
+      IF psgAgrupamento IS NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_PARAMETRO_OBRIGATORIO,
+          'Agrupamento não Informado.');
+      ELSIF PKGMIG_ParametrizacaoLog.fnValidarAgrupamento(psgAgrupamento) IS NOT NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_AGRUPAMENTO_INVALIDO,
+          'Agrupamento Informado não Cadastrado.: "' || SUBSTR(psgAgrupamento,1,15) || '".');
+      END IF;
+
       PKGMIG_ParametrizacaoLog.pAlertar(vtxMensagem ||
         'do Agrupamento ' || psgAgrupamento || ', ' || CHR(13) || CHR(10) ||
 	      'Data da Exportação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
@@ -82,7 +90,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
         PKGMIG_ParametrizacaoLog.pAlertar('Exportação da Formula de Cálculo ' || rcdIdentificacao,
           cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 
-        PIPE ROW (tpParametrizacao(
+        PIPE ROW (tpemigParametrizacao(
           rsgAgrupamento, vsgOrgao, csgModulo, csgConceito, rcdIdentificacao, rjsConteudo
         ));
       END LOOP;
@@ -190,6 +198,22 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoFormulasCalculo AS
   BEGIN
 
     vdtOperacao := LOCALTIMESTAMP;
+
+    IF psgAgrupamentoOrigem IS NULL THEN
+      RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_PARAMETRO_OBRIGATORIO,
+        'Agrupamento Origem não Informado.');
+    ELSIF PKGMIG_ParametrizacaoLog.fnValidarAgrupamento(psgAgrupamentoOrigem) IS NOT NULL THEN
+      RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_AGRUPAMENTO_INVALIDO,
+        'Agrupamento Origem Informado não Cadastrado.: "' || SUBSTR(psgAgrupamentoOrigem,1,50) || '".');
+    END IF;
+
+    IF psgAgrupamentoDestino IS NULL THEN
+      RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_PARAMETRO_OBRIGATORIO,
+        'Agrupamento Destino não Informado.');
+    ELSIF PKGMIG_ParametrizacaoLog.fnValidarAgrupamento(psgAgrupamentoDestino) IS NOT NULL THEN
+      RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_AGRUPAMENTO_INVALIDO,
+        'Agrupamento Destino Informado não Cadastrado.: "' || SUBSTR(psgAgrupamentoDestino,1,50) || '".');
+    END IF;
 
     SELECT MAX(dtExportacao) INTO vdtExportacao FROM emigParametrizacao
     WHERE sgModulo = csgModulo AND sgConceito = csgConceito
