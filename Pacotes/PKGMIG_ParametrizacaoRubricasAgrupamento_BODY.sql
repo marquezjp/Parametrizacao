@@ -25,7 +25,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
     psgAgrupamento        IN VARCHAR2,
     pcdIdentificacao      IN VARCHAR2 DEFAULT NULL,
     pnuNivelAuditoria     IN NUMBER DEFAULT NULL
-  ) RETURN tpParametrizacaoTabela PIPELINED IS
+  ) RETURN tpemigParametrizacaoTabela PIPELINED IS
     -- Variáveis de controle e contexto
     vsgOrgao            VARCHAR2(15) := NULL;
     csgModulo           CONSTANT CHAR(3)      := 'PAG';
@@ -60,7 +60,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
           'Agrupamento não Informado.');
       ELSIF PKGMIG_ParametrizacaoLog.fnValidarAgrupamento(psgAgrupamento) IS NOT NULL THEN
         RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_AGRUPAMENTO_INVALIDO,
-          'Agrupamento Informado não Cadastrado.: "' || SUBSTR(psgAgrupamento,1,50) || '".');
+          'Agrupamento Informado não Cadastrado.: "' || SUBSTR(psgAgrupamento,1,15) || '".');
       END IF;
 
       PKGMIG_ParametrizacaoLog.pAlertar(vtxMensagem ||
@@ -90,7 +90,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         PKGMIG_ParametrizacaoLog.pAlertar('Exportação da Rubrica do Agrupamento ' || rcdIdentificacao,
           cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 
-        PIPE ROW (tpParametrizacao(
+        PIPE ROW (tpemigParametrizacao(
           rsgAgrupamento, vsgOrgao, csgModulo, csgConceito, rcdIdentificacao, rjsConteudo
         ));
       END LOOP;
@@ -132,7 +132,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
     psgAgrupamento        IN VARCHAR2,
     pcdIdentificacao      IN VARCHAR2 DEFAULT NULL,
     pnuNivelAuditoria     IN NUMBER DEFAULT NULL
-  ) RETURN tpParametrizacaoTabela PIPELINED IS
+  ) RETURN tpemigParametrizacaoTabela PIPELINED IS
     -- Variáveis de controle e contexto
     vsgOrgao            VARCHAR2(15) := NULL;
     csgModulo           CONSTANT CHAR(3)      := 'PAG';
@@ -161,7 +161,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
           'Agrupamento não Informado.');
       ELSIF PKGMIG_ParametrizacaoLog.fnValidarAgrupamento(psgAgrupamento) IS NOT NULL THEN
         RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_AGRUPAMENTO_INVALIDO,
-          'Agrupamento Informado não Cadastrado.: "' || SUBSTR(psgAgrupamento,1,50) || '".');
+          'Agrupamento Informado não Cadastrado.: "' || SUBSTR(psgAgrupamento,1,15) || '".');
       END IF;
 
 	    -- Defini o Cursos com a Query que Gera o Documento JSON Rubricas
@@ -175,7 +175,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
         PKGMIG_ParametrizacaoLog.pAlertar('Exportação dos Parametros da Tributação da Rubrica do Agrupamento ' || rcdIdentificacao,
           cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 
-        PIPE ROW (tpParametrizacao(
+        PIPE ROW (tpemigParametrizacao(
           rsgAgrupamento, vsgOrgao, csgModulo, csgConceito, rcdIdentificacao, rjsConteudo
         ));
       END LOOP;
@@ -2627,6 +2627,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
               AND NULLIF(vigencia.flPropAfaCCOSubst, 'N')         IS NULL AND NULLIF(vigencia.flPropAfaComOpcPercCEF, 'N')     IS NULL
               AND NULLIF(vigencia.flPropAfaFGFTG, 'N')            IS NULL AND NULLIF(vigencia.flPropAfastTempNaoRemun, 'N')    IS NULL
               AND NULLIF(vigencia.flIgnoraAfastCEFAgPolitico, 'N') IS NULL
+              AND NOT EXISTS (SELECT 1 FROM epagHistRubAgrupLocCHO      WHERE cdHistRubricaAgrupamento = vigencia.cdHistRubricaAgrupamento)
               AND NOT EXISTS (SELECT 1 FROM epagRubAgrupMotAfastTempImp WHERE cdHistRubricaAgrupamento = vigencia.cdHistRubricaAgrupamento)
               AND NOT EXISTS (SELECT 1 FROM epagRubAgrupMotAfastTempEx  WHERE cdHistRubricaAgrupamento = vigencia.cdHistRubricaAgrupamento)
               THEN NULL
@@ -2652,7 +2653,30 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricasAgrupamento AS
               'flPropAfaFGFTG'              VALUE NULLIF(vigencia.flPropAfaFGFTG, 'N'),
               'flPropAfastTempNaoRemun'     VALUE NULLIF(vigencia.flPropAfastTempNaoRemun, 'N'),
               'flPropAposParidade'          VALUE NULLIF(vigencia.flPropAposParidade, 'N'),
-              'ListaCargasHorarias'         VALUE NULL, -- (ListaCargasHorarias ABSENT ON NULL RETURNING CLOB),
+              'ListaCargasHorarias'         VALUE (
+                SELECT JSON_ARRAYAGG(JSON_OBJECT(
+                  'sgAgrupamento'           VALUE uo.sgAgrupamento,
+                  'sgOrgao'                 VALUE uo.sgOrgao,
+                  'sgUnidadeOrganizacional' VALUE uo.sgUnidadeOrganizacional,
+                  'nuCargaHoraria'          VALUE loccho.nuCargaHoraria,
+                  'flSubordinadas'          VALUE NULLIF(loccho.flSubordinadas,'S')
+                ) ORDER BY uo.sgAgrupamento, uo.sgOrgao, uo.sgUnidadeOrganizacional) AS ListaCargasHorarias
+                FROM epagHistRubAgrupLocCHO loccho
+                LEFT JOIN (
+                  SELECT cdUnidadeOrganizacional, sgAgrupamento, sgOrgao, sgUnidadeOrganizacional FROM (
+                    SELECT viguo.cdUnidadeOrganizacional, a.sgAgrupamento, vigorgao.sgOrgao, viguo.sgUnidadeOrganizacional,
+                      RANK() OVER(
+                        PARTITION BY a.cdAgrupamento, vigorgao.sgOrgao, viguo.cdUnidadeOrganizacional
+                        ORDER BY vigorgao.dtInicioVigencia DESC, viguo.dtInicioVigencia DESC
+                      ) AS nuOrdem
+                    FROM ecadUnidadeOrganizacional UO
+                    INNER JOIN ecadHistUnidadeOrganizacional viguo ON viguo.cdUnidadeOrganizacional = uo.cdUnidadeOrganizacional
+                    INNER JOIN ecadOrgao o ON o.cdOrgao = uo.cdOrgao
+                    INNER JOIN ecadHistOrgao vigorgao ON vigorgao.cdOrgao = o.cdOrgao
+                    INNER JOIN ecadAgrupamento a ON a.cdAgrupamento = o.cdAgrupamento
+                  ) WHERE nuOrdem = 1
+                ) uo ON uo.cdUnidadeOrganizacional = loccho.cdUnidadeOrganizacional
+                WHERE loccho.cdHistRubricaAgrupamento = vigencia.cdHistRubricaAgrupamento),
               'ListaMotivosAfastamentoQueImpedem' VALUE (
                 SELECT JSON_ARRAYAGG(motivoTemp.deMotivoAfastTemporario ORDER BY motivoTemp.deMotivoAfastTemporario
                 RETURNING CLOB) AS ListaMotivosAfastamentoQueImpedem

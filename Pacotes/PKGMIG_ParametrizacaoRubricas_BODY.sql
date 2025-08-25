@@ -28,35 +28,24 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
   ) IS
     -- Variáveis de controle e contexto
     vsgOrgao            VARCHAR2(15) := NULL;
-    vsgModulo           CONSTANT CHAR(3)      := 'PAG';
-    vsgConceito         CONSTANT VARCHAR2(20) := 'RUBRICA';
-    vtpOperacao         CONSTANT VARCHAR2(15) := 'EXPORTACAO';
+    csgModulo           CONSTANT CHAR(3)      := 'PAG';
+    csgConceito         CONSTANT VARCHAR2(20) := 'RUBRICA';
+    ctpOperacao         CONSTANT VARCHAR2(15) := 'EXPORTACAO';
+    cnuVersao           CONSTANT CHAR(3) := '1.0';
+    cflAnulado          CONSTANT CHAR(1) := 'N';
+
     vdtOperacao         TIMESTAMP    := LOCALTIMESTAMP;
-    vcdIdentificacao    VARCHAR2(20) := NULL;
-    vjsConteudo         CLOB         := NULL;
-    vnuVersao           CHAR(3)      := '1.0';
-    vflAnulado          CHAR(1)      := 'N';
-
-    rsgAgrupamento      VARCHAR2(15) := NULL;
-    rsgOrgao            VARCHAR2(15) := NULL;
-    rsgModulo           CHAR(3)      := NULL;
-    rsgConceito         VARCHAR2(20) := NULL;
-    rdtExportacao       TIMESTAMP    := NULL;
-    rcdIdentificacao    VARCHAR2(20) := NULL;
-    rjsConteudo         CLOB         := NULL;
-    rnuVersao           CHAR(04)     := NULL;
-    rflAnulado          CHAR(01)     := NULL;
-    rdtInclusao         TIMESTAMP(6) := NULL;
-
-    vtxMensagem         VARCHAR2(100) := NULL;
-
     vdtTermino          TIMESTAMP    := LOCALTIMESTAMP;
     vnuTempoExecucao    INTERVAL DAY TO SECOND := NULL;
-    vnuRegistros        NUMBER       := 0;
+
+    vtxMensagem         VARCHAR2(100) := NULL;
     vtxResumo           VARCHAR2(4000) := NULL;
 
-    -- Referencia para o Cursor que Estrutura o Documento JSON com as parametrizações das Rubricas
-    vRefCursor SYS_REFCURSOR;
+    vnuRegistrosAntes   NUMBER := 0;
+    vnuRegistrosDepois  NUMBER := 0;
+    vnuProcessados      NUMBER := 0;
+    vnuInseridos        NUMBER := 0;
+    vnuAtualizados      NUMBER := 0;
 
     BEGIN
 
@@ -73,7 +62,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
           'Agrupamento não Informado.');
       ELSIF PKGMIG_ParametrizacaoLog.fnValidarAgrupamento(psgAgrupamento) IS NOT NULL THEN
         RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_AGRUPAMENTO_INVALIDO,
-          'Agrupamento Informado não Cadastrado.: "' || SUBSTR(psgAgrupamento,1,50) || '".');
+          'Agrupamento Informado não Cadastrado.: "' || SUBSTR(psgAgrupamento,1,15) || '".');
       END IF;
 
       PKGMIG_ParametrizacaoLog.pAlertar(vtxMensagem ||
@@ -92,38 +81,54 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
           END, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
       END IF;
 
-	    -- Defini o Cursos com a Query que Gera o Documento JSON Rubricas
-	    vRefCursor := fnCursorRubricas(psgAgrupamento, vsgOrgao, vsgModulo, vsgConceito, pcdIdentificacao,
-        vdtOperacao, vnuVersao, vflAnulado);
+      SELECT COUNT(*) INTO vnuRegistrosAntes FROM emigParametrizacao
+      WHERE sgAgrupamento = psgAgrupamento
+        AND sgModulo = csgModulo AND sgConceito = csgConceito;
 
-	    vnuRegistros := 0;
-
-      -- Loop principal de processamento
-	    LOOP
-        FETCH vRefCursor INTO rsgAgrupamento, rsgOrgao, rsgModulo, rsgConceito, rdtExportacao,
-	        rcdIdentificacao, rjsConteudo, rnuVersao, rflAnulado, rdtInclusao;
-        EXIT WHEN vRefCursor%NOTFOUND;
-
-        PKGMIG_ParametrizacaoLog.pAlertar('Exportação da Rubrica ' || rcdIdentificacao,
-          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-
-        INSERT INTO emigParametrizacao (
+      MERGE INTO emigParametrizacao p USING (
+        SELECT
+          sgAgrupamento, sgOrgao, sgModulo, sgConceito, cdIdentificacao, jsConteudo 
+        FROM TABLE(fnExportarRubricas(psgAgrupamento, vsgOrgao, ctpOperacao, vdtOperacao,
+          csgModulo, csgConceito, pcdIdentificacao, pnuNivelAuditoria))
+      ) r ON (p.sgAgrupamento= r.sgAgrupamento AND NVL(p.sgOrgao, ' ') = NVL(r.sgOrgao, ' ')
+          AND p.sgModulo = r.sgModulo AND p.sgConceito = r.sgConceito
+          AND p.cdIdentificacao = r.cdIdentificacao)
+      WHEN MATCHED THEN UPDATE SET
+          p.dtExportacao = vdtOperacao,
+          p.jsConteudo   = r.jsConteudo,
+          p.dtInclusao   = SYSTIMESTAMP,
+          p.nuVersao     = cnuVersao,
+          p.flAnulado    = cflAnulado
+      WHEN NOT MATCHED THEN INSERT (
           sgAgrupamento, sgOrgao, sgModulo, sgConceito, dtExportacao,
-		      cdIdentificacao, jsConteudo, dtInclusao, nuVersao, flAnulado
-        ) VALUES (
-          rsgAgrupamento, rsgOrgao, rsgModulo, rsgConceito, rdtExportacao,
-  		    rcdIdentificacao, rjsConteudo, rdtInclusao, rnuVersao, rflAnulado
+          cdIdentificacao, jsConteudo, dtInclusao, nuVersao, flAnulado
+        )
+        VALUES (
+          r.sgAgrupamento, r.sgOrgao, r.sgModulo, r.sgConceito, vdtOperacao,
+          r.cdIdentificacao, r.jsConteudo, SYSTIMESTAMP, cnuVersao, cflAnulado
         );
 
-	      vnuRegistros := vnuRegistros + 1;
-        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao, 
-          vsgModulo, vsgConceito, rcdIdentificacao, 1,
+      vnuProcessados := SQL%ROWCOUNT;
+      SELECT COUNT(*) INTO vnuRegistrosDepois FROM emigParametrizacao
+      WHERE sgAgrupamento = psgAgrupamento
+        AND sgModulo = csgModulo AND sgConceito = csgConceito;
+
+      vnuInseridos   := vnuRegistrosDepois - vnuRegistrosAntes;
+      vnuAtualizados := vnuProcessados - vnuInseridos;
+
+      IF vnuInseridos > 0 THEN 
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamento, vsgOrgao, ctpOperacao, vdtOperacao, 
+          csgModulo, csgConceito, pcdIdentificacao, vnuInseridos,
           'RUBRICA', 'INCLUSAO', 'Documento JSON da Rubrica incluído com sucesso',
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      END IF;
 
-      END LOOP;
-
-      CLOSE vRefCursor;
+      IF vnuAtualizados > 0 THEN 
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamento, vsgOrgao, ctpOperacao, vdtOperacao, 
+          csgModulo, csgConceito, pcdIdentificacao, vnuAtualizados,
+          'RUBRICA', 'ATUALIZACAO', 'Documento JSON da Rubrica atualizado com sucesso',
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      END IF;
 
       COMMIT;
 
@@ -137,11 +142,18 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
 	      LPAD(EXTRACT(HOUR FROM vnuTempoExecucao), 2, '0') || ':' ||
 	      LPAD(EXTRACT(MINUTE FROM vnuTempoExecucao), 2, '0') || ':' ||
 	      LPAD(TRUNC(EXTRACT(SECOND FROM vnuTempoExecucao)), 2, '0') || ', ' || CHR(13) || CHR(10) ||
-	      'Total de Parametrizações de Rubricas Exportadas: ' || vnuRegistros;
+	      'Total de Parametrizações de Rubricas Exportadas: ' || vnuInseridos ||
+        ' e Atualizadas: ' || vnuAtualizados;
+--	      'Contabilida ' || CHR(13) || CHR(10) ||
+--        'vnuRegistrosAntes: ' || vnuRegistrosAntes || CHR(13) || CHR(10) ||
+--        'vnuRegistrosDepois: ' || vnuRegistrosDepois || CHR(13) || CHR(10) ||
+--        'vnuProcessados: ' || vnuProcessados || CHR(13) || CHR(10) ||
+--        'vnuInseridos: ' || vnuInseridos || CHR(13) || CHR(10) ||
+--        'vnuAtualizados: ' || vnuAtualizados;
 
       -- Registro de Resumo da Exportação das Rubricas
-      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,
-        vsgModulo, vsgConceito, NULL, NULL,
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamento, vsgOrgao, ctpOperacao, vdtOperacao,
+        csgModulo, csgConceito, pcdIdentificacao, NULL,
         'RUBRICA', 'RESUMO', 'Exportação das Parametrizações das Rubricas do ' || vtxResumo, 
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
@@ -151,8 +163,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
     EXCEPTION
       WHEN OTHERS THEN
         -- Registro e Propagação do Erro
-        PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamento, vsgOrgao, vtpOperacao, vdtOperacao,  
-          vsgModulo, vsgConceito, vcdIdentificacao, 'RUBRICA',
+        PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamento, vsgOrgao, ctpOperacao, vdtOperacao,  
+          csgModulo, csgConceito, pcdIdentificacao, 'RUBRICA',
           'Exportação de Rubrica (PKGMIG_ParametrizacaoRubricas.pExportar)', SQLERRM);
       ROLLBACK;
       RAISE;
@@ -497,7 +509,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
   --   psgConceito           IN VARCHAR2: 
   --   pcdIdentificacao      IN VARCHAR2: 
   --   pcdRubrica            IN NUMBER: 
-  --   pnuNivelAuditoria              IN NUMBER DEFAULT NULL:
+  --   pnuNivelAuditoria     IN NUMBER DEFAULT NULL:
   --
   -- ###########################################################################
     psgAgrupamentoDestino IN VARCHAR2,
@@ -757,21 +769,36 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
       RAISE;
   END pImportarVigencias;
 
-  -- Função que cria o Cursor que Estrutura o Documento JSON com as Parametrizações das Rubricas
-  FUNCTION fnCursorRubricas(
-    psgAgrupamento   IN VARCHAR2,
-    psgOrgao         IN VARCHAR2,
-    psgModulo        IN CHAR,
-    psgConceito      IN VARCHAR2,
-    pcdIdentificacao IN VARCHAR2,
-    pdtExportacao    IN TIMESTAMP,
-    pnuVersao        IN CHAR,
-    pflAnulado       IN CHAR
-  ) RETURN SYS_REFCURSOR IS
-    vRefCursor SYS_REFCURSOR;
+  FUNCTION fnExportarRubricas(
+  -- ###########################################################################
+  -- FUNCTION: fnExportarRubricas
+  -- Objetivo:
+  --   Exportar as Parametrizações de Rubricas, Eventos e Formulas de Calculo
+  --     para a Configuração Padrão JSON, realizando:
+  --     - Registro de Logs de Auditoria por evento
+  --
+  -- Parâmetros:
+  --   psgAgrupamentoDestino IN VARCHAR2:
+  --   psgOrgao              IN VARCHAR2,
+  --   ptpOperacao           IN VARCHAR2,
+  --   pdtOperacao           IN TIMESTAMP,
+  --   psgModulo             IN CHAR,
+  --   psgConceito           IN VARCHAR2,
+  --   pcdIdentificacao      IN VARCHAR2: 
+  --   pnuNivelAuditoria     IN NUMBER DEFAULT NULL:
+  --
+  -- ###########################################################################
+    psgAgrupamento    IN VARCHAR2,
+    psgOrgao          IN VARCHAR2,
+    ptpOperacao       IN VARCHAR2,
+    pdtOperacao       IN TIMESTAMP,
+    psgModulo         IN CHAR,
+    psgConceito       IN VARCHAR2,
+    pcdIdentificacao  IN VARCHAR2,
+    pnuNivelAuditoria IN NUMBER DEFAULT NULL
+  ) RETURN tpemigParametrizacaoTabela PIPELINED IS
 
-  BEGIN
-    OPEN vRefCursor FOR
+    CURSOR cDados IS
       --- Extrair os Conceito de Rubricas de Eventos de Pagamento com Os Eventos e as suas formulas de Cálculo de um Agrupamento
       WITH
       --- Informações referente AS Rubricas e Rubricas no Agrupamento
@@ -916,19 +943,38 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoRubricas AS
       SELECT 
         sgAgrupamento,
         psgOrgao AS sgOrgao,
-        psgModulo AS sgModulo,
-        psgConceito AS sgConceito,
-        pdtExportacao AS dtExportacao,
         nuNaturezaRubrica || '-' || nuRubrica AS cdIdentificacao,
-        Rubrica AS jsConteudo,
-        pnuVersao AS nuVersao,
-        pflAnulado AS flAnulado,
-        SYSTIMESTAMP AS dtInclusao
+        Rubrica AS jsConteudo
       FROM TiposRubricas
-      ORDER BY sgAgrupamento, sgOrgao, sgModulo, sgConceito, dtExportacao, cdIdentificacao;
+      ORDER BY sgAgrupamento, sgOrgao, cdIdentificacao;
 
-    RETURN vRefCursor;
-  END fnCursorRubricas;
+    BEGIN
+
+      IF psgAgrupamento IS NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_PARAMETRO_OBRIGATORIO,
+          'Agrupamento não Informado.');
+      ELSIF PKGMIG_ParametrizacaoLog.fnValidarAgrupamento(psgAgrupamento) IS NOT NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_AGRUPAMENTO_INVALIDO,
+          'Agrupamento Informado não Cadastrado.: "' || SUBSTR(psgAgrupamento,1,15) || '".');
+      END IF;
+
+      -- Loop principal de processamento
+      FOR r IN cDados LOOP
+        PIPE ROW (tpemigParametrizacao(
+          r.sgAgrupamento, r.sgOrgao, psgModulo, psgConceito, r.cdIdentificacao, r.jsConteudo
+        ));
+      END LOOP;
+      RETURN;
+
+    EXCEPTION
+      WHEN OTHERS THEN
+        -- Registro e Propagação do Erro
+        PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamento, psgOrgao, ptpOperacao, pdtOperacao,
+          psgModulo, psgConceito, pcdIdentificacao, 'RUBRICA',
+          'Exportação de Rubrica (PKGMIG_ParametrizacaoRubricas.fnExportarRubricas)', SQLERRM);
+      ROLLBACK;
+      RAISE;
+  END fnExportarRubricas;
 
 END PKGMIG_ParametrizacaoRubricas;
 /

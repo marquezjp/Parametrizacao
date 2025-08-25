@@ -86,13 +86,13 @@ CREATE OR REPLACE PACKAGE PKGMIG_ParametrizacaoRubricasAgrupamento AS
     psgAgrupamento        IN VARCHAR2,
     pcdIdentificacao      IN VARCHAR2 DEFAULT NULL,
     pnuNivelAuditoria     IN NUMBER DEFAULT NULL
-  ) RETURN tpParametrizacaoTabela PIPELINED;
+  ) RETURN tpemigParametrizacaoTabela PIPELINED;
 
   FUNCTION fnExportarParametroTributacao(
     psgAgrupamento        IN VARCHAR2,
     pcdIdentificacao      IN VARCHAR2 DEFAULT NULL,
     pnuNivelAuditoria     IN NUMBER DEFAULT NULL
-  ) RETURN tpParametrizacaoTabela PIPELINED;
+  ) RETURN tpemigParametrizacaoTabela PIPELINED;
 
   PROCEDURE pImportarRubricaAgrupamento(
     psgAgrupamentoDestino IN VARCHAR2,

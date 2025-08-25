@@ -25,7 +25,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoConsignacoes AS
     psgAgrupamento        IN VARCHAR2,
     pcdIdentificacao      IN VARCHAR2 DEFAULT NULL,
     pnuNivelAuditoria     IN NUMBER DEFAULT NULL
-  ) RETURN tpParametrizacaoTabela PIPELINED IS
+  ) RETURN tpemigParametrizacaoTabela PIPELINED IS
     -- Variáveis de controle e contexto
     vsgOrgao            VARCHAR2(15) := NULL;
     csgModulo           CONSTANT CHAR(3)      := 'PAG';
@@ -59,7 +59,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoConsignacoes AS
           'Agrupamento não Informado.');
       ELSIF PKGMIG_ParametrizacaoLog.fnValidarAgrupamento(psgAgrupamento) IS NOT NULL THEN
         RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_AGRUPAMENTO_INVALIDO,
-          'Agrupamento Informado não Cadastrado.: "' || SUBSTR(psgAgrupamento,1,50) || '".');
+          'Agrupamento Informado não Cadastrado.: "' || SUBSTR(psgAgrupamento,1,15) || '".');
       END IF;
 
       IF pcdIdentificacao IS NULL THEN
@@ -95,7 +95,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoConsignacoes AS
         PKGMIG_ParametrizacaoLog.pAlertar('Exportação da Consignação ' || rcdIdentificacao,
           cAUDITORIA_DETALHADO, pnuNivelAuditoria);
 
-        PIPE ROW (tpParametrizacao(
+        PIPE ROW (tpemigParametrizacao(
           rsgAgrupamento, vsgOrgao, csgModulo, csgConceito, rcdIdentificacao, rjsConteudo
         ));
       END LOOP;
