@@ -47,12 +47,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
     vnuInseridos        NUMBER := 0;
     vnuAtualizados      NUMBER := 0;
 
-    vListaTabelas       CLOB := '[
-      "EPAGVALORREFERENCIA",
-      "EPAGVALORREFERENCIAVERSAO",
-      "EPAGHISTVALORREFERENCIA"
-    ]';
-
     BEGIN
   
       vdtOperacao := LOCALTIMESTAMP;
@@ -202,28 +196,25 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
   ) IS
     -- Variáveis de controle e contexto
     vsgOrgao               VARCHAR2(15)          := Null;
-    vsgModulo              CONSTANT CHAR(3)      := 'PAG';
-    vsgConceito            CONSTANT VARCHAR2(20) := 'VALORREFERENCIA';
-    vtpOperacao            CONSTANT VARCHAR2(15) := 'IMPORTACAO';
-    vdtOperacao            TIMESTAMP             := LOCALTIMESTAMP;
+    csgModulo              CONSTANT CHAR(3)      := 'PAG';
+    csgConceito            CONSTANT VARCHAR2(20) := 'VALORREFERENCIA';
+    ctpOperacao            CONSTANT VARCHAR2(15) := 'IMPORTACAO';
     vcdIdentificacao       VARCHAR2(50)          := Null;
     vcdValorReferenciaNova NUMBER                := Null;
 
     vtxMensagem            VARCHAR2(100)  := NULL;
+    vtxResumo              VARCHAR2(4000) := NULL;
     vnuInseridos           NUMBER         := 0;
     vnuAtualizados         NUMBER         := 0;
-    vtxResumo              VARCHAR2(4000) := NULL;
     vListaTabelas          CLOB := '[
-      "EPAGBASECALCULO",
-      "EPAGBASECALCULOVERSAO",
-      "EPAGHISTBASECALCULO",
-      "EPAGBASECALCULOBLOCO",
-      "EPAGBASECALCULOBLOCOEXPRESSAO",
-      "EPAGBASECALCBLOCOEXPRRUBAGRUP"
+      "EPAGVALORREFERENCIA",
+      "EPAGVALORREFERENCIAVERSAO",
+      "EPAGHISTVALORREFERENCIA"
     ]';
 
-    vdtTermino          TIMESTAMP    := LOCALTIMESTAMP;
-    vnuTempoExecucao    INTERVAL DAY TO SECOND := NULL;
+    vdtOperacao            TIMESTAMP := LOCALTIMESTAMP;
+    vdtTermino             TIMESTAMP := LOCALTIMESTAMP;
+    vnuTempoExecucao       INTERVAL DAY TO SECOND := NULL;
       
     -- Cursor que extrai e transforma os dados JSON dos Valores de Referencia
     CURSOR cDados IS
@@ -271,6 +262,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       JSON_SERIALIZE(TO_CLOB(js.Versoes) RETURNING CLOB) AS Versoes
       
       FROM emigParametrizacao cfg
+      -- Caminho Absoluto no Documento JSON
+      -- $.PAG.ValorReferencia
       CROSS APPLY JSON_TABLE(cfg.jsConteudo, '$.PAG.ValorReferencia' COLUMNS (
         sgValorReferencia        PATH '$.sgValorReferencia',
         nmValorReferencia        PATH '$.nmValorReferencia',
@@ -283,31 +276,39 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       )) js
       LEFT JOIN OrgaoLista o on o.sgAgrupamento = psgAgrupamentoDestino and nvl(o.sgOrgao,' ') = nvl(cfg.sgOrgao,' ')
       LEFT JOIN epagValorReferencia vlref on vlref.cdAgrupamento = o.cdAgrupamento AND vlref.sgValorReferencia = js.sgValorReferencia
-      WHERE cfg.sgModulo = 'PAG' AND cfg.sgConceito = 'VALORREFERENCIA' AND cfg.flAnulado = 'N'
+      WHERE cfg.sgModulo = csgModulo AND cfg.sgConceito = csgConceito AND cfg.flAnulado = 'N'
         AND cfg.sgAgrupamento = psgAgrupamentoOrigem AND nvl(o.sgOrgao,' ') = nvl(vsgOrgao,' ')
         AND (cfg.cdIdentificacao = pcdIdentificacao OR pcdIdentificacao IS NULL)
       )
       SELECT * FROM ValorReferencia;
 
-  BEGIN
+    BEGIN
 
-    vdtOperacao := LOCALTIMESTAMP;
-    vnuInseridos := 0;
-    vnuAtualizados := 0;
+      vdtOperacao := LOCALTIMESTAMP;
+      vnuInseridos := 0;
+      vnuAtualizados := 0;
 
-    IF pcdIdentificacao IS NULL THEN
-      vtxMensagem := 'Inicio da Importação das Parametrizações dos Valores de Referencia ';
-    ELSE
-      vtxMensagem := 'Inicio da Importação da Parametrização do Valor de Referencia "' || pcdIdentificacao || '" ';
-    END IF;
+      IF pcdIdentificacao IS NULL THEN
+        vtxMensagem := 'Inicio da Importação das Parametrizações dos Valores de Referencia ';
+      ELSE
+        vtxMensagem := 'Inicio da Importação da Parametrização do Valor de Referencia "' || pcdIdentificacao || '" ';
+      END IF;
 
-    PKGMIG_ParametrizacaoLog.pAlertar(vtxMensagem ||
-      'do Agrupamento ' || psgAgrupamentoOrigem || ' ' ||
-      'para o Agrupamento ' || psgAgrupamentoDestino || ', ' || CHR(13) || CHR(10) ||
-      'Data da Operação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
-      cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+      IF psgAgrupamentoOrigem IS NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_PARAMETRO_OBRIGATORIO,
+          'Agrupamento não Informado.');
+      ELSIF PKGMIG_ParametrizacaoLog.fnValidarAgrupamento(psgAgrupamentoOrigem) IS NOT NULL THEN
+        RAISE_APPLICATION_ERROR(PKGMIG_ParametrizacaoLog.cERRO_AGRUPAMENTO_INVALIDO,
+          'Agrupamento Informado não Cadastrado.: "' || SUBSTR(psgAgrupamentoOrigem,1,15) || '".');
+      END IF;
 
-    IF cAUDITORIA_ESSENCIAL != pnuNivelAuditoria THEN
+      PKGMIG_ParametrizacaoLog.pAlertar(vtxMensagem ||
+        'do Agrupamento ' || psgAgrupamentoOrigem || ' ' ||
+        'para o Agrupamento ' || psgAgrupamentoDestino || ', ' || CHR(13) || CHR(10) ||
+        'Data da Operação ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS'),
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+
+      IF cAUDITORIA_ESSENCIAL != pnuNivelAuditoria THEN
         PKGMIG_ParametrizacaoLog.pAlertar('Nível de Auditoria Habilitado ' ||
           CASE pnuNivelAuditoria
             WHEN cAUDITORIA_SILENCIADO THEN 'SILENCIADO'
@@ -316,111 +317,111 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
             WHEN cAUDITORIA_COMPLETO   THEN 'COMPLETO'
             ELSE 'ESSENCIAL'
           END, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-    END IF;
-
-    -- Loop principal de processamento para Incluir os Valores de Referencia
-    FOR r IN cDados LOOP
-  
-      vsgOrgao := r.cdOrgao;
-      vcdIdentificacao := r.sgValorReferencia;
-  
-      PKGMIG_ParametrizacaoLog.pAlertar('Importação do Valor de Referencia ' || vcdIdentificacao,
-        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-
-      IF r.cdValorReferencia IS NULL THEN
-
-        -- Incluir Novo Valor de Referencia
-	      SELECT NVL(MAX(cdValorReferencia), 0) + 1 INTO vcdValorReferenciaNova FROM epagValorReferencia;
-
-        INSERT INTO epagValorReferencia (cdValorReferencia, cdAgrupamento,
-          sgValorReferencia, nmValorReferencia,
-          flValeTransporte, flCorrecaoMonetaria, flBloqueioRemuneracao, flPermiteValorRetroativo, flTetoAuxilioFuneral,
-          dtUltAlteracao
-        ) VALUES (vcdValorReferenciaNova, r.cdAgrupamento,
-          r.sgValorReferencia, r.nmValorReferencia,
-          r.flValeTransporte, r.flCorrecaoMonetaria, r.flBloqueioRemuneracao, r.flPermiteValorRetroativo, r.flTetoAuxilioFuneral,
-          r.dtUltAlteracao
-        );
-
-        vnuInseridos := vnuInseridos + 1;
-        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
-          vsgModulo, vsgConceito, vcdIdentificacao, 1,
-          'VALOR REFERENCIA', 'INCLUSAO', 'Valor de Referencia incluido com sucesso',
-          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
-      ELSE
-        -- Atualizar Valor de Referencia Existente
-        vcdValorReferenciaNova := r.cdValorReferencia;
-
-        UPDATE epagValorReferencia SET
-          cdAgrupamento            = r.cdAgrupamento,
-          sgValorReferencia        = r.sgValorReferencia,
-          nmValorReferencia        = r.nmValorReferencia,
-          flValeTransporte         = r.flValeTransporte,
-          flCorrecaoMonetaria      = r.flCorrecaoMonetaria,
-          flBloqueioRemuneracao    = r.flBloqueioRemuneracao,
-          flPermiteValorRetroativo = r.flPermiteValorRetroativo,
-          flTetoAuxilioFuneral     = r.flTetoAuxilioFuneral,
-          dtUltAlteracao           = r.dtUltAlteracao
-        WHERE cdValorReferencia = vcdValorReferenciaNova;
-
-        vnuAtualizados := vnuAtualizados + 1;
-        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
-          vsgModulo, vsgConceito, vcdIdentificacao, 1,
-          'VALOR REFERENCIA', 'ATUALIZACAO', 'Valor de Referencia atualizado com sucesso',
-          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
       END IF;
 
-      -- Excluir Versões e Vigências do Valor de Referencia
-      pExcluirVersoesVigencias(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
-        vsgModulo, vsgConceito, vcdIdentificacao, vcdValorReferenciaNova, pnuNivelAuditoria);
+      -- Loop principal de processamento para Incluir os Valores de Referencia
+      FOR r IN cDados LOOP
+  
+        vsgOrgao := r.cdOrgao;
+        vcdIdentificacao := r.sgValorReferencia;
+  
+        PKGMIG_ParametrizacaoLog.pAlertar('Importação do Valor de Referencia ' || vcdIdentificacao,
+          cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
-      -- Importar Versões do Valor de Referencia
-      pImportarVersoes(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
-        vsgModulo, vsgConceito, vcdIdentificacao, vcdValorReferenciaNova, r.Versoes, pnuNivelAuditoria);
+        IF r.cdValorReferencia IS NULL THEN
 
-      COMMIT;
+          -- Incluir Novo Valor de Referencia
+	        SELECT NVL(MAX(cdValorReferencia), 0) + 1 INTO vcdValorReferenciaNova FROM epagValorReferencia;
 
-    END LOOP;
+          INSERT INTO epagValorReferencia (cdValorReferencia, cdAgrupamento,
+            sgValorReferencia, nmValorReferencia,
+            flValeTransporte, flCorrecaoMonetaria, flBloqueioRemuneracao, flPermiteValorRetroativo, flTetoAuxilioFuneral,
+            dtUltAlteracao
+          ) VALUES (vcdValorReferenciaNova, r.cdAgrupamento,
+            r.sgValorReferencia, r.nmValorReferencia,
+            r.flValeTransporte, r.flCorrecaoMonetaria, r.flBloqueioRemuneracao, r.flPermiteValorRetroativo, r.flTetoAuxilioFuneral,
+            r.dtUltAlteracao
+          );
 
-    -- Gerar as Estatísticas da Importação dos Valores de Referencia
-    vdtTermino := LOCALTIMESTAMP;
-    vnuTempoExecucao := vdtTermino - vdtOperacao;
-    vtxResumo := 
-      'Agrupamento ' || psgAgrupamentoOrigem || ' para o ' ||
-      'Agrupamento ' || psgAgrupamentoDestino || ', ' || CHR(13) || CHR(10) ||
-      'Data e Hora da Inicio da Operação  ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS')  || ', ' || CHR(13) || CHR(10) ||
-      'Data e Hora da Termino da Operação ' || TO_CHAR(vdtTermino, 'DD/MM/YYYY HH24:MI:SS')  || ', ' || CHR(13) || CHR(10) ||
-	    'Tempo de Execução ' ||
-	    LPAD(EXTRACT(HOUR FROM vnuTempoExecucao), 2, '0') || ':' ||
-	    LPAD(EXTRACT(MINUTE FROM vnuTempoExecucao), 2, '0') || ':' ||
-	    LPAD(TRUNC(EXTRACT(SECOND FROM vnuTempoExecucao)), 2, '0') || ', ' || CHR(13) || CHR(10) ||
-	    'Total de Parametrizações dos Valores de Referencia Incluídas: ' || vnuInseridos ||
-      ' e Alteradas: ' || vnuAtualizados;
+          vnuInseridos := vnuInseridos + 1;
+          PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, vsgOrgao, ctpOperacao, vdtOperacao,
+            csgModulo, csgConceito, vcdIdentificacao, 1,
+            'VALOR REFERENCIA', 'INCLUSAO', 'Valor de Referencia incluido com sucesso',
+            cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        ELSE
+          -- Atualizar Valor de Referencia Existente
+          vcdValorReferenciaNova := r.cdValorReferencia;
 
-    PKGMIG_ParametrizacaoLog.pGerarResumo(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
-      vsgModulo, vsgConceito, vdtTermino, vnuTempoExecucao, pnuNivelAuditoria);
+          UPDATE epagValorReferencia SET
+            cdAgrupamento            = r.cdAgrupamento,
+            sgValorReferencia        = r.sgValorReferencia,
+            nmValorReferencia        = r.nmValorReferencia,
+            flValeTransporte         = r.flValeTransporte,
+            flCorrecaoMonetaria      = r.flCorrecaoMonetaria,
+            flBloqueioRemuneracao    = r.flBloqueioRemuneracao,
+            flPermiteValorRetroativo = r.flPermiteValorRetroativo,
+            flTetoAuxilioFuneral     = r.flTetoAuxilioFuneral,
+            dtUltAlteracao           = r.dtUltAlteracao
+          WHERE cdValorReferencia = vcdValorReferenciaNova;
 
-    -- Registro de Resumo da Exportação dos Valores de Referencia
-    PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
-      vsgModulo, vsgConceito, NULL, NULL,
-      'VALORES REFERENCIA', 'RESUMO', 'Importação das Parametrizações dos Valores de Referencia do ' || vtxResumo, 
-      cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+          vnuAtualizados := vnuAtualizados + 1;
+          PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, vsgOrgao, ctpOperacao, vdtOperacao,
+            csgModulo, csgConceito, vcdIdentificacao, 1,
+            'VALOR REFERENCIA', 'ATUALIZACAO', 'Valor de Referencia atualizado com sucesso',
+            cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        END IF;
 
-    -- Atualizar a SEQUENCE das Tabela Envolvidas na importação dos Valores de Referencia
-    PKGMIG_ParametrizacaoLog.pAtualizarSequence(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
-      vsgModulo, vsgConceito, vListaTabelas, pnuNivelAuditoria);
+        -- Excluir Versões e Vigências do Valor de Referencia
+        pExcluirVersoesVigencias(psgAgrupamentoDestino, vsgOrgao, ctpOperacao, vdtOperacao,
+          csgModulo, csgConceito, vcdIdentificacao, vcdValorReferenciaNova, pnuNivelAuditoria);
 
-    PKGMIG_ParametrizacaoLog.pAlertar('Termino da Importação das Parametrizações dos Valores de Referencia do ' ||
-      vtxResumo, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+        -- Importar Versões do Valor de Referencia
+        pImportarVersoes(psgAgrupamentoDestino, vsgOrgao, ctpOperacao, vdtOperacao,
+          csgModulo, csgConceito, vcdIdentificacao, vcdValorReferenciaNova, r.Versoes, pnuNivelAuditoria);
 
-  EXCEPTION
-    WHEN OTHERS THEN
-      -- Registro e Propagação do Erro
-      PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,  
-        vsgModulo, vsgConceito, vcdIdentificacao, 'VALORES REFERENCIA',
-        'Importação de Valores de Referencia (PKGMIG_ParemetrizacaoValoresReferencia.pImportar)', SQLERRM);
-    ROLLBACK;
-    RAISE;
+        COMMIT;
+
+      END LOOP;
+
+      -- Gerar as Estatísticas da Importação dos Valores de Referencia
+      vdtTermino := LOCALTIMESTAMP;
+      vnuTempoExecucao := vdtTermino - vdtOperacao;
+      vtxResumo := 
+        'Agrupamento ' || psgAgrupamentoOrigem || ' para o ' ||
+        'Agrupamento ' || psgAgrupamentoDestino || ', ' || CHR(13) || CHR(10) ||
+        'Data e Hora da Inicio da Operação  ' || TO_CHAR(vdtOperacao, 'DD/MM/YYYY HH24:MI:SS')  || ', ' || CHR(13) || CHR(10) ||
+        'Data e Hora da Termino da Operação ' || TO_CHAR(vdtTermino, 'DD/MM/YYYY HH24:MI:SS')  || ', ' || CHR(13) || CHR(10) ||
+	      'Tempo de Execução ' ||
+	      LPAD(EXTRACT(HOUR FROM vnuTempoExecucao), 2, '0') || ':' ||
+	      LPAD(EXTRACT(MINUTE FROM vnuTempoExecucao), 2, '0') || ':' ||
+	      LPAD(TRUNC(EXTRACT(SECOND FROM vnuTempoExecucao)), 2, '0') || ', ' || CHR(13) || CHR(10) ||
+	      'Total de Parametrizações dos Valores de Referencia Incluídas: ' || vnuInseridos ||
+        ' e Alteradas: ' || vnuAtualizados;
+
+      PKGMIG_ParametrizacaoLog.pGerarResumo(psgAgrupamentoDestino, vsgOrgao, ctpOperacao, vdtOperacao,
+        csgModulo, csgConceito, vdtTermino, vnuTempoExecucao, pnuNivelAuditoria);
+
+      -- Registro de Resumo da Exportação dos Valores de Referencia
+      PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, vsgOrgao, ctpOperacao, vdtOperacao,
+        csgModulo, csgConceito, NULL, NULL,
+        'VALORES REFERENCIA', 'RESUMO', 'Importação das Parametrizações dos Valores de Referencia do ' || vtxResumo, 
+        cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+
+      -- Atualizar a SEQUENCE das Tabela Envolvidas na importação dos Valores de Referencia
+      PKGMIG_ParametrizacaoLog.pAtualizarSequence(psgAgrupamentoDestino, vsgOrgao, ctpOperacao, vdtOperacao,
+        csgModulo, csgConceito, vListaTabelas, pnuNivelAuditoria);
+
+      PKGMIG_ParametrizacaoLog.pAlertar('Termino da Importação das Parametrizações dos Valores de Referencia do ' ||
+        vtxResumo, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
+
+    EXCEPTION
+      WHEN OTHERS THEN
+        -- Registro e Propagação do Erro
+        PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, vsgOrgao, ctpOperacao, vdtOperacao,  
+          csgModulo, csgConceito, vcdIdentificacao, 'VALORES REFERENCIA',
+          'Importação de Valores de Referencia (PKGMIG_ParemetrizacaoValoresReferencia.pImportar)', SQLERRM);
+      ROLLBACK;
+      RAISE;
   END pImportar;
 
   PROCEDURE pExcluirVersoesVigencias(
@@ -562,6 +563,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
 
       JSON_SERIALIZE(TO_CLOB(js.Vigencias) RETURNING CLOB) AS Vigencias
 
+      -- Caminho Absoluto no Documento JSON
+      -- $.PAG.ValorReferencia.Versoes
       FROM JSON_TABLE(pVersoes, '$[*]' COLUMNS (
         nuVersao  PATH '$.nuVersao',
         Vigencias CLOB FORMAT JSON PATH '$.Vigencias'
@@ -705,6 +708,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
       TRUNC(SYSDATE) AS dtInclusao,
       SYSTIMESTAMP AS dtUltAlteracao
 
+      -- Caminho Absoluto no Documento JSON
+      -- $.PAG.ValorReferencia.Versoes.Vigencias
       FROM JSON_TABLE(pVigencias, '$[*]' COLUMNS (
         nuAnoMesInicioVigencia PATH '$.nuAnoMesInicioVigencia',
         nuAnoMesFimVigencia    PATH '$.nuAnoMesFimVigencia',
