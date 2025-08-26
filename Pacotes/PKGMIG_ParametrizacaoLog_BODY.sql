@@ -63,9 +63,11 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
     vParm.nuNivelAuditoria := fnObterNivelAuditoria(fnObterChave(pjsParametros, 'nmNivelAuditoria'));
 
     vParm.sgAgrupamento := UPPER(TRIM(fnObterChave(pjsParametros, 'sgAgrupamento')));
-    IF pflParamentrosOpcional = 'N' AND vParm.sgAgrupamento IS NULL THEN
-      RAISE_APPLICATION_ERROR(cERRO_PARAMETRO_OBRIGATORIO,
-        'Agrupamento não Informado.');
+    IF vParm.sgAgrupamento IS NULL THEN
+      IF pflParamentrosOpcional = 'N' THEN
+        RAISE_APPLICATION_ERROR(cERRO_PARAMETRO_OBRIGATORIO,
+          'Agrupamento não Informado.');
+      END IF;
     ELSIF fnValidarAgrupamento(vParm.sgAgrupamento) IS NOT NULL THEN
       RAISE_APPLICATION_ERROR(cERRO_AGRUPAMENTO_INVALIDO,
         'Agrupamento Informado não Cadastrado.: "' || vParm.sgAgrupamento || '".');
@@ -622,11 +624,12 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
     vParm := PKGMIG_ParametrizacaoLog.fnObterParametro(pjsParametros,'S');
 
     IF vParm.dtOperacao IS NULL THEN
-      SELECT TO_CHAR(MAX(dtExportacao), 'DD/MM/YYYY HH24:MI') INTO vdtOperacao
-      FROM emigParametrizacao
+      SELECT TO_CHAR(MAX(dtOperacao), 'DD/MM/YYYY HH24:MI') INTO vdtOperacao
+      FROM emigParametrizacaoLog
       WHERE (sgAgrupamento LIKE vParm.sgAgrupamento OR vParm.sgAgrupamento IS NULL)
         AND (sgModulo LIKE vParm.sgModulo OR vParm.sgModulo IS NULL)
-        AND (sgConceito LIKE vParm.sgConceito OR vParm.sgConceito IS NULL);
+        AND (sgConceito LIKE vParm.sgConceito OR vParm.sgConceito IS NULL)
+        AND (tpOperacao LIKE vParm.tpOperacao OR vParm.tpOperacao IS NULL);
     ELSE
       vdtOperacao := vParm.dtOperacao;
     END IF;
@@ -641,7 +644,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
         AND (sgConceito LIKE vParm.sgConceito OR vParm.sgConceito IS NULL)
         AND (tpOperacao LIKE vParm.tpOperacao OR vParm.tpOperacao IS NULL)
         AND TO_CHAR(dtOperacao, 'DD/MM/YYYY HH24:MI') = vdtOperacao
-        AND nmevento != 'RESUMO'
+        AND nmevento NOT IN ('RESUMO', 'SEQUENCE')
       GROUP BY tpOperacao, dtOperacao, sgAgrupamento, sgOrgao, sgModulo, sgConceito, nmEntidade
       ORDER BY tpOperacao, dtOperacao DESC, sgAgrupamento, sgModulo, sgConceito, sgOrgao, nmEntidade)
     LOOP
@@ -663,11 +666,12 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
     vParm := PKGMIG_ParametrizacaoLog.fnObterParametro(pjsParametros,'S');
 
     IF vParm.dtOperacao IS NULL THEN
-      SELECT TO_CHAR(MAX(dtExportacao), 'DD/MM/YYYY HH24:MI') INTO vdtOperacao
-      FROM emigParametrizacao
+      SELECT TO_CHAR(MAX(dtOperacao), 'DD/MM/YYYY HH24:MI') INTO vdtOperacao
+      FROM emigParametrizacaoLog
       WHERE (sgAgrupamento LIKE vParm.sgAgrupamento OR vParm.sgAgrupamento IS NULL)
         AND (sgModulo LIKE vParm.sgModulo OR vParm.sgModulo IS NULL)
-        AND (sgConceito LIKE vParm.sgConceito OR vParm.sgConceito IS NULL);
+        AND (sgConceito LIKE vParm.sgConceito OR vParm.sgConceito IS NULL)
+        AND (tpOperacao LIKE vParm.tpOperacao OR vParm.tpOperacao IS NULL);
     ELSE
       vdtOperacao := vParm.dtOperacao;
     END IF;
@@ -681,7 +685,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoLog AS
         AND (sgModulo LIKE vParm.sgModulo OR vParm.sgModulo IS NULL)
         AND (sgConceito LIKE vParm.sgConceito OR vParm.sgConceito IS NULL)
         AND (tpOperacao LIKE vParm.tpOperacao OR vParm.tpOperacao IS NULL)
-        AND (TO_CHAR(dtOperacao, 'DD/MM/YYYY HH24:MI') = vdtOperacao)
+        AND TO_CHAR(dtOperacao, 'DD/MM/YYYY HH24:MI') = vdtOperacao
       ORDER BY dtInclusao, tpOperacao, dtOperacao,
         sgAgrupamento, sgOrgao, sgModulo, sgConceito,
         cdIdentificacao NULLS FIRST, nmEvento, deMensagem)
