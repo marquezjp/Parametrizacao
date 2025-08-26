@@ -13,64 +13,23 @@ ADM-DIR
 /* INDIR-FEMARH */
 SET SERVEROUTPUT ON SIZE UNLIMITED;
 EXEC PKGMIG_Parametrizacao.pExportar('{"sgAgrupamento": "MILITAR", "sgConceito": "VALORREFERENCIA"}');
-EXEC PKGMIG_Parametrizacao.pExportar('{"sgAgrupamento": "INDIR-FEMARH", "sgConceito": "VALORREFERENCIA"}');
-EXEC PKGMIG_Parametrizacao.pExportar('{"sgAgrupamento": "INDIR-ADERR", "sgConceito": "VALORREFERENCIA"}');
-EXEC PKGMIG_Parametrizacao.pExportar('{"sgAgrupamento": "INDIR-IATER", "sgConceito": "VALORREFERENCIA"}');
-EXEC PKGMIG_Parametrizacao.pExportar('{"sgAgrupamento": "INDIR-IERR", "sgConceito": "VALORREFERENCIA"}');
-EXEC PKGMIG_Parametrizacao.pExportar('{"sgAgrupamento": "INDIR-IPEM/RR", "sgConceito": "VALORREFERENCIA"}');
-EXEC PKGMIG_Parametrizacao.pExportar('{"sgAgrupamento": "ADM-DIR", "sgConceito": "VALORREFERENCIA"}');
 
-EXEC PKGMIG_Parametrizacao.pExportar('{"sgAgrupamento": "MILITAR", "sgConceito": "VALORREFERENCIA", "cdIdentificacao": "S01"}');
-
+EXEC PKGMIG_Parametrizacao.Importar('{"sgAgrupamento": "MILITAR", "sgConceito": "VALORREFERENCIA", "cdIdentificacao": "S01"}');
 
 SELECT * FROM TABLE(PKGMIG_Parametrizacao.fnResumo());
 
 SELECT * FROM TABLE(PKGMIG_Parametrizacao.fnListar('{"sgAgrupamento": "MILITAR", "sgConceito": "RUBRICA"}'));
 
-SELECT * FROM TABLE(PKGMIG_Parametrizacao.fnResumoLog());
+SELECT * FROM TABLE(PKGMIG_ParametrizacaoLog.fnResumo());
 
-SELECT * FROM TABLE(PKGMIG_Parametrizacao.fnResumoLogEntidades('{"sgAgrupamento": "MILITAR", "sgConceito": "VALORREFERENCIA", "tpOperacao": "EXPORTACAO"}'));
+SELECT * FROM TABLE(PKGMIG_ParametrizacaoLog.fnListar('{"sgAgrupamento": "MILITAR", "sgConceito": "VALORREFERENCIA", "tpOperacao": "EXPORTACAO"}'));
 
-SELECT * FROM TABLE(PKGMIG_Parametrizacao.fnListarLog('{"sgAgrupamento": "MILITAR", "sgConceito": "VALORREFERENCIA", "tpOperacao": "EXPORTACAO"}'));
+SELECT * FROM TABLE(PKGMIG_ParametrizacaoLog.fnResumoEntidades('{"sgAgrupamento": "MILITAR", "sgConceito": "VALORREFERENCIA", "tpOperacao": "EXPORTACAO"}'));
 
---- Log das Operações
-SELECT tpOperacao, TO_CHAR(dtOperacao, 'YYYY/MM/DD HH24:MI') as dtOperacao, --sgConceito, 
-nmEntidade, cdIdentificacao, nmEvento, nuRegistros, deMensagem, dtInclusao from emigParametrizacaoLog
-WHERE tpOperacao = 'IMPORTACAO' AND sgAgrupamento = 'INDIR-IPEM/RR' AND sgConceito = 'BASECALCULO'
-  --AND nmEntidade LIKE 'BASE CALCULO%'
-  --AND cdIdentificacao LIKE 'B1000%'
-  --AND nmEvento = 'RESUMO'
-  --AND nmEvento = 'JSON'
-ORDER BY dtInclusao
-;
-
---SELECT DISTINCT sgAgrupamento, sgConceito, TO_CHAR(dtOperacao, 'YYYY/MM/DD HH24:MI') AS dtOperacao FROM emigParametrizacaoLog
-DELETE FROM emigParametrizacaoLog
+SELECT DISTINCT sgAgrupamento, sgConceito, TO_CHAR(dtOperacao, 'YYYY/MM/DD HH24:MI') AS dtOperacao FROM emigParametrizacaoLog
+--DELETE FROM emigParametrizacaoLog
 WHERE tpOperacao = 'IMPORTACAO' AND sgAgrupamento = 'INDIR-IPEM/RR' AND sgConceito = 'BASECALCULO'
 --  AND TO_CHAR(dtOperacao, 'YYYY/MM/DD HH24:MI') = '15/06/2025 13:23'
-;
-
-Select sgAgrupamento, sgConceito, tpOperacao, TO_CHAR(MAX(dtOperacao), 'YYYY/MM/DD HH24:MI') as dtOperacao
-FROM emigParametrizacaoLog
-WHERE tpOperacao = 'IMPORTACAO' AND sgAgrupamento = 'INDIR-IPEM/RR' AND sgConceito = 'BASECALCULO'
-GROUP BY sgAgrupamento, sgConceito, tpOperacao
-ORDER BY sgAgrupamento, sgConceito, tpOperacao
-;
-
---- Parametrizações
-SELECT sgConceito, sgAgrupamento, cdIdentificacao, jsConteudo
-FROM emigParametrizacao
-WHERE sgAgrupamento = 'INDIR-FEMARH' AND sgConceito = 'BASECALCULO'
-  --AND nmEntidade LIKE 'BASE CALCULO%'
-  --AND cdIdentificacao LIKE 'B1000%'
-  --AND nmEvento = 'RESUMO'
-ORDER BY sgConceito, sgAgrupamento, cdIdentificacao
-;
-
-SELECT sgConceito, sgAgrupamento, TO_CHAR(dtExportacao, 'YYYY/MM/DD HH24:MI') AS dtExportacao,
-COUNT(*) AS nuRegistros FROM emigParametrizacao
-GROUP BY sgConceito, sgAgrupamento, TO_CHAR(dtExportacao, 'YYYY/MM/DD HH24:MI')
-ORDER BY sgConceito, sgAgrupamento, dtExportacao
 ;
 
 SELECT DISTINCT sgAgrupamento, sgConceito, TO_CHAR(dtExportacao, 'DD/MM/YYYY HH24:MI:SS') AS dtExportacao FROM emigParametrizacao
