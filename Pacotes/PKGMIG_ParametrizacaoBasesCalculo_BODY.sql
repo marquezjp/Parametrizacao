@@ -195,17 +195,21 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
   ) IS
     -- Variáveis de controle e contexto
     vsgOrgao               VARCHAR2(15)          := Null;
-    vsgModulo              CONSTANT CHAR(3)      := 'PAG';
-    vsgConceito            CONSTANT VARCHAR2(20) := 'BASECALCULO';
-	  vtpOperacao            CONSTANT VARCHAR2(15) := 'IMPORTACAO';
-	  vdtOperacao            TIMESTAMP             := LOCALTIMESTAMP;
+    csgModulo              CONSTANT CHAR(3)      := 'PAG';
+    csgConceito            CONSTANT VARCHAR2(20) := 'BASECALCULO';
+	  ctpOperacao            CONSTANT VARCHAR2(15) := 'IMPORTACAO';
     vcdIdentificacao       VARCHAR2(70)          := Null;
     vcdBaseCalculoNova     NUMBER                := Null;
 
+	  vdtOperacao            TIMESTAMP := LOCALTIMESTAMP;
+    vdtTermino             TIMESTAMP := LOCALTIMESTAMP;
+    vnuTempoExecucao       INTERVAL DAY TO SECOND := NULL;
+      
     vtxMensagem            VARCHAR2(100)  := NULL;
+    vtxResumo              VARCHAR2(4000) := NULL;
     vnuInseridos           NUMBER         := 0;
     vnuAtualizados         NUMBER         := 0;
-    vtxResumo              VARCHAR2(4000) := NULL;
+
     vListaTabelas          CLOB := '[
       "EPAGBASECALCULO",
       "EPAGBASECALCULOVERSAO",
@@ -215,9 +219,6 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       "EPAGBASECALCBLOCOEXPRRUBAGRUP"
     ]';
     
-    vdtTermino             TIMESTAMP    := LOCALTIMESTAMP;
-    vnuTempoExecucao       INTERVAL DAY TO SECOND := NULL;
-      
     -- Cursor que extrai e transforma os dados JSON das Bases
     CURSOR cDados IS
       WITH
@@ -275,7 +276,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
       )) js
       LEFT JOIN OrgaoLista o on o.sgAgrupamento = psgAgrupamentoDestino and nvl(o.sgOrgao,' ') = nvl(cfg.sgOrgao,' ')
       LEFT JOIN epagBaseCalculo base on base.cdAgrupamento = o.cdAgrupamento and base.sgBaseCalculo = js.sgBaseCalculo
-      WHERE cfg.sgModulo = vsgModulo AND cfg.sgConceito = vsgConceito AND cfg.flAnulado = 'N'
+      WHERE cfg.sgModulo = csgModulo AND cfg.sgConceito = csgConceito AND cfg.flAnulado = 'N'
         AND cfg.sgAgrupamento = psgAgrupamentoOrigem AND cfg.sgOrgao IS NULL
         AND (cfg.cdIdentificacao = pcdIdentificacao OR pcdIdentificacao IS NULL)
       )
@@ -332,8 +333,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
         );
 
         vnuInseridos := vnuInseridos + 1;
-        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
-          vsgModulo, vsgConceito, vcdIdentificacao, 1,
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, vsgOrgao, ctpOperacao, vdtOperacao,
+          csgModulo, csgConceito, vcdIdentificacao, 1,
           'BASE CALCULO', 'INCLUSAO', 'Base de Cálculo incluidas com sucesso',
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
       ELSE
@@ -353,19 +354,19 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
         WHERE cdBaseCalculo = vcdBaseCalculoNova;
 
         vnuAtualizados := vnuAtualizados + 1;
-        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
-          vsgModulo, vsgConceito, vcdIdentificacao, 1,
+        PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, vsgOrgao, ctpOperacao, vdtOperacao,
+          csgModulo, csgConceito, vcdIdentificacao, 1,
           'BASE CALCULO', 'ATUALIZACAO', 'Base de Cálculo atualizada com sucesso',
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
       END IF;
 
       -- Excluir Versões e Vigências do Valor de Referencia
-      pExcluirBaseCalculo(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
-        vsgModulo, vsgConceito, vcdIdentificacao, vcdBaseCalculoNova, pnuNivelAuditoria);
+      pExcluirBaseCalculo(psgAgrupamentoDestino, vsgOrgao, ctpOperacao, vdtOperacao,
+        csgModulo, csgConceito, vcdIdentificacao, vcdBaseCalculoNova, pnuNivelAuditoria);
 
       -- Importar Versões da Base de Cálculo
-      pImportarVersoes(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
-        vsgModulo, vsgConceito, vcdIdentificacao, vcdBaseCalculoNova, r.Versoes, pnuNivelAuditoria);
+      pImportarVersoes(psgAgrupamentoDestino, vsgOrgao, ctpOperacao, vdtOperacao,
+        csgModulo, csgConceito, vcdIdentificacao, vcdBaseCalculoNova, r.Versoes, pnuNivelAuditoria);
       
       COMMIT;
 
@@ -386,18 +387,18 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
 	  'Total de Parametrizações das Bases de Cálculo Incluídas: ' || vnuInseridos ||
       ' e Alteradas: ' || vnuAtualizados;
 
-    PKGMIG_ParametrizacaoLog.pGerarResumo(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
-      vsgModulo, vsgConceito, vdtTermino, vnuTempoExecucao, pnuNivelAuditoria);
+    PKGMIG_ParametrizacaoLog.pGerarResumo(psgAgrupamentoDestino, vsgOrgao, ctpOperacao, vdtOperacao,
+      csgModulo, csgConceito, vdtTermino, vnuTempoExecucao, pnuNivelAuditoria);
 
     -- Registro de Resumo da Importação dos Valores de Referencia
-    PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
-      vsgModulo, vsgConceito, NULL, NULL,
+    PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, vsgOrgao, ctpOperacao, vdtOperacao,
+      csgModulo, csgConceito, NULL, NULL,
       'RESUMO', 'RESUMO', 'Importação das Parametrizações das Bases de Cálculo do ' || vtxResumo, 
       cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
     -- Atualizar a SEQUENCE das Tabela Envolvidas na importação das Bases de Cálculo
-    PKGMIG_ParametrizacaoLog.pAtualizarSequence(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,
-      vsgModulo, vsgConceito, vListaTabelas, pnuNivelAuditoria);
+    PKGMIG_ParametrizacaoLog.pAtualizarSequence(psgAgrupamentoDestino, vsgOrgao, ctpOperacao, vdtOperacao,
+      csgModulo, csgConceito, vListaTabelas, pnuNivelAuditoria);
 
     PKGMIG_ParametrizacaoLog.pAlertar('Termino da Importação das Parametrizações das Bases de Cálculo do ' ||
       vtxResumo, cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -405,8 +406,8 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParametrizacaoBasesCalculo AS
   EXCEPTION
     WHEN OTHERS THEN
       -- Registro e Propagação do Erro
-      PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, vsgOrgao, vtpOperacao, vdtOperacao,  
-        vsgModulo, vsgConceito, vcdIdentificacao, 'BASE CALCULO',
+      PKGMIG_ParametrizacaoLog.pRegistrarErro(psgAgrupamentoDestino, vsgOrgao, ctpOperacao, vdtOperacao,  
+        csgModulo, csgConceito, vcdIdentificacao, 'BASE CALCULO',
         'Importação de Bases de Cálculo (PKGMIG_ParametrizacaoBasesCalculo.pImportar)', SQLERRM);
     ROLLBACK;
     RAISE;
