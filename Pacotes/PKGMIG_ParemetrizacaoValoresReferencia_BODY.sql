@@ -488,7 +488,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
 
       PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
-        'VIGENCIA', 'EXCLUSAO', 'Vigências do Valore de Referencia excluidos com sucesso',
+        'VALORES REFERENCIA VIGENCIA', 'EXCLUSAO', 'Vigências do Valore de Referencia excluidos com sucesso',
         cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 	  END IF;
 
@@ -502,7 +502,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
 
       PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao, 
         psgModulo, psgConceito, vcdIdentificacao, vnuRegistros,
-        'VERCAO', 'EXCLUSAO', 'Versões do Valore de Referencia excluidos com sucesso',
+        'VALORES REFERENCIA VERCAO', 'EXCLUSAO', 'Versões do Valore de Referencia excluidos com sucesso',
         cAUDITORIA_COMPLETO, pnuNivelAuditoria);
 	  END IF;
 
@@ -598,7 +598,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
 
       PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'VERCAO', 'INCLUSAO', 'Versão do Valor de Referencia incluido com sucesso',
+        'VALORES REFERENCIA VERCAO', 'INCLUSAO', 'Versão do Valor de Referencia incluido com sucesso',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
       -- Importar Vigências da Formula de Cálculo
@@ -752,7 +752,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
 
         PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
           psgModulo, psgConceito, vcdIdentificacao, 1,
-          'VIGENCIA', 'INCONSISTENTE',
+          'VALORES REFERENCIA VIGENCIA', 'INCONSISTENTE',
           'Sigla da Tabela Geral CEF' || ' (' || r.sgValorGeralCEFAgrup || ') ' ||
           'da Vigência do Valor de Referencia não encontrada no Agrupamento',
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
@@ -766,7 +766,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
 
         PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
           psgModulo, psgConceito, vcdIdentificacao, 1,
-          'VIGENCIA', 'INCONSISTENTE',
+          'VALORES REFERENCIA VIGENCIA', 'INCONSISTENTE',
           ' Valor da Referencia é não numerico ou nulo (' || TO_CHAR(r.vlReferencia) || ')',
           cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
           
@@ -794,7 +794,7 @@ CREATE OR REPLACE PACKAGE BODY PKGMIG_ParemetrizacaoValoresReferencia AS
 
       PKGMIG_ParametrizacaoLog.pRegistrar(psgAgrupamentoDestino, psgOrgao, ptpOperacao, pdtOperacao,
         psgModulo, psgConceito, vcdIdentificacao, 1,
-        'VIGENCIA', 'INCLUSAO', 'Vigência do Valor de Referencia incluidos com sucesso',
+        'VALORES REFERENCIA VIGENCIA', 'INCLUSAO', 'Vigência do Valor de Referencia incluidos com sucesso',
         cAUDITORIA_ESSENCIAL, pnuNivelAuditoria);
 
     END LOOP;
